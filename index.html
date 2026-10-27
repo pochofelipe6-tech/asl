@@ -38,7 +38,8 @@
       display: grid;
       place-items: center;
       padding: 24px 16px;
-      background: var(--bg);
+      /* Imagen de fondo: cambia "fondo.svg" por tu propia foto (ej. fondo.jpg) */
+      background: var(--bg) url("fondo.svg") center / cover no-repeat fixed;
       color: var(--text);
       font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
@@ -49,7 +50,7 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 32px 28px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, .06);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
     }
     h1 { margin: 0 0 4px; font-size: 1.5rem; text-align: center; }
     .subtitle { margin: 0 0 24px; color: var(--muted); text-align: center; }
