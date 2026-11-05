@@ -7,10 +7,10 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
-const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET, PORT = "3001" } = process.env;
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY || !JWT_SECRET) {
-  console.error("Faltan variables de entorno. Copia .env.example como .env (o .env.local) y rell\xE9nalo.");
-  process.exit(1);
+const { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
+const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
+if (variablesFaltantes.length) {
+  console.error(`Faltan variables de autenticaci\xF3n: ${variablesFaltantes.join(", ")}. Config\xFAralas en el entorno del servidor.`);
 }
 const clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
@@ -21,7 +21,19 @@ const isProd = process.env.NODE_ENV === "production";
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use("/api", (_req, res, next) => {
+  if (variablesFaltantes.length) {
+    res.status(503).json({
+      error: "El inicio de sesi\xF3n no est\xE1 disponible. Contacta con el administrador.",
+      code: "AUTH_NOT_CONFIGURED",
+      variablesFaltantes
+    });
+    return;
+  }
+  next();
+});
 const leerSesion = (req) => {
+  if (variablesFaltantes.length) return null;
   const token = req.cookies[COOKIE];
   if (typeof token !== "string") return null;
   try {
@@ -31,7 +43,13 @@ const leerSesion = (req) => {
     return null;
   }
 };
-app.get("/", (req, res, next) => leerSesion(req) ? res.redirect("/panel") : next());
+app.get("/", (req, res) => {
+  if (leerSesion(req)) {
+    res.redirect("/panel");
+    return;
+  }
+  res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
+});
 app.use(express.static(path.join(import.meta.dirname, "public")));
 const limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,

@@ -8,11 +8,13 @@ import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 
-const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET, PORT = '3001' } = process.env;
+const { SUPABASE_URL = '', SUPABASE_PUBLISHABLE_KEY = '', JWT_SECRET = '', PORT = '3001' } = process.env;
+const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET })
+  .filter(([, valor]) => !valor.trim())
+  .map(([nombre]) => nombre);
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY || !JWT_SECRET) {
-  console.error('Faltan variables de entorno. Copia .env.example como .env (o .env.local) y rellénalo.');
-  process.exit(1);
+if (variablesFaltantes.length) {
+  console.error(`Faltan variables de autenticación: ${variablesFaltantes.join(', ')}. Configúralas en el entorno del servidor.`);
 }
 
 // Un cliente nuevo por petición, para que las sesiones de distintos usuarios no se mezclen
@@ -36,8 +38,20 @@ interface Sesion {
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use('/api', (_req, res, next) => {
+  if (variablesFaltantes.length) {
+    res.status(503).json({
+      error: 'El inicio de sesión no está disponible. Contacta con el administrador.',
+      code: 'AUTH_NOT_CONFIGURED',
+      variablesFaltantes,
+    });
+    return;
+  }
+  next();
+});
 
 const leerSesion = (req: Request): Sesion | null => {
+  if (variablesFaltantes.length) return null;
   const token: unknown = req.cookies[COOKIE];
   if (typeof token !== 'string') return null;
   try {
@@ -49,7 +63,10 @@ const leerSesion = (req: Request): Sesion | null => {
 };
 
 // Si ya hay sesión, el login redirige directamente al panel
-app.get('/', (req, res, next) => (leerSesion(req) ? res.redirect('/panel') : next()));
+app.get('/', (req, res) => {
+  if (leerSesion(req)) { res.redirect('/panel'); return; }
+  res.sendFile(path.join(import.meta.dirname, 'public', 'index.html'));
+});
 app.use(express.static(path.join(import.meta.dirname, 'public')));
 
 // Máximo 10 intentos fallidos cada 15 minutos por IP (los correctos no cuentan,
