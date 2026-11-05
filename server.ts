@@ -221,7 +221,9 @@ const paginaProtegida = (archivo: string): RequestHandler => (req, res) => {
 
 app.get('/panel', paginaProtegida('panel.html'));
 
-app.listen(Number(PORT), err => {
+export default app;
+
+if (!process.env.VERCEL) app.listen(Number(PORT), err => {
   if (err) {
     console.error(`No se pudo arrancar en el puerto ${PORT}: ${err.message}`);
     process.exit(1);
