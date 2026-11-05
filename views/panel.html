@@ -199,6 +199,20 @@
       </section>
     </main>
   </div>
+  <dialog id="excelDownloadDialog" class="excel-dialog" aria-labelledby="excelDownloadTitle">
+    <form id="excelDownloadForm">
+      <div class="excel-dialog-heading"><h2 id="excelDownloadTitle">Descargar Excel</h2><button id="excelDownloadClose" class="excel-close" type="button" aria-label="Cerrar descarga">×</button></div>
+      <p class="excel-message">Filtra por fecha de envío de información. Ambas fechas están incluidas.</p>
+      <label class="excel-download-option"><input type="radio" name="excelDownloadMode" value="rango" checked> Rango de fechas</label>
+      <div id="excelDownloadDates" class="excel-download-dates">
+        <label>Desde<input id="excelDownloadFrom" type="date" min="1900-01-01" max="9999-12-31" required></label>
+        <label>Hasta<input id="excelDownloadTo" type="date" min="1900-01-01" max="9999-12-31" required></label>
+      </div>
+      <label class="excel-download-option"><input id="excelDownloadHistory" type="radio" name="excelDownloadMode" value="historico"> Histórico completo</label>
+      <p class="excel-message">El histórico incluye todas las fechas contenidas en el último archivo importado.</p>
+      <div class="excel-dialog-actions"><button class="excel-button excel-primary" type="submit">Descargar Excel</button></div>
+    </form>
+  </dialog>
   <dialog id="excelDialog" class="excel-dialog" aria-labelledby="excelDialogTitle">
     <div class="excel-dialog-heading"><div><span class="section-label">ACTUALIZAR INFORMACIÓN</span><h2 id="excelDialogTitle">Subir Excel</h2></div><button id="excelClose" class="excel-close" type="button" aria-label="Cerrar carga de Excel">×</button></div>
     <label class="excel-file-label" for="excelFile">Selecciona tu archivo <small>.xlsx o .xlsb · Hoja Data · 41 columnas · Máximo 100 MB</small><input id="excelFile" type="file" accept=".xlsx,.xlsb"></label>

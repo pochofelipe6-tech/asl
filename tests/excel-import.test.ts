@@ -98,6 +98,29 @@ test('importación y exportación aisladas del informe real', { skip: !process.e
       assert.equal((await request('GET', '/archivo')).data.id, activa.data.lote);
       await request('DELETE', `/importaciones/${b}`);
     });
+    await t.test('filtra fechas inclusivas, pagina el rango y permite el histórico', async () => {
+      await pool.query("insert into frescura_consolidado_lotes(id,archivo,filas) values ('fechas','fechas.xlsx',2003)");
+      const fila = normalizarFila(valores(), 2);
+      await pool.query("insert into frescura_consolidado select 'fechas',n,$1::jsonb from generate_series(2,2002) n", [JSON.stringify(fila)]);
+      for (const [numero, fecha] of [[2003, '2026-11-04'], [2004, '2026-11-06']] as const) {
+        const otra = [...fila]; otra[0] = fechaExcel(fecha);
+        await pool.query("insert into frescura_consolidado values ('fechas',$1,$2::jsonb)", [numero, JSON.stringify(otra)]);
+      }
+      const ruta = '/datos?lote=fechas&desde=2026-11-05&hasta=2026-11-05';
+      const primera = await request('GET', ruta);
+      assert.equal(primera.status, 200); assert.equal(primera.data.total, 2001);
+      assert.equal(primera.data.filas.length, 2000); assert.equal(primera.data.siguiente, 2001);
+      const segunda = await request('GET', ruta + '&despues=' + primera.data.siguiente);
+      assert.equal(segunda.data.filas.length, 1); assert.equal(segunda.data.filas[0].fila_excel, 2002);
+      assert.equal(segunda.data.siguiente, null);
+      assert.equal((await request('GET', '/datos?lote=fechas&despues=2002')).data.filas.length, 2);
+      assert.equal((await request('GET', '/datos?lote=fechas&desde=2026-11-04&hasta=2026-11-06')).data.total, 2003);
+      const vacia = await request('GET', '/datos?lote=fechas&desde=2026-12-01&hasta=2026-12-31');
+      assert.equal(vacia.data.total, 0); assert.deepEqual(vacia.data.filas, []); assert.equal(vacia.data.siguiente, null);
+      for (const fechas of ['desde=2026-11-06&hasta=2026-11-04', 'desde=2026-02-30&hasta=2026-11-05', 'desde=2026-11-05', 'desde=texto&hasta=texto']) {
+        assert.equal((await request('GET', '/datos?lote=fechas&' + fechas)).status, 400);
+      }
+    });
     await t.test('descarga todas las filas en respuestas pequeñas sin perder el orden', async () => {
       await pool.query("insert into frescura_consolidado_lotes(id,archivo,filas) values ('grande','grande.xlsx',3001)");
       const fila = normalizarFila(valores('A'.repeat(1900)), 2);

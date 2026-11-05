@@ -2,7 +2,7 @@ import express from 'express';
 import type { Request } from 'express';
 import type pg from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
-import { COLUMNAS_EXCEL, MAX_FILAS, MAX_FILAS_BLOQUE, normalizarFila, validarColumnas } from '../shared/excel.ts';
+import { COLUMNAS_EXCEL, MAX_FILAS, MAX_FILAS_BLOQUE, fechaExcel, normalizarFila, validarColumnas } from '../shared/excel.ts';
 
 type SesionExcel = { sub: string };
 type Importacion = { id: string; usuario_id: string; archivo: string; filas: number; recibidas: number; ultima_fila: number; ultimo_offset: number | null; ultimo_hash: string | null; lote_base: string | null; lote_id: string | null; estado: string; vencida: boolean };
@@ -44,11 +44,23 @@ export function rutasExcel(pool: pg.Pool | null, sesion: (req: Request) => Sesio
   });
 
   router.get('/datos', async (req, res) => {
-    const { lote, despues = '1' } = req.query;
+    const { lote, despues = '1', desde, hasta } = req.query;
+    let rango: [number, number] | undefined;
+    if (desde !== undefined || hasta !== undefined) {
+      if (typeof desde !== 'string' || typeof hasta !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) throw new ErrorCarga(400, 'Selecciona la fecha inicial y final.');
+      try { rango = [fechaExcel(desde)!, fechaExcel(hasta)!]; }
+      catch { throw new ErrorCarga(400, 'El rango contiene una fecha inválida.'); }
+      if (rango[0] > rango[1]) throw new ErrorCarga(400, 'La fecha inicial debe ser anterior o igual a la final.');
+    }
     if (typeof lote !== 'string' || lote.length > 200 || typeof despues !== 'string' || !/^\d{1,7}$/.test(despues)) throw new ErrorCarga(400, 'La descarga solicitada no es válida.');
     const existe = await pool!.query('select id from frescura_consolidado_lotes where id=$1', [lote]);
     if (!existe.rows.length) throw new ErrorCarga(404, 'No se encontró el archivo solicitado.');
-    const result = await pool!.query('select fila_excel, valores from frescura_consolidado where lote_id=$1 and fila_excel>$2 order by fila_excel limit 2001', [lote, Number(despues)]);
+    const filtro = rango ? ' and (valores->>0)::numeric >= $3 and (valores->>0)::numeric < $4' : '';
+    const parametros = [lote, Number(despues), ...(rango ? [rango[0], rango[1] + 1] : [])];
+    const result = await pool!.query('select fila_excel, valores from frescura_consolidado where lote_id=$1 and fila_excel>$2' + filtro + ' order by fila_excel limit 2001', parametros);
+    const total = Number(despues) === 1 && rango
+      ? (await pool!.query('select count(*)::int as n from frescura_consolidado where lote_id=$1 and fila_excel>$2' + filtro, parametros)).rows[0].n as number
+      : undefined;
     const filas: { fila_excel: number; valores: unknown[] }[] = [];
     let bytes = 0;
     for (const fila of result.rows.slice(0, 2000)) {
@@ -56,7 +68,7 @@ export function rutasExcel(pool: pg.Pool | null, sesion: (req: Request) => Sesio
       if (filas.length && bytes + tamano > 1000000) break;
       filas.push(fila); bytes += tamano;
     }
-    res.json({ filas, siguiente: result.rows.length > filas.length ? filas.at(-1)!.fila_excel : null });
+    res.json({ filas, total, siguiente: result.rows.length > filas.length ? filas.at(-1)!.fila_excel : null });
   });
 
   router.post('/importaciones', async (req, res) => {

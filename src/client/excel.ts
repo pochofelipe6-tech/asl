@@ -162,24 +162,51 @@ export function prepararExcel() {
     finally { worker.cerrar(); bloquear(false); }
   });
   cancelarDescarga.addEventListener('click', () => controlador?.abort());
-  descargar.addEventListener('click', async () => {
+  const dialogoDescarga = porId<HTMLDialogElement>('excelDownloadDialog');
+  const formularioDescarga = porId<HTMLFormElement>('excelDownloadForm');
+  const desde = porId<HTMLInputElement>('excelDownloadFrom');
+  const hasta = porId<HTMLInputElement>('excelDownloadTo');
+  const historico = porId<HTMLInputElement>('excelDownloadHistory');
+  const actualizarFechas = () => {
+    desde.disabled = hasta.disabled = historico.checked;
+    porId('excelDownloadDates').hidden = historico.checked;
+    hasta.min = desde.value || '1900-01-01';
+    hasta.setCustomValidity(!historico.checked && desde.value && hasta.value && desde.value > hasta.value ? 'La fecha final debe ser igual o posterior a la inicial.' : '');
+  };
+  formularioDescarga.addEventListener('input', actualizarFechas);
+  porId('excelDownloadClose').addEventListener('click', () => dialogoDescarga.close());
+  descargar.addEventListener('click', () => { actualizarFechas(); dialogoDescarga.showModal(); });
+  formularioDescarga.addEventListener('submit', async event => {
+    event.preventDefault();
+    actualizarFechas();
+    if (!formularioDescarga.reportValidity() || ocupado) return;
+    const rango = !historico.checked;
+    const fechas = rango ? '&' + new URLSearchParams({ desde: desde.value, hasta: hasta.value }) : '';
+    const sufijo = rango ? `_${desde.value}_${hasta.value}` : '_historico';
+    dialogoDescarga.close();
     bloquear(true); controlador = new AbortController(); cancelarDescarga.hidden = false;
     const worker = new ProcesadorExcel(); const signal = controlador.signal;
     const detener = () => worker.cerrar(); signal.addEventListener('abort', detener);
-    estado.textContent = 'Preparando descarga del informe completo…';
+    estado.textContent = rango ? 'Preparando descarga del rango seleccionado…' : 'Preparando descarga del histórico completo…';
     try {
       const meta = await api<{ id: string; archivo: string; filas: number }>('/api/excel/archivo', { signal });
       await worker.pedir('exportar-inicio'); let despues: number | null = 1, total = 0;
+      let esperadas = meta.filas;
       while (despues !== null) {
-        const pagina: { filas: FilaExcel[]; siguiente: number | null } = await api(`/api/excel/datos?lote=${encodeURIComponent(meta.id)}&despues=${despues}`, { signal }, 2);
+        const pagina: { filas: FilaExcel[]; siguiente: number | null; total?: number } = await api(`/api/excel/datos?lote=${encodeURIComponent(meta.id)}&despues=${despues}${fechas}`, { signal }, 2);
+        if (rango && despues === 1) {
+          if (pagina.total === undefined) throw new Error('No se pudo verificar el rango de fechas.');
+          esperadas = pagina.total;
+          if (!esperadas) throw new Error('No hay registros en el rango de fechas seleccionado.');
+        }
         if (pagina.siguiente !== null && pagina.siguiente <= despues) throw new Error('No se pudo continuar la descarga.');
         await worker.pedir('exportar-filas', pagina.filas.map(f => f.valores)); total += pagina.filas.length; despues = pagina.siguiente;
-        estado.textContent = `Descargando ${numero(total)} de ${numero(meta.filas)} filas…`;
+        estado.textContent = `Descargando ${numero(total)} de ${numero(esperadas)} filas…`;
       }
-      if (total !== meta.filas) throw new Error('No se descargaron todas las filas. Inténtalo de nuevo.');
+      if (total !== esperadas) throw new Error('No se descargaron todas las filas. Inténtalo de nuevo.');
       estado.textContent = 'Generando el archivo Excel…';
       const buffer = await worker.pedir<ArrayBuffer>('exportar-fin');
-      guardar(buffer, meta.archivo.replace(/\.[^.]+$/, '') + '.xlsx'); estado.textContent = `Excel descargado: ${numero(total)} filas.`;
+      guardar(buffer, meta.archivo.replace(/\.[^.]+$/, '') + sufijo + '.xlsx'); estado.textContent = `Excel descargado: ${numero(total)} filas.`;
     } catch (error) { estado.textContent = signal.aborted ? 'Descarga cancelada.' : error instanceof Error ? error.message : 'No se pudo descargar el Excel.'; }
     finally { signal.removeEventListener('abort', detener); worker.cerrar(); cancelarDescarga.hidden = true; bloquear(false); }
   });

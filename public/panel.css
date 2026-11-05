@@ -669,6 +669,12 @@ html[data-tema="claro"] .loading-indicator-copy small { color: #637187; }
 #summaryTables .summary-report-card:nth-child(3) table { height: auto; }
 #summaryTables .summary-report-card:nth-child(3) .summary-report-pagination { margin-top: auto; }
 
+.excel-download-option { display: flex; align-items: center; gap: 10px; margin: 16px 0; font-weight: 650; }
+.excel-download-dates { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+.excel-download-dates[hidden] { display: none; }
+.excel-download-dates label { display: grid; gap: 8px; flex: 1; min-width: 150px; }
+.excel-download-dates input { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #748397; border-radius: 8px; background: transparent; color: inherit; font: inherit; color-scheme: dark; }
+html[data-tema="claro"] .excel-download-dates input { color-scheme: light; }
 /* Carga y descarga del archivo completo. */
 .excel-toolbar { margin: 18px 0; padding: 16px 18px; border: 1px solid #343c49; border-radius: 14px; background: #141b25; }
 .excel-actions { display: flex; flex-wrap: wrap; gap: 10px; }
