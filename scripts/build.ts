@@ -29,5 +29,22 @@ if (process.argv.includes('--dev')) {
     process.exit(code ?? 0);
   });
 } else {
+  const comprobacion = spawn(process.execPath, ['node_modules/typescript/bin/tsc', '-p', '.'], { stdio: 'inherit' });
+  const codigo = await new Promise<number>(resolve => {
+    comprobacion.on('exit', code => resolve(code ?? 1));
+    comprobacion.on('error', () => resolve(1));
+  });
+  if (codigo !== 0) process.exit(codigo);
+
+  // Entrada JavaScript para Vercel; se mantiene en la raiz para conservar
+  // las rutas a public/, views/ y datos/ basadas en import.meta.dirname.
+  await esbuild.build({
+    entryPoints: ['server.ts'],
+    outfile: 'app.js',
+    platform: 'node',
+    format: 'esm',
+    target: 'node22',
+    banner: { js: '// Generado desde server.ts por npm run build. No editar directamente.' },
+  });
   await esbuild.build(opciones);
 }
