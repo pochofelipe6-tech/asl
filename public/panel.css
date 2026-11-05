@@ -668,3 +668,38 @@ html[data-tema="claro"] .loading-indicator-copy small { color: #637187; }
 #summaryTables .summary-report-card:nth-child(3) .summary-table-scroll { flex: 0 0 auto; }
 #summaryTables .summary-report-card:nth-child(3) table { height: auto; }
 #summaryTables .summary-report-card:nth-child(3) .summary-report-pagination { margin-top: auto; }
+
+/* Carga y descarga del archivo completo. */
+.excel-toolbar { margin: 18px 0; padding: 16px 18px; border: 1px solid #343c49; border-radius: 14px; background: #141b25; }
+.excel-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.excel-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 10px 16px; border: 1px solid #536174; border-radius: 9px; background: #222d3b; color: #f6f8fc; font-size: 13px; font-weight: 650; }
+.excel-button:hover { background: #303d50; border-color: #7d8da3; }
+.excel-button span { font-size: 20px; line-height: 1; }
+.excel-button.excel-primary { border-color: #ff3154; background: #e60032; color: #fff; }
+.excel-button.excel-primary:hover { background: #ff1648; }
+.excel-button:disabled, .excel-close:disabled { opacity: .5; cursor: not-allowed; }
+.excel-button[hidden], .excel-summary[hidden], .excel-progress[hidden] { display: none; }
+.excel-status { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: #b8c5d6; }
+#cancelExcelDownload { margin-top: 10px; }
+.excel-dialog { width: min(650px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow: auto; padding: 25px; border: 1px solid #536174; border-radius: 18px; background: #141b25; color: #f6f8fc; box-shadow: 0 25px 80px #0009; }
+.excel-dialog::backdrop { background: #03070cbd; backdrop-filter: blur(4px); }
+.excel-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
+.excel-dialog-heading h2 { margin: 6px 0 0; font-size: 26px; }
+.excel-close { flex: none; width: 34px; height: 34px; border: 1px solid #536174; border-radius: 8px; background: transparent; color: inherit; font-size: 24px; }
+.excel-file-label { display: grid; gap: 8px; padding: 18px; border: 1px dashed #748397; border-radius: 10px; font-weight: 650; }
+.excel-file-label small { color: #b8c5d6; font-size: 12px; font-weight: 400; }
+.excel-file-label input { display: block; width: 100%; min-width: 0; margin-top: 10px; font-size: 12px; }
+.excel-file-label input::file-selector-button { padding: 8px 12px; margin-right: 10px; border: 1px solid #536174; border-radius: 6px; color: #fff; background: #303d50; cursor: pointer; }
+.excel-summary { margin-top: 16px; overflow-x: auto; padding: 14px; border-radius: 9px; background: #0d131d; }
+.excel-summary > strong { overflow-wrap: anywhere; }.excel-summary p { font-size: 12px; }
+.excel-summary table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 12px; }
+.excel-summary th, .excel-summary td { position: static; padding: 8px; min-width: 0; white-space: normal; overflow-wrap: anywhere; text-align: left; border-bottom: 1px solid #344052; }
+.excel-message { line-height: 1.6; font-size: 13px; color: #c3cfe0; }.excel-message.excel-error { color: #ff96a5; }
+.excel-progress { display: block; width: 100%; height: 12px; accent-color: #ee003a; }
+.excel-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+html[data-tema="claro"] .excel-toolbar, html[data-tema="claro"] .excel-dialog { background: #fff; color: #202b3b; border-color: #cbd5e1; }
+html[data-tema="claro"] .excel-button:not(.excel-primary) { background: #f1f5f9; color: #243246; border-color: #b8c5d6; }
+html[data-tema="claro"] .excel-status, html[data-tema="claro"] .excel-message, html[data-tema="claro"] .excel-file-label small { color: #536174; }
+html[data-tema="claro"] .excel-message.excel-error { color: #b51735; }
+html[data-tema="claro"] .excel-summary { background: #f1f5f9; }
+@media(max-width: 600px) { .excel-actions { flex-direction: column; }.excel-toolbar { padding: 13px; }.excel-dialog { padding: 18px; }.excel-dialog-actions .excel-button { flex: 1; } }

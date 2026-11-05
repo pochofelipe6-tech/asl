@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import * as esbuild from 'esbuild';
 
 const opciones: esbuild.BuildOptions = {
-  entryPoints: ['src/client/login.ts', 'src/client/panel.ts'],
+  entryPoints: ['src/client/login.ts', 'src/client/panel.ts', 'src/client/excel-worker.ts'],
   outdir: 'public/js',
   bundle: true,
   format: 'esm',
@@ -29,18 +29,23 @@ if (process.argv.includes('--dev')) {
     process.exit(code ?? 0);
   });
 } else {
-  const comprobacion = spawn(process.execPath, ['node_modules/typescript/bin/tsc', '-p', '.'], { stdio: 'inherit' });
-  const codigo = await new Promise<number>(resolve => {
-    comprobacion.on('exit', code => resolve(code ?? 1));
-    comprobacion.on('error', () => resolve(1));
-  });
-  if (codigo !== 0) process.exit(codigo);
+  for (const proyecto of ['.', 'src/client']) {
+    const comprobacion = spawn(process.execPath, ['node_modules/typescript/bin/tsc', '-p', proyecto], { stdio: 'inherit' });
+    const codigo = await new Promise<number>(resolve => {
+      comprobacion.on('exit', code => resolve(code ?? 1));
+      comprobacion.on('error', () => resolve(1));
+    });
+    if (codigo !== 0) process.exit(codigo);
+  }
 
-  // Entrada JavaScript para Vercel; se mantiene en la raiz para conservar
-  // las rutas a public/, views/ y datos/ basadas en import.meta.dirname.
+  // sixas  pri si cves  esteo quiero qaue dsepas q neu soy el mas insano 
+
+  
   await esbuild.build({
     entryPoints: ['server.ts'],
     outfile: 'app.js',
+    bundle: true,
+    packages: 'external',
     platform: 'node',
     format: 'esm',
     target: 'node22',

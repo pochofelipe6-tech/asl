@@ -1,9 +1,10 @@
 import { porId } from './dom';
-import { mostrarConsolidado, prepararConsolidado, navegacionColumnas } from './consolidado';
+import { mostrarConsolidado, prepararConsolidado, navegacionColumnas, usarFiltrosRecientes } from './consolidado';
 import { iniciarCarga } from './carga';
+import { prepararExcel } from './excel';
 
 interface Sheet { id: number; name: string; startRow: number; startColumn?: number; rows: number; columns: number }
-interface Index { sheets: Sheet[] }
+interface Index { sheets: Sheet[]; filtrosRecientes?: boolean }
 const modules = porId('modules');
 const table = porId<HTMLTableElement>('dataTable');
 const search = porId<HTMLInputElement>('search');
@@ -503,6 +504,7 @@ async function start() {
       throw new Error(error.error || 'No se pudo cargar el informe.');
     }
     const index: Index = await indexResponse.json();
+    if (index.filtrosRecientes) usarFiltrosRecientes();
     modules.replaceChildren();
     const hiddenSheets = new Set(['Hoja1', 'Gerencias', 'Traslados', 'Riesgos Gerencia', 'Septiembre', 'Octubre', 'Caucasia', 'BBC', 'IF 30 a 60 días LM', 'Reporte']);
     const orderedSheets = index.sheets.filter(sheet => !hiddenSheets.has(sheet.name));
@@ -572,6 +574,7 @@ async function start() {
   } finally { finalizarCarga(); }
 }
 prepararConsolidado();
+prepararExcel();
 const scrollReporte = document.querySelector<HTMLElement>('#sheetData .table-scroll');
 if (scrollReporte) scrollReporte.insertAdjacentElement('afterend', navegacionColumnas(scrollReporte));
 start();

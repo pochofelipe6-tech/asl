@@ -23,6 +23,15 @@
       <section class="hero"><div class="hero-content"><span class="eyebrow"><span class="hero-pin">●</span> INFORMACIÓN OPERATIVA · REGIONAL NORTE</span><h1>Índice de <em>frescura</em></h1><p>Una visión clara de tu inventario, sus fechas y su evolución.</p></div><div class="hero-caption" aria-hidden="true"><span>INFORMACIÓN REGIONAL</span><strong>Siempre en movimiento.</strong></div></section>
       <section class="workspace" aria-labelledby="sheetTitle">
         <div class="section-top"><div class="report-title"><span class="report-icon" aria-hidden="true">▤</span><div><span class="section-label">CENTRO DE INFORMACIÓN</span><h2 id="sheetTitle">Informe de frescura</h2><p class="description"><span id="breadcrumb">Diario SKU</span> · Regional Norte</p></div></div><span class="source-badge"><span>●</span> Información consolidada</span></div>
+        <div class="excel-toolbar" aria-label="Archivos Excel">
+          <div class="excel-actions">
+            <button id="uploadExcel" class="excel-button excel-primary" type="button"><span aria-hidden="true">↑</span> Subir Excel</button>
+            <button id="downloadExcel" class="excel-button" type="button"><span aria-hidden="true">↓</span> Descargar Excel</button>
+            <button id="downloadTemplate" class="excel-button" type="button"><span aria-hidden="true">▤</span> Descargar plantilla</button>
+          </div>
+          <p id="excelStatus" class="excel-status" role="status" aria-live="polite">Descarga el informe completo o importa un nuevo archivo.</p>
+          <button id="cancelExcelDownload" class="excel-button" type="button" hidden>Cancelar descarga</button>
+        </div>
         <div class="quick-tabs" id="quickTabs" aria-label="Acceso rápido a módulos"></div>
         <section id="diarioFilters" class="filters-panel" aria-labelledby="filtersTitle" hidden>
           <div class="filters-heading"><div><h3 id="filtersTitle">Filtros de Diario SKU</h3><p>Filtra la información guardada en el archivo.</p></div><button type="button" id="clearFilters">Limpiar filtros</button></div>
@@ -190,6 +199,14 @@
       </section>
     </main>
   </div>
+  <dialog id="excelDialog" class="excel-dialog" aria-labelledby="excelDialogTitle">
+    <div class="excel-dialog-heading"><div><span class="section-label">ACTUALIZAR INFORMACIÓN</span><h2 id="excelDialogTitle">Subir Excel</h2></div><button id="excelClose" class="excel-close" type="button" aria-label="Cerrar carga de Excel">×</button></div>
+    <label class="excel-file-label" for="excelFile">Selecciona tu archivo <small>.xlsx o .xlsb · Hoja Data · 41 columnas · Máximo 100 MB</small><input id="excelFile" type="file" accept=".xlsx,.xlsb"></label>
+    <div id="excelSummary" class="excel-summary" hidden></div>
+    <p id="excelMessage" class="excel-message" role="status" aria-live="polite"></p>
+    <progress id="excelProgress" class="excel-progress" max="100" value="0" aria-label="Progreso de la importación" hidden></progress>
+    <div class="excel-dialog-actions"><button id="excelCancel" class="excel-button" type="button">Cancelar</button><button id="excelConfirm" class="excel-button excel-primary" type="button" disabled>Importar datos</button></div>
+  </dialog>
   <dialog id="rowDialog" class="row-dialog"><div class="dialog-header"><div><h2>Detalle de la fila</h2><p id="dialogSubtitle"></p></div><button id="closeDialog" type="button" aria-label="Cerrar detalle">×</button></div><dl id="dialogData"></dl></dialog>
 </body>
 </html>

@@ -47,6 +47,15 @@ const iniciales: Record<string, Record<string, string[]>> = {
 };
 const selecciones = new Map<string, Map<string, Set<string> | null>>();
 for (const [modulo, camposIniciales] of Object.entries(iniciales)) selecciones.set(modulo, new Map(Object.entries(camposIniciales).map(([campo, valores]) => [campo, new Set(valores)])));
+// Los archivos subidos desde la app pueden tener otras fechas, centros y materiales.
+export function usarFiltrosRecientes() {
+  for (const mapa of selecciones.values()) for (const campo of mapa.keys()) mapa.set(campo, null);
+  fechasDiario = null;
+  costosDiario.clear();
+  // La API elige el ultimo corte en los modulos que no son historicos.
+  for (const [modulo, mapa] of selecciones) if (modulo !== 'diario' && modulo !== 'tendencia') mapa.set('fecha_envio', new Set(['__ultima__']));
+  document.querySelectorAll<HTMLElement>('[data-campo-multiple]').forEach(detalle => detalle.dispatchEvent(new Event('restablecer-multiple')));
+}
 const limpio = (s: string) => s.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const numero = (v: number) => v.toLocaleString('es-CO', { maximumFractionDigits: 2 });
 function texto(valor: string | number | null | undefined): string {
@@ -66,7 +75,7 @@ function crearFiltroMultiple(config: Config, campo: string): HTMLElement {
   const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar';
   const aceptar = document.createElement('button'); aceptar.type = 'button'; aceptar.textContent = 'Aceptar'; acciones.append(cancelar, aceptar); contenido.append(busqueda, lista, acciones); detalle.append(resumen, contenido);
   let disponibles: string[] = [], temporal = new Set<string>();
-  const mostrarResumen = () => { const seleccionado = selecciones.get(config.modulo)?.get(campo) ?? null; resumen.textContent = seleccionado === null ? 'Todos' : seleccionado.size === 1 ? texto([...seleccionado][0] === '__vacio__' ? '(en blanco)' : [...seleccionado][0]) : `${seleccionado.size} seleccionados`; };
+  const mostrarResumen = () => { const seleccionado = selecciones.get(config.modulo)?.get(campo) ?? null; resumen.textContent = seleccionado === null ? 'Todos' : seleccionado.has('__ultima__') ? 'Última fecha' : seleccionado.size === 1 ? texto([...seleccionado][0] === '__vacio__' ? '(en blanco)' : [...seleccionado][0]) : `${seleccionado.size} seleccionados`; };
   const dibujar = () => {
     lista.replaceChildren(); const visibles = disponibles.filter(v => limpio(v === '__vacio__' ? '(en blanco)' : texto(v)).includes(limpio(busqueda.value)));
     const opcion = (nombre: string, marcada: boolean, cambiar: (v: boolean) => void, parcial = false) => { const label = document.createElement('label'); label.className = 'daily-date-option'; const check = document.createElement('input'); check.type = 'checkbox'; check.checked = marcada; check.indeterminate = parcial; check.addEventListener('change', () => cambiar(check.checked)); label.append(check, document.createTextNode(nombre)); lista.append(label); };
@@ -77,7 +86,11 @@ function crearFiltroMultiple(config: Config, campo: string): HTMLElement {
   detalle.addEventListener('toggle', () => { if (detalle.open) { const elegidos = selecciones.get(config.modulo)?.get(campo) ?? null; temporal = new Set(elegidos ?? disponibles); busqueda.value = ''; dibujar(); } });
   busqueda.addEventListener('input', dibujar); cancelar.addEventListener('click', () => { detalle.open = false; });
   aceptar.addEventListener('click', () => { const mapa = selecciones.get(config.modulo)!; mapa.set(campo, disponibles.length && disponibles.every(v => temporal.has(v)) ? null : new Set(temporal)); detalle.open = false; mostrarResumen(); if (actual === config) void cargar(config); });
-  detalle.addEventListener('opciones-multiples', e => { disponibles = (e as CustomEvent<string[]>).detail; if (!disponibles.includes('__vacio__')) disponibles = [...disponibles, '__vacio__']; mostrarResumen(); });
+  detalle.addEventListener('opciones-multiples', e => {
+    disponibles = (e as CustomEvent<string[]>).detail;
+    if (campo === 'fecha_envio' && selecciones.get(config.modulo)?.get(campo)?.has('__ultima__')) selecciones.get(config.modulo)!.set(campo, new Set(disponibles.filter(Boolean).slice(-1)));
+    if (!disponibles.includes('__vacio__')) disponibles = [...disponibles, '__vacio__']; mostrarResumen();
+  });
   detalle.addEventListener('restablecer-multiple', () => { detalle.open = false; mostrarResumen(); });
   return detalle;
 }
@@ -432,6 +445,7 @@ async function cargar(config: Config) {
   params.set('paginado', '1');
   for (const detalle of panel(config).querySelectorAll<HTMLElement>('[data-campo-multiple]')) {
     const campo = detalle.dataset.campoMultiple!; const seleccion = selecciones.get(config.modulo)?.get(campo) ?? null;
+    if (campo === 'fecha_envio' && seleccion?.has('__ultima__')) continue;
     if (seleccion === null) { if (campo === 'fecha_envio') params.append(campo, '__todas__'); }
     else if (!seleccion.size) params.append(campo, '__ninguna__');
     else [...seleccion].sort().forEach(valor => params.append(campo, valor));

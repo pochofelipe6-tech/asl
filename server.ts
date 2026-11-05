@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import XLSX from 'xlsx';
+import { rutasExcel } from './src/server/excel.ts';
 
 const { SUPABASE_URL = '', SUPABASE_PUBLISHABLE_KEY = '', JWT_SECRET = '', PORT = '3001' } = process.env;
 const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET })
@@ -37,6 +38,7 @@ interface Sesion {
 }
 
 const app = express();
+app.use('/api/excel', express.json({ limit: '2mb' }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api', (_req, res, next) => {
@@ -165,7 +167,8 @@ app.get('/api/frescura/indice.json', async (req, res) => {
         columns: rango.e.c - rango.s.c + 1,
       };
     });
-    res.json({ sheets });
+    const lote = await dbFrescura.query('select id from public.frescura_consolidado_lotes order by cargado_en desc limit 1');
+    res.json({ sheets, filtrosRecientes: String(lote.rows[0]?.id ?? '').startsWith('web-') });
   } catch (error) {
     console.error('Error consultando el catálogo de hojas:', error instanceof Error ? error.message : 'error desconocido');
     res.status(500).json({ error: 'No se pudo consultar el catálogo del informe.' });
@@ -194,6 +197,7 @@ const gruposFrescura: Record<string, string[]> = {
   rango: ['codigo_material', 'material', 'cd', 'vencimiento_2'],
 };
 let opcionesFrescura: { lote: string; valores: Record<string, string[]>; ultimaFecha: string } | null = null;
+app.use('/api/excel', rutasExcel(dbFrescura, leerSesion, () => { opcionesFrescura = null; }));
 app.get('/api/consolidado-opciones/costos', async (req, res) => {
   if (!leerSesion(req)) { res.status(401).json({ error: 'No has iniciado sesión.' }); return; }
   if (!dbFrescura) { res.status(503).json({ error: 'Falta configurar la conexión a la base de datos.' }); return; }
