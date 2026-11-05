@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.local
+# Generado por `npm run build` desde src/client
+public/js/
+datos/frescura/
+datos/consolidado/

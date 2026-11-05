@@ -1,0 +1,17 @@
+{
+  // Servidor y scripts: Node los ejecuta directamente quitando los tipos (sin compilar).
+  // El código del navegador tiene su propia configuración en src/client/tsconfig.json.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true
+  },
+  "include": ["server.ts", "scripts/**/*.ts"]
+}

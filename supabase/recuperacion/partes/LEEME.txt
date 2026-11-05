@@ -1,0 +1,9 @@
+IMPORTACIÓN A SUPABASE
+
+Ejecuta los archivos frescura_001.sql a frescura_049.sql en orden numérico.
+Copia el contenido completo de cada archivo en Supabase > SQL Editor y pulsa Run.
+Espera a que cada parte termine correctamente antes de ejecutar la siguiente.
+Si una parte falla, corrígela y vuelve a ejecutarla antes de continuar.
+La última parte contiene las vistas y el catálogo de filtros.
+Cada parte se confirma por separado: una interrupción deja importadas las partes anteriores.
+Repetir una parte actualiza sus filas, pero no elimina filas antiguas ausentes del Excel.

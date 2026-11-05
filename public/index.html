@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión · Bavaria Transporte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Compilado desde src/client/login.ts con `npm run build` -->
+  <script type="module" src="js/login.js"></script>
+</head>
+<body class="login">
+  <button class="snow-toggle" id="snowToggle" type="button" aria-label="Activar nieve" aria-pressed="false" title="Activar nieve">
+    <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M24 3v42M6 13.5l36 21M6 34.5l36-21M18 7l6 6 6-6M18 41l6-6 6 6M7 20l8-2-2-8M35 38l-2-8 8-2M7 28l8 2-2 8M35 10l-2 8 8 2"/>
+    </svg>
+  </button>
+  <div class="snow-layer" id="snowLayer" aria-hidden="true" hidden></div>
+  <!-- Iconos reutilizables -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-truck" viewBox="0 0 24 24">
+      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/>
+      <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+      <circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>
+    </symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24">
+      <path d="M18.5 9.5c0 4.3-4.8 8.8-6.4 10.2a.9.9 0 0 1-1.1 0C9.3 18.3 5.5 13.8 5.5 9.5a6.5 6.5 0 0 1 13 0"/><circle cx="12" cy="9.5" r="2.5"/>
+      <path d="M8 18.4c-2.7.4-4.5 1.1-4.5 2 0 1.2 3.8 2.1 8.5 2.1s8.5-.9 8.5-2.1c0-.9-1.8-1.6-4.5-2"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4" stroke="#fff"/>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M12 16.5h.01"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24">
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.9 0 8.3 3.6 9.94 6.65a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.44 2.49"/><path d="M14.08 14.16a3 3 0 0 1-4.17-4.17"/>
+      <path d="M17.48 17.5A10.75 10.75 0 0 1 2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 4.45-5.14"/><path d="m2 2 20 20"/>
+    </symbol>
+    <symbol id="i-login" viewBox="0 0 24 24">
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </symbol>
+  </svg>
+
+  <!-- Foto de fondo a pantalla completa -->
+  <div class="scene" aria-hidden="true"></div>
+
+
+  <header class="top">
+    <img class="brand" src="img/logo-bavaria.svg" alt="" width="80" height="80">
+    <span class="wordmark"><strong>Bavaria</strong><span>Transporte</span></span>
+  </header>
+
+  <p class="tagline" aria-hidden="true"><span>Moviendo</span>Grandes resultados</p>
+
+
+  <div class="stage">
+    
+
+    <main class="card">
+      <div class="card-brand">
+        <img class="brand" src="img/logo-bavaria.svg" alt="" width="100" height="100">
+        <span class="wordmark"><strong>Bavaria</strong><span>Transporte</span></span>
+        <span class="rule" aria-hidden="true"></span>
+      </div>
+
+      <h1>Iniciar <span class="resalte">sesión</span></h1>
+      <p class="subtitle">Ingresa a tu cuenta para continuar en la plataforma.</p>
+
+      <div class="alert" id="alert" role="alert"></div>
+
+      <form id="form" novalidate>
+        <div class="field">
+          <label class="sr-only" for="correo">Correo electrónico</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-mail"/></svg>
+            <input id="correo" name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Correo electrónico" required autofocus>
+          </div>
+          <div class="error" id="correo-error"></div>
+        </div>
+
+        <div class="field">
+          <label class="sr-only" for="password">Contraseña</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+            <button type="button" class="eye" id="togglePass" aria-label="Mostrar contraseña">
+              <svg class="ico eye-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico eye-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+          <div class="field-foot">
+            <div>
+              <div class="caps" id="caps">Bloq Mayús está activado</div>
+              <div class="error" id="password-error"></div>
+            </div>
+            <!-- Mismo efecto que el ojo; el ojo es el control accesible -->
+            <button type="button" class="toggle-text" id="togglePassText" tabindex="-1" aria-hidden="true">Mostrar contraseña</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn">
+          <svg class="ico" aria-hidden="true"><use href="#i-login"/></svg>
+          <span id="submitLabel">Entrar</span>
+        </button>
+      </form>
+
+      <div class="help">
+        <svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>
+        <p>¿No puedes iniciar sesión?<br><a class="resalte" href="https://wa.me/573007015518?text=Hola%2C%20necesito%20ayuda%20para%20iniciar%20sesi%C3%B3n%20en%20Bavaria%20Transporte." target="_blank" rel="noopener noreferrer" aria-label="Contactar con el administrador por WhatsApp (abre en una nueva pestaña)">Contacta con el administrador.</a></p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Ruta con el camión en movimiento, de lado a lado de la pantalla -->
+  <div class="route-wrap" aria-hidden="true">
+    <svg class="route" id="ruta-animada" viewBox="0 0 1710 130">
+      <defs>
+        <!-- Brillante a la izquierda, se apaga detrás del reflejo de la carretera y vuelve a brillar a la derecha -->
+        <linearGradient id="ruta-color" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1710" y2="0">
+          <stop offset="0" stop-color="#ff2a33"/>
+          <stop offset=".62" stop-color="#ff2a33"/>
+          <stop offset=".72" stop-color="#ff2a33" stop-opacity=".22"/>
+          <stop offset=".84" stop-color="#ff2a33" stop-opacity=".3"/>
+          <stop offset=".91" stop-color="#ff2a33"/>
+          <stop offset="1" stop-color="#ff2a33"/>
+        </linearGradient>
+        <linearGradient id="estela-color" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ec1c24" stop-opacity="0"/>
+          <stop offset="1" stop-color="#ec1c24" stop-opacity=".8"/>
+        </linearGradient>
+        <filter id="brillo" x="-5%" y="-80%" width="110%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="desenfoque" x="-30%" y="-80%" width="160%" height="260%">
+          <feGaussianBlur stdDeviation="2.2"/>
+        </filter>
+      </defs>
+
+      <path id="ruta" d="M0 65C70 50 140 22 205 22C265 22 300 40 345 50C400 62 440 97 500 97C560 97 600 85 640 79C690 71 730 62 770 62C860 62 950 95 1040 95C1200 95 1380 28 1500 28C1590 28 1650 75 1710 105"
+            fill="none" stroke="url(#ruta-color)" stroke-width="3" stroke-linecap="round" filter="url(#brillo)"/>
+      <g fill="#fff" stroke="#ff2a33" stroke-width="2.5" filter="url(#brillo)">
+        <circle cx="345" cy="50" r="5"/>
+        <circle cx="640" cy="79" r="5"/>
+      </g>
+
+      <!-- Carruaje de Papá Noel: los renos tiran del trineo con Papá Noel encima -->
+      <g>
+        <g class="trineo-bob">
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 -1.6;0 0" dur=".9s" repeatCount="indefinite"/>
+
+          <!-- Riendas del trineo a los renos -->
+          <g stroke="#6b3b1b" stroke-width="1.3" fill="none" stroke-linecap="round">
+            <path d="M-7 -22C6 -24 16 -23 26 -22"/>
+            <path d="M-7 -18C6 -19 17 -19 27 -19"/>
+          </g>
+
+          <!-- Reno -->
+          <g stroke-linecap="round" stroke-linejoin="round">
+            <!-- Patas al trote -->
+            <g stroke="#4d2d14" stroke-width="2.4" fill="none">
+              <path d="M19 -12l-2 12"><animateTransform attributeName="transform" type="rotate" values="14 19 -12;-14 19 -12;14 19 -12" dur=".4s" repeatCount="indefinite"/></path>
+              <path d="M23 -12l3 12"><animateTransform attributeName="transform" type="rotate" values="-16 23 -12;16 23 -12;-16 23 -12" dur=".4s" repeatCount="indefinite"/></path>
+              <path d="M31 -13l-2 13"><animateTransform attributeName="transform" type="rotate" values="-14 31 -13;16 31 -13;-14 31 -13" dur=".4s" repeatCount="indefinite"/></path>
+              <path d="M34 -13l3 13"><animateTransform attributeName="transform" type="rotate" values="16 34 -13;-16 34 -13;16 34 -13" dur=".4s" repeatCount="indefinite"/></path>
+            </g>
+            <!-- Cuerpo -->
+            <ellipse cx="26" cy="-15" rx="11" ry="6" fill="#7a4a22" stroke="#4d2d14" stroke-width="1.4"/>
+            <!-- Cola -->
+            <path d="M15 -16l-3 -2 1 4z" fill="#7a4a22" stroke="#4d2d14" stroke-width="1"/>
+            <!-- Cuello -->
+            <path d="M35 -17C38 -20 39 -24 39 -27" fill="none" stroke="#4d2d14" stroke-width="4.5" stroke-linecap="round"/>
+            <!-- Cabeza -->
+            <ellipse cx="40.5" cy="-27.5" rx="4.6" ry="3.3" fill="#7a4a22" stroke="#4d2d14" stroke-width="1.3" transform="rotate(-18 40.5 -27.5)"/>
+            <!-- Oreja -->
+            <path d="M38 -31l-2 -3 3 1z" fill="#7a4a22" stroke="#4d2d14" stroke-width="1"/>
+            <!-- Astas -->
+            <g fill="none" stroke="#5a3718" stroke-width="1.5">
+              <path d="M39 -31C39 -35 37 -37 36 -39M37.5 -35l-3 -1M38 -37l2 -2"/>
+              <path d="M41 -31C42 -35 43 -37 44 -40M42.5 -36l3 -1M42 -38l-2 -2"/>
+            </g>
+            <!-- Ojo -->
+            <circle cx="41.5" cy="-28.6" r=".8" fill="#2a1708"/>
+            <!-- Nariz roja de Rudolph, con brillo -->
+            <circle cx="44.6" cy="-27" r="3.7" fill="#ff2a33" opacity=".3"/>
+            <circle cx="44.6" cy="-27" r="2.1" fill="#ff2a33" stroke="#ffd2d4" stroke-width=".5"/>
+          </g>
+
+          <!-- Trineo -->
+          <!-- Patín dorado -->
+          <path d="M-42 -3C-40 -1 -12 -1 -6 -3C-2 -4 0 -7 -3 -8" fill="none" stroke="#f0b429" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M-38 -4v-6M-14 -4v-6" stroke="#f0b429" stroke-width="1.6"/>
+          <!-- Cuerpo del trineo con voluta delantera -->
+          <path d="M-43 -11C-44 -16 -40 -18 -34 -18L-12 -18C-6 -18 -5 -22 -8 -26C-12 -30 -6 -33 -2 -29C2 -25 1 -17 -7 -14C-14 -11 -16 -11 -43 -11Z" fill="#d8202b" stroke="#8f0f16" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M-43 -11C-30 -12 -16 -12 -8 -14" fill="none" stroke="#f0b429" stroke-width="1.4"/>
+
+          <!-- Papá Noel sentado -->
+          <g stroke-linejoin="round">
+            <!-- Saco de regalos detrás -->
+            <path d="M-40 -14C-42 -20 -38 -24 -34 -23C-30 -22 -31 -15 -34 -14Z" fill="#8a5a22" stroke="#5e3b12" stroke-width="1.1"/>
+            <!-- Brazo que saluda -->
+            <g>
+              <path d="M-26 -27l-6 -5" fill="none" stroke="#d8202b" stroke-width="3.4" stroke-linecap="round"/>
+              <circle cx="-33" cy="-33" r="2" fill="#fff"/>
+              <animateTransform attributeName="transform" type="rotate" values="-8 -26 -27;10 -26 -27;-8 -26 -27" dur=".7s" repeatCount="indefinite"/>
+            </g>
+            <!-- Cuerpo rojo -->
+            <path d="M-31 -16C-32 -24 -29 -29 -25 -29C-21 -29 -19 -23 -20 -16Z" fill="#e23b3b" stroke="#9c1a1f" stroke-width="1.3"/>
+            <!-- Cinturón con hebilla -->
+            <path d="M-30 -21l9 -1" stroke="#2a1708" stroke-width="2"/>
+            <rect x="-26.2" y="-22.4" width="2.6" height="2.6" fill="#f0b429"/>
+            <!-- Cara -->
+            <circle cx="-25.5" cy="-33" r="3.6" fill="#ffd9b8" stroke="#d89a6a" stroke-width=".7"/>
+            <!-- Barba -->
+            <path d="M-29 -33C-29 -28.5 -22 -28.5 -22 -33C-22 -35 -23 -36 -25.5 -36C-28 -36 -29 -35 -29 -33Z" fill="#fff" stroke="#d6d9e2" stroke-width=".7"/>
+            <!-- Bigote -->
+            <path d="M-28 -33.5c1 1 4 1 5 0" fill="none" stroke="#fff" stroke-width="1.4"/>
+            <!-- Ojos -->
+            <circle cx="-26.6" cy="-33.6" r=".7" fill="#2a1708"/><circle cx="-24.4" cy="-33.6" r=".7" fill="#2a1708"/>
+            <!-- Gorro -->
+            <path d="M-29.5 -35.5C-29 -40 -26 -42 -22 -41L-21.5 -37C-24 -38 -27 -37 -29.5 -35.5Z" fill="#d8202b" stroke="#9c1a1f" stroke-width="1"/>
+            <path d="M-30 -35.3c3 -1.4 7 -1.4 9.3 -.2" fill="none" stroke="#fff" stroke-width="1.8"/>
+            <circle cx="-21" cy="-41.5" r="1.8" fill="#fff"/>
+          </g>
+        </g>
+        <animateMotion dur="16s" repeatCount="indefinite"><mpath href="#ruta"/></animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.04;.9;1" dur="16s" repeatCount="indefinite"/>
+      </g>
+
+      <!-- Muñeco de nieve dando saltitos detrás del trineo: la misma ruta, 0,62 s más atrás -->
+      <g opacity="0">
+        <g class="muneco-hop">
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0;0 0" keyTimes="0;.35;.7;1" dur=".5s" repeatCount="indefinite"/>
+          <g transform="scale(1.15)">
+            <!-- Sombra -->
+            <ellipse cx="0" cy="-1" rx="9" ry="2" fill="#000" opacity=".18"/>
+            <!-- Bola inferior -->
+            <circle cx="0" cy="-9" r="8.5" fill="#eef4ff" stroke="#9fb6d8" stroke-width="1.2"/>
+            <!-- Botones de carbón -->
+            <circle cx="0" cy="-8" r=".9" fill="#2a2f3a"/><circle cx="0" cy="-11.5" r=".9" fill="#2a2f3a"/>
+            <!-- Cabeza -->
+            <circle cx="0" cy="-21" r="5.8" fill="#eef4ff" stroke="#9fb6d8" stroke-width="1.2"/>
+            <!-- Bufanda roja -->
+            <path d="M-5.4 -16.2C-2 -14.6 2 -14.6 5.4 -16.2" fill="none" stroke="#ff2a33" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M3.4 -15.6l2.2 6l-2.6 .6z" fill="#ff2a33" stroke="#c40f17" stroke-width=".6">
+              <animateTransform attributeName="transform" type="rotate" values="-6 3.4 -15.6;9 3.4 -15.6;-6 3.4 -15.6" dur=".5s" repeatCount="indefinite"/>
+            </path>
+            <!-- Brazos de rama -->
+            <g stroke="#7a4a22" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M-7 -21l-7 -3M-11 -22.5l-1 -3M-11.5 -23l-3 1"/>
+              <g>
+                <path d="M7 -22l7 -5M11 -24l0 -3M11.5 -24.5l3 -.5"/>
+                <animateTransform attributeName="transform" type="rotate" values="-12 7 -22;14 7 -22;-12 7 -22" dur=".5s" repeatCount="indefinite"/>
+              </g>
+            </g>
+            <!-- Ojos y boca de carbón -->
+            <circle cx="-2" cy="-22.5" r=".9" fill="#2a2f3a"/><circle cx="2" cy="-22.5" r=".9" fill="#2a2f3a"/>
+            <path d="M-2.4 -19.2a2.4 2.4 0 0 0 4.8 0" fill="none" stroke="#2a2f3a" stroke-width=".7" stroke-dasharray=".2 1.4" stroke-linecap="round"/>
+            <!-- Nariz de zanahoria -->
+            <path d="M0 -21l7 1.6l-7 1.4z" fill="#ff7a1a" stroke="#c94f00" stroke-width=".6"/>
+            <!-- Sombrero de copa con banda roja -->
+            <path d="M-6 -26.4h12" fill="none" stroke="#2a2f3a" stroke-width="2.4" stroke-linecap="round"/>
+            <rect x="-4.5" y="-34" width="9" height="8" rx="1" fill="#2a2f3a"/>
+            <rect x="-4.5" y="-29.4" width="9" height="2.2" fill="#ff2a33"/>
+          </g>
+        </g>
+        <animateMotion dur="16s" begin=".62s" repeatCount="indefinite"><mpath href="#ruta"/></animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.04;.9;1" dur="16s" begin=".62s" repeatCount="indefinite"/>
+      </g>
+    </svg>
+  </div>
+</body>
+</html>

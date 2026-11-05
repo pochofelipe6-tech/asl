@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="11 8 133 133">
+  <defs>
+    <linearGradient id="oro" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ad7a22"/>
+      <stop offset=".5" stop-color="#d9a02a"/>
+      <stop offset="1" stop-color="#f7cb2a"/>
+    </linearGradient>
+    <!-- Mitad de arriba: ahí el arco dorado pasa por encima del rojo -->
+    <clipPath id="arriba"><rect x="0" y="0" width="160" height="74.5"/></clipPath>
+  </defs>
+
+  <circle cx="77.5" cy="74.5" r="64" fill="#fff"/>
+
+  <!-- Aro: dos medias lunas, dorada y roja, que se cruzan -->
+  <path id="aro-oro" fill="url(#oro)" d="M128.44 31.75A66.5 66.5 0 1 0 54.76 136.99A64.45 64.45 0 1 1 128.44 31.75Z"/>
+  <path fill="#ec1c24" d="M77.5 8A66.5 66.5 0 1 1 19.91 107.75A61.68 61.68 0 1 0 77.5 8Z"/>
+  <use href="#aro-oro" clip-path="url(#arriba)"/>
+
+  <!-- B con la cabeza de águila en el hueco de arriba -->
+  <path fill="#ec1c24" fill-rule="evenodd" d="M49 42H96C102 42 107 46 107 53C107 61 104 67 99.5 70.5L97.5 72.5L100 74.5C106 77 110.5 82 110.5 89.5C110.5 100 102 107.5 90 107.5H49C52 105 54.5 101 54.5 96V54C54.5 48 52 44.5 49 42Z
+    M67 50H88C91.5 50 93.5 52 93.5 55.5V59C93.5 61 92 62 89.5 62.5C86.5 63 84 64.5 83 67.5L82.3 71C82 71.6 81.6 72 81 72H67Z
+    M82.5 55.5C82.5 54.2 83.8 53.8 85.5 54.1L90 55.3C91 55.6 91.5 56.3 91.2 57.3C90.5 56.6 89.5 56.5 88 56.6L85 57.1C83.6 57.3 82.5 56.8 82.5 55.5Z
+    M67 79H84C89 79 92 82.5 92 88C92 93.5 89 97 84 97H67Z"/>
+</svg>

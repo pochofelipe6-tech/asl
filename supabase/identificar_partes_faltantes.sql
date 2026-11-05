@@ -1,0 +1,57 @@
+-- Identifica qué partes contienen las filas de Caucasia que faltan.
+with intervalos(archivo, desde, hasta) as (values
+('frescura_003.sql', 1, 1),
+('frescura_003.sql', 12, 12),
+('frescura_003.sql', 14, 370),
+('frescura_004.sql', 371, 730),
+('frescura_005.sql', 731, 1050),
+('frescura_006.sql', 1051, 1370),
+('frescura_007.sql', 1371, 1690),
+('frescura_008.sql', 1691, 2010),
+('frescura_009.sql', 2011, 2330),
+('frescura_010.sql', 2331, 2690),
+('frescura_011.sql', 2691, 3010),
+('frescura_012.sql', 3011, 3370),
+('frescura_013.sql', 3371, 3690),
+('frescura_014.sql', 3691, 4010),
+('frescura_015.sql', 4011, 4370),
+('frescura_016.sql', 4371, 4730),
+('frescura_017.sql', 4731, 5050),
+('frescura_018.sql', 5051, 5410),
+('frescura_019.sql', 5411, 5770),
+('frescura_020.sql', 5771, 6130),
+('frescura_021.sql', 6131, 6490),
+('frescura_022.sql', 6491, 6810),
+('frescura_023.sql', 6811, 7130),
+('frescura_024.sql', 7131, 7450),
+('frescura_025.sql', 7451, 7770),
+('frescura_026.sql', 7771, 8090),
+('frescura_027.sql', 8091, 8410),
+('frescura_028.sql', 8411, 8730),
+('frescura_029.sql', 8731, 9050),
+('frescura_030.sql', 9051, 9370),
+('frescura_031.sql', 9371, 9730),
+('frescura_032.sql', 9731, 10050),
+('frescura_033.sql', 10051, 10370),
+('frescura_034.sql', 10371, 10690),
+('frescura_035.sql', 10691, 11010),
+('frescura_036.sql', 11011, 11330),
+('frescura_037.sql', 11331, 11650),
+('frescura_038.sql', 11651, 11970),
+('frescura_039.sql', 11971, 12290),
+('frescura_040.sql', 12291, 12610),
+('frescura_041.sql', 12611, 12930),
+('frescura_042.sql', 12931, 13250),
+('frescura_043.sql', 13251, 13570),
+('frescura_044.sql', 13571, 13890),
+('frescura_045.sql', 13891, 14210),
+('frescura_046.sql', 14211, 14530),
+('frescura_047.sql', 14531, 14850),
+('frescura_048.sql', 14851, 15097)
+), faltantes as (
+  select archivo, serie.numero_fila
+  from intervalos cross join lateral generate_series(desde, hasta) as serie(numero_fila)
+  where not exists (select 1 from public.frescura_filas f where f.hoja_id = 14 and f.numero_fila = serie.numero_fila)
+)
+select archivo, count(*) as filas_faltantes, min(numero_fila) as primera_fila, max(numero_fila) as ultima_fila
+from faltantes group by archivo order by archivo;

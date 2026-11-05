@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Índice de frescura · Bavaria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>try { if (localStorage.getItem('frescura-tema') === 'claro') document.documentElement.dataset.tema = 'claro'; } catch (_) {}</script>
+  <link rel="stylesheet" href="/panel.css"><script type="module" src="/js/panel.js"></script>
+</head>
+<body>
+  <div id="loadingIndicator" class="loading-indicator" role="status" aria-live="polite" hidden><span class="loading-indicator-spinner" aria-hidden="true"></span><span class="loading-indicator-copy"><strong>Cargando información</strong><small>Un momento, por favor</small></span><span class="loading-indicator-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menú principal">
+      <a class="brand" href="/panel"><img src="/img/logo-bavaria.svg" alt=""><span><strong>TORRE CONTROL</strong><small>Índice de frescura</small></span></a>
+      <div class="sidebar-label"><span class="pin">●</span> REGIONAL NORTE <button type="button" id="closeMenu" aria-label="Cerrar menú">×</button></div>
+      <nav id="modules" class="modules" aria-label="Módulos del informe"><p>Cargando módulos…</p></nav>
+      <div class="sidebar-footer"><span class="footer-icon">●</span><span><strong>Bavaria</strong><small>Regional Norte</small></span></div>
+    </aside>
+    <div class="overlay" id="overlay" hidden></div>
+    <main class="main">
+      <header class="topbar"><button class="mobile-menu" id="openMenu" type="button" aria-label="Abrir menú">☰</button><div class="account"><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span class="theme-bulb" aria-hidden="true"><svg viewBox="0 0 32 32"><g class="bulb-rays"><path d="M16 1v3M5.4 5.5l2.1 2.1M1.5 15h3M26.5 15h3M24.5 7.6l2.1-2.1"/></g><path class="bulb-glass" d="M10 20c0-1.8-2.4-3.1-2.4-6.7a8.4 8.4 0 0 1 16.8 0C24.4 16.9 22 18.2 22 20z"/><path class="bulb-base" d="M10.5 23h11M11.5 26h9M14 29h4"/><path class="bulb-filament" d="M13 20v-5l3 2 3-2v5"/></svg></span><span id="themeLabel">Modo claro</span></button><div class="account-user"><span class="user-avatar" aria-hidden="true"><svg class="account-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20v-1a7 7 0 0 1 14 0v1"/></svg></span><span id="userName">Usuario</span></div><button id="logout" type="button"><svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M13 8l4 4-4 4m-6-4h10"/></svg><span>Cerrar sesión</span></button></div></header>
+      <section class="hero"><div class="hero-content"><span class="eyebrow"><span class="hero-pin">●</span> INFORMACIÓN OPERATIVA · REGIONAL NORTE</span><h1>Índice de <em>frescura</em></h1><p>Una visión clara de tu inventario, sus fechas y su evolución.</p></div><div class="hero-caption" aria-hidden="true"><span>INFORMACIÓN REGIONAL</span><strong>Siempre en movimiento.</strong></div></section>
+      <section class="workspace" aria-labelledby="sheetTitle">
+        <div class="section-top"><div class="report-title"><span class="report-icon" aria-hidden="true">▤</span><div><span class="section-label">CENTRO DE INFORMACIÓN</span><h2 id="sheetTitle">Informe de frescura</h2><p class="description"><span id="breadcrumb">Diario SKU</span> · Regional Norte</p></div></div><span class="source-badge"><span>●</span> Información consolidada</span></div>
+        <div class="quick-tabs" id="quickTabs" aria-label="Acceso rápido a módulos"></div>
+        <section id="diarioFilters" class="filters-panel" aria-labelledby="filtersTitle" hidden>
+          <div class="filters-heading"><div><h3 id="filtersTitle">Filtros de Diario SKU</h3><p>Filtra la información guardada en el archivo.</p></div><button type="button" id="clearFilters">Limpiar filtros</button></div>
+          <div class="filters-grid">
+            <label class="filter-field">Vencimiento 2 <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Año <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Línea <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Canal <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Empaque <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Mes 1 <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">CD <select id="filterCd"><option value="">Todos los centros</option></select></label>
+            <label class="filter-field">Fecha envío información <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Código CD <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+            <label class="filter-field">Costo USD <select disabled aria-describedby="filtersHelp"><option>Fuente de datos necesaria</option></select></label>
+          </div>
+          <p id="filtersHelp" class="filters-help">El filtro de CD usa las filas guardadas en esta hoja. Los demás requieren los datos de origen de la tabla dinámica de Excel.</p>
+        </section>
+        <section id="dailyView" class="summary-view" aria-labelledby="dailyTitle" hidden>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3 id="dailyTitle">Diario SKU · Hectolitros</h3><p>Valores guardados en la hoja Diario SKU del Excel</p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="dailyTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="summaryView" class="summary-view" aria-labelledby="summaryTitle" hidden>
+          <div class="filters-panel summary-filters">
+            <div class="filters-heading"><div><h3 id="summaryTitle">Filtros de Resumen</h3><p>Segmentaciones del informe de frescura.</p></div></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Clase Envase<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Gerencia<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select disabled aria-describedby="summaryHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div>
+            <p id="summaryHelp" class="filters-help">Para aplicar estos filtros a las tres tablas se necesitan los datos de origen de la tabla dinámica. Se muestran los resultados guardados en el Excel.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Riesgos frescura</h3><p id="summaryDate"></p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div id="summaryTables" class="summary-tables" aria-live="polite"></div>
+        </section>
+        <section id="skuView" class="summary-view" aria-labelledby="skuTitle" hidden>
+          <div class="filters-panel">
+            <div class="filters-heading"><div><h3 id="skuTitle">Filtros de TD SKUS</h3><p>Consulta los hectolitros por material y centro de distribución.</p></div><button type="button" id="skuClear">Limpiar filtros</button></div>
+            <div class="filters-grid">
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select id="skuCd"><option value="">Todos los centros</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Año<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Código CD<select disabled aria-describedby="skuHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div>
+            <p id="skuHelp" class="filters-help">CD muestra la columna guardada para ese centro. Los demás filtros necesitan los datos de origen de la tabla dinámica de Excel.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Hectolitros por material y CD</h3><p>Valores guardados en el archivo Excel</p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="skuTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="ifView" class="summary-view" aria-labelledby="ifTitle" hidden>
+          <div class="filters-panel">
+            <div class="filters-heading"><div><h3 id="ifTitle">Filtros de IF 30 a 60 días</h3><p>Consulta los valores guardados en la hoja del informe.</p></div><button type="button" id="ifClear">Limpiar filtros</button></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Clase Envase<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select id="ifCd"><option value="">Todos los centros</option></select></label>
+              <label class="filter-field">Gerencia<select disabled aria-describedby="ifHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div>
+            <p id="ifHelp" class="filters-help">CD filtra las filas guardadas en la hoja. Los demás filtros requieren los datos de origen de la tabla dinámica.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Hectolitros por material y vencimiento</h3><p id="ifDate"></p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="ifTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="riskView" class="summary-view" aria-labelledby="riskTitle" hidden>
+          <div class="filters-panel">
+            <div class="filters-heading"><div><h3 id="riskTitle">Filtros de Riesgos CD</h3><p>Consulta los riesgos guardados por gerencia y centro.</p></div><button type="button" id="riskClear">Limpiar filtros</button></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Gerencia<select id="riskGerencia"><option value="">Todas las gerencias</option></select></label>
+              <label class="filter-field">CD<select id="riskCd"><option value="">Todos los centros</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Clase Envase<select disabled aria-describedby="riskHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div>
+            <p id="riskHelp" class="filters-help">Gerencia y CD filtran las filas guardadas. Los demás filtros requieren los datos de origen de la tabla dinámica.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Riesgos por centro de distribución</h3><p id="riskDate"></p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="riskTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="trendView" class="summary-view" aria-labelledby="trendTitle" hidden>
+          <div class="filters-panel">
+            <div class="filters-heading"><div><h3 id="trendTitle">Filtros de Tendencia diaria</h3><p>Consulta la evolución de hectolitros por centro.</p></div><button type="button" id="trendClear">Limpiar filtros</button></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select id="trendCd"><option value="">Todos los centros</option></select></label>
+              <label class="filter-field">Código CD<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha vencimiento<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Código material<select disabled aria-describedby="trendHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div>
+            <p id="trendHelp" class="filters-help">CD filtra las filas guardadas en la hoja. Los demás filtros necesitan los datos de origen de la tabla dinámica.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Tendencia diaria de hectolitros</h3><p>Valores guardados en el archivo Excel</p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="trendTotals" class="trend-totals"></div><div id="trendTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="kaView" class="summary-view" aria-labelledby="kaTitle" hidden>
+          <div class="filters-panel"><div class="filters-heading"><div><h3 id="kaTitle">Filtros de KA</h3><p>Consulta la información guardada por material y centro.</p></div><button type="button" id="kaClear">Limpiar filtros</button></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Clase Envase<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select id="kaCd"><option value="">Todos los centros</option></select></label>
+              <label class="filter-field">Gerencia<select disabled aria-describedby="kaHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div><p id="kaHelp" class="filters-help">CD filtra las filas guardadas. Los demás filtros necesitan los datos de origen de la tabla dinámica.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>KA · Hectolitros por material</h3><p id="kaDate"></p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="kaTable" class="summary-card" aria-live="polite">Cargando tabla…</div></div>
+        </section>
+        <section id="rangeView" class="summary-view" aria-labelledby="rangeTitle" hidden>
+          <div class="filters-panel"><div class="filters-heading"><div><h3 id="rangeTitle">Filtros de Riesgo rango días</h3><p>Consulta los rangos de vencimiento guardados en el informe.</p></div></div>
+            <div class="filters-grid">
+              <label class="filter-field">Año<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Mes 1<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Fecha envío información<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Vencimiento 2<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Canal<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Empaque<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Clase Envase<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Línea<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">CD<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Gerencia<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Código CD<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+              <label class="filter-field">Días Venc Actual<select disabled aria-describedby="rangeHelp"><option>Fuente de datos necesaria</option></select></label>
+            </div><p id="rangeHelp" class="filters-help">Estos filtros necesitan los datos de origen para actualizar ambas tablas. Los valores y totales mostrados corresponden a las tablas guardadas en Excel.</p>
+          </div>
+          <div class="summary-heading"><div><span class="summary-kicker">INFORME DE FRESCURA</span><h3>Riesgo por rango de días</h3><p>Valores guardados en el archivo Excel</p></div><span class="source-badge"><span>▣</span> Datos del Excel</span></div>
+          <div class="sku-table-container"><div id="rangeTables" class="range-tables" aria-live="polite">Cargando tablas…</div></div>
+        </section>
+        <div class="report-body" id="sheetData"><div class="notice"><span aria-hidden="true">ⓘ</span> Los datos corresponden a la última importación del archivo. Las fórmulas y tablas dinámicas conservan sus valores guardados en Excel.</div>
+        <div class="table-panel"><div class="table-toolbar"><div class="table-heading"><span class="layers-icon" aria-hidden="true">◈</span><div><h3>Detalle del módulo</h3><p id="rowCount">Cargando información…</p></div></div><label class="search"><span aria-hidden="true">⌕</span><span class="sr-only">Buscar en el módulo</span><input id="search" type="search" placeholder="Buscar en esta hoja..."></label></div>
+          <div class="table-scroll" tabindex="0" aria-label="Datos de la hoja"><table id="dataTable"></table><p id="empty" class="empty" hidden>No se encontraron resultados.</p></div>
+          <div class="pagination"><span id="pageInfo"></span><div><button id="previous" type="button" aria-label="Página anterior">‹</button><span id="pageNumber" class="page-number">1</span><button id="next" type="button" aria-label="Página siguiente">›</button></div></div></div></div>
+        <footer>ÍNDICE DE FRESCURA <span>•</span> REGIONAL NORTE</footer>
+      </section>
+    </main>
+  </div>
+  <dialog id="rowDialog" class="row-dialog"><div class="dialog-header"><div><h2>Detalle de la fila</h2><p id="dialogSubtitle"></p></div><button id="closeDialog" type="button" aria-label="Cerrar detalle">×</button></div><dl id="dialogData"></dl></dialog>
+</body>
+</html>
