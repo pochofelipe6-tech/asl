@@ -3,5 +3,10 @@
   "framework": "express",
   "installCommand": "npm ci --include=dev",
   "buildCommand": "npm run build",
+  "functions": {
+    "app.js": {
+      "includeFiles": "{public/index.html,views/**}"
+    }
+  },
   "outputDirectory": null
 }
