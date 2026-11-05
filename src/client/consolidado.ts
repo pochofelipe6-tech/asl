@@ -1,7 +1,7 @@
 import { iniciarCarga } from './carga';
 
 type Fila = Record<string, string | number | null>;
-type Respuesta = { opciones: Record<string, string[]>; ultimaFecha: string; historico: boolean; filas: Fila[]; truncado: boolean };
+type Respuesta = { opciones: Record<string, string[]>; ultimaFecha: string; historico: boolean; filas: Fila[]; truncado: boolean; lote?: string; siguienteOffset?: number | null };
 type Config = { id: string; modulo: string; tabla: string; dimensiones: string[]; pivote?: string };
 const configuraciones: Record<string, Config> = {
   'Diario SKU': { id: 'diarioFilters', modulo: 'diario', tabla: 'dailyTable', dimensiones: ['cd', 'codigo_material', 'material', 'fecha_vencimiento', 'dias_venc_actual'], pivote: 'fecha_envio' },
@@ -429,6 +429,7 @@ async function cargar(config: Config) {
   const finalizarCarga = iniciarCarga();
   destino.replaceChildren(); destino.textContent = 'Consultando información…';
   const params = new URLSearchParams(); filtros(config).forEach(s => { if (s.dataset.campo && s.value) params.set(s.dataset.campo, s.value); });
+  params.set('paginado', '1');
   for (const detalle of panel(config).querySelectorAll<HTMLElement>('[data-campo-multiple]')) {
     const campo = detalle.dataset.campoMultiple!; const seleccion = selecciones.get(config.modulo)?.get(campo) ?? null;
     if (seleccion === null) { if (campo === 'fecha_envio') params.append(campo, '__todas__'); }
@@ -447,6 +448,23 @@ async function cargar(config: Config) {
       const response = await fetch(`/api/consolidado/${config.modulo}?${params}`, { signal: controlador.signal });
       if (!response.ok) throw new Error('No se pudo consultar la información.');
       data = await response.json() as Respuesta;
+      // Se completan todas las paginas antes de calcular las tablas y sus totales.
+      let offsetAnterior = 0;
+      while (data.siguienteOffset != null) {
+        const offset = data.siguienteOffset;
+        if (!Number.isSafeInteger(offset) || offset <= offsetAnterior || offset >= 200000 || !data.lote) throw new Error('La paginación recibida no es válida.');
+        offsetAnterior = offset;
+        const paginaParams = new URLSearchParams(params);
+        paginaParams.set('offset', String(offset));
+        paginaParams.set('lote', data.lote);
+        const paginaResponse = await fetch(`/api/consolidado/${config.modulo}?${paginaParams}`, { signal: controlador.signal });
+        if (!paginaResponse.ok) throw new Error('No se pudo completar la consulta.');
+        const pagina = await paginaResponse.json() as Respuesta;
+        if (pagina.lote !== data.lote) throw new Error('El informe cambió durante la consulta.');
+        data.filas.push(...pagina.filas);
+        data.truncado = data.truncado || pagina.truncado;
+        data.siguienteOffset = pagina.siguienteOffset;
+      }
       if (consultasGuardadas.size >= 20) { const primera = consultasGuardadas.keys().next().value; if (primera !== undefined) consultasGuardadas.delete(primera); }
       consultasGuardadas.set(claveConsulta, data);
     }

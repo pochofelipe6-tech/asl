@@ -495,10 +495,15 @@ async function start() {
   try {
     const [userResponse, indexResponse] = await Promise.all([fetch('/api/me'), fetch('/api/frescura/indice.json')]);
     if (userResponse.status === 401) { location.href = '/'; return; }
-    if (!userResponse.ok || !indexResponse.ok) throw new Error('No se pudo cargar el informe.');
+    if (!userResponse.ok) throw new Error('No se pudo cargar la información del usuario.');
     const user: { nombre: string } = await userResponse.json();
+    porId('userName').textContent = user.nombre;
+    if (!indexResponse.ok) {
+      const error: { error?: string } = await indexResponse.json().catch(() => ({}));
+      throw new Error(error.error || 'No se pudo cargar el informe.');
+    }
     const index: Index = await indexResponse.json();
-    porId('userName').textContent = user.nombre; modules.replaceChildren();
+    modules.replaceChildren();
     const hiddenSheets = new Set(['Hoja1', 'Gerencias', 'Traslados', 'Riesgos Gerencia', 'Septiembre', 'Octubre', 'Caucasia', 'BBC', 'IF 30 a 60 días LM', 'Reporte']);
     const orderedSheets = index.sheets.filter(sheet => !hiddenSheets.has(sheet.name));
     const skuIndex = orderedSheets.findIndex(sheet => sheet.name === 'TD SKUS');
@@ -561,9 +566,9 @@ async function start() {
     });
     const initial = index.sheets.find(sheet => sheet.name === 'Diario SKU') ?? index.sheets[0];
     if (initial) await selectSheet(initial);
-  } catch {
-    modules.textContent = 'No se pudo cargar el informe.';
-    porId('rowCount').textContent = 'Comprueba que el archivo haya sido importado.';
+  } catch (error) {
+    modules.textContent = error instanceof Error ? error.message : 'No se pudo cargar el informe.';
+    porId('rowCount').textContent = 'No se pudo obtener el catálogo de hojas. Vuelve a intentarlo.';
   } finally { finalizarCarga(); }
 }
 prepararConsolidado();

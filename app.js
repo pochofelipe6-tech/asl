@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import XLSX from "xlsx";
 const { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
 const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
 if (variablesFaltantes.length) {
@@ -109,6 +110,41 @@ app.get("/api/me", (req, res) => {
   }
   res.json({ correo: sesion.correo, nombre: sesion.nombre, rol: sesion.rol });
 });
+const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
+app.get("/api/frescura/indice.json", async (req, res) => {
+  if (!leerSesion(req)) {
+    res.status(401).json({ error: "No has iniciado sesi\xF3n." });
+    return;
+  }
+  if (!dbFrescura) {
+    res.status(503).json({ error: "Falta configurar la conexi\xF3n a la base de datos." });
+    return;
+  }
+  try {
+    const resultado = await dbFrescura.query(
+      "select id, nombre, rango_excel from public.frescura_hojas order by id"
+    );
+    if (!resultado.rows.length) {
+      res.status(404).json({ error: "No hay hojas importadas en el informe." });
+      return;
+    }
+    const sheets = resultado.rows.map((hoja) => {
+      const rango = XLSX.utils.decode_range(hoja.rango_excel || "A1:A1");
+      return {
+        id: hoja.id,
+        name: hoja.nombre,
+        startRow: rango.s.r + 1,
+        startColumn: rango.s.c,
+        rows: rango.e.r - rango.s.r + 1,
+        columns: rango.e.c - rango.s.c + 1
+      };
+    });
+    res.json({ sheets });
+  } catch (error) {
+    console.error("Error consultando el cat\xE1logo de hojas:", error instanceof Error ? error.message : "error desconocido");
+    res.status(500).json({ error: "No se pudo consultar el cat\xE1logo del informe." });
+  }
+});
 app.get("/api/frescura/:archivo", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -126,7 +162,6 @@ app.get("/api/frescura/:archivo", async (req, res) => {
     res.status(404).json({ error: "La informaci\xF3n solicitada no est\xE1 disponible." });
   }
 });
-const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
 const camposFrescura = ["anio", "fecha_envio", "mes_1", "vencimiento_2", "linea", "clase_envase", "canal", "empaque", "gerencia", "cd", "codigo_cd", "codigo_material", "material", "fecha_vencimiento", "dias_venc_actual", "costo_usd"];
 const gruposFrescura = {
   diario: ["cd", "codigo_material", "material", "fecha_vencimiento", "dias_venc_actual", "fecha_envio"],
@@ -171,8 +206,21 @@ app.get("/api/consolidado/:modulo", async (req, res) => {
     res.status(503).json({ error: "Falta configurar la conexi\xF3n a la base de datos." });
     return;
   }
+  if (req.query.paginado !== "1") {
+    res.status(409).json({ error: "Actualiza la p\xE1gina para cargar la versi\xF3n actual del informe." });
+    return;
+  }
+  const tamanoPagina = 5e3;
+  const limiteGrupos = 2e5;
+  const offsetTexto = req.query.offset ?? "0";
+  const loteSolicitado = req.query.lote;
+  if (typeof offsetTexto !== "string" || !/^\d{1,6}$/.test(offsetTexto) || Number(offsetTexto) >= limiteGrupos || Number(offsetTexto) % tamanoPagina !== 0 || loteSolicitado !== void 0 && (typeof loteSolicitado !== "string" || !loteSolicitado.length || loteSolicitado.length > 200)) {
+    res.status(400).json({ error: "La p\xE1gina solicitada no es v\xE1lida." });
+    return;
+  }
+  const offset = Number(offsetTexto);
   try {
-    const loteResult = await dbFrescura.query("select id from public.frescura_consolidado_lotes order by cargado_en desc limit 1");
+    const loteResult = loteSolicitado === void 0 ? await dbFrescura.query("select id from public.frescura_consolidado_lotes order by cargado_en desc limit 1") : await dbFrescura.query("select id from public.frescura_consolidado_lotes where id = $1", [loteSolicitado]);
     const lote = loteResult.rows[0]?.id;
     if (!lote) {
       res.status(404).json({ error: "No hay datos consolidados." });
@@ -183,6 +231,7 @@ app.get("/api/consolidado/:modulo", async (req, res) => {
       const valores = opciones.rows[0];
       opcionesFrescura = { lote, valores, ultimaFecha: valores.fecha_envio.at(-1) ?? "" };
     }
+    const opcionesActuales = opcionesFrescura;
     const parametros = [lote];
     const condiciones = ["lote_id = $1"];
     for (const campo of camposFrescura) {
@@ -194,7 +243,7 @@ app.get("/api/consolidado/:modulo", async (req, res) => {
           parametros.push(fechas.join(","));
           condiciones.push(`fecha_envio::text = any(string_to_array($${parametros.length}, ','))`);
         } else if (valor !== "__todas__") {
-          const ultimas = opcionesFrescura.valores.fecha_envio.slice(-9);
+          const ultimas = opcionesActuales.valores.fecha_envio.slice(-9);
           if (ultimas.length) {
             parametros.push(ultimas.join(","));
             condiciones.push(`fecha_envio::text = any(string_to_array($${parametros.length}, ','))`);
@@ -229,18 +278,21 @@ app.get("/api/consolidado/:modulo", async (req, res) => {
       }
     }
     const historico = req.params.modulo === "diario" || req.params.modulo === "tendencia" || req.query.fecha_envio === "__todas__";
-    if (!historico && !req.query.fecha_envio && opcionesFrescura.ultimaFecha) {
-      parametros.push(opcionesFrescura.ultimaFecha);
+    if (!historico && !req.query.fecha_envio && opcionesActuales.ultimaFecha) {
+      parametros.push(opcionesActuales.ultimaFecha);
       condiciones.push(`fecha_envio::text = $${parametros.length}`);
     }
     const dimensions = columnas.join(", ");
     const agrupada = `select ${dimensions}, sum(coalesce(hectolitros, 0))::float8 as hectolitros, sum(coalesce(valor_total, 0))::float8 as valor_total, sum(coalesce(costo_usd, 0))::float8 as costo_usd from public.frescura_consolidado_detalle where ${condiciones.join(" and ")} group by ${dimensions}`;
     const requiereUmbral = ["if", "riesgo", "ka"].includes(req.params.modulo);
     const particion = columnas.filter((c) => c !== "vencimiento_2").join(", ");
-    const consulta = requiereUmbral ? `select ${dimensions}, hectolitros, valor_total, costo_usd from (select *, sum(hectolitros) over (partition by ${particion}) as total_fecha from (${agrupada}) grupos) filtrados where total_fecha >= 10 order by ${dimensions} limit 200001` : `${agrupada} order by ${dimensions} limit 200001`;
+    const paginacion = ` limit ${tamanoPagina + 1} offset ${offset}`;
+    const consulta = requiereUmbral ? `select ${dimensions}, hectolitros, valor_total, costo_usd from (select *, sum(hectolitros) over (partition by ${particion}) as total_fecha from (${agrupada}) grupos) filtrados where total_fecha >= 10 order by ${dimensions}${paginacion}` : `${agrupada} order by ${dimensions}${paginacion}`;
     const resultado = await dbFrescura.query(consulta, parametros);
-    const truncado = resultado.rows.length > 2e5;
-    res.json({ opciones: opcionesFrescura.valores, ultimaFecha: opcionesFrescura.ultimaFecha, historico, filas: resultado.rows.slice(0, 2e5), truncado });
+    const hayMas = resultado.rows.length > tamanoPagina;
+    const siguienteOffset = hayMas && offset + tamanoPagina < limiteGrupos ? offset + tamanoPagina : null;
+    const truncado = hayMas && siguienteOffset === null;
+    res.json({ opciones: opcionesActuales.valores, ultimaFecha: opcionesActuales.ultimaFecha, historico, filas: resultado.rows.slice(0, tamanoPagina), truncado, lote, siguienteOffset });
   } catch (error) {
     console.error("Error consultando el consolidado:", error instanceof Error ? error.message : "error desconocido");
     res.status(500).json({ error: "No se pudo consultar el consolidado." });
