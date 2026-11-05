@@ -3,13 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <script>
+    // El formulario debe seguir siendo seguro si el modulo no llega a cargar.
+    (() => {
+      const url = new URL(location.href);
+      if (url.searchParams.has('password') || url.searchParams.has('correo')) {
+        url.searchParams.delete('password');
+        url.searchParams.delete('correo');
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+      }
+      const avisar = () => {
+        const aviso = document.getElementById('alert');
+        if (aviso) {
+          aviso.textContent = 'No se pudo cargar el inicio de sesión. Recarga la página e inténtalo de nuevo.';
+          aviso.classList.add('show');
+        }
+      };
+      document.addEventListener('submit', event => {
+        if (event.target.id !== 'form' || event.target.dataset.ready === 'true') return;
+        event.preventDefault();
+        avisar();
+      }, true);
+      window.addEventListener('load', () => {
+        if (document.getElementById('form')?.dataset.ready !== 'true') avisar();
+      });
+    })();
+  </script>
   <title>Iniciar sesión · Bavaria Transporte</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="styles.css">
   <!-- Compilado desde src/client/login.ts con `npm run build` -->
-  <script type="module" src="js/login.js"></script>
+  <script type="module" src="/js/login.js"></script>
 </head>
 <body class="login">
   <button class="snow-toggle" id="snowToggle" type="button" aria-label="Activar nieve" aria-pressed="false" title="Activar nieve">
@@ -80,7 +107,8 @@
 
       <div class="alert" id="alert" role="alert"></div>
 
-      <form id="form" novalidate>
+      <noscript><p class="alert show">Activa JavaScript para iniciar sesión.</p></noscript>
+      <form id="form" method="post" action="/api/login" novalidate>
         <div class="field">
           <label class="sr-only" for="correo">Correo electrónico</label>
           <div class="input-wrap">

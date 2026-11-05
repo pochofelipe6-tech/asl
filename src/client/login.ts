@@ -106,3 +106,6 @@ form.addEventListener('submit', async e => {
   submitBtn.disabled = false;
   submitLabel.textContent = 'Entrar';
 });
+
+// Solo se marca listo cuando el controlador de envio ya esta instalado.
+form.dataset.ready = 'true';

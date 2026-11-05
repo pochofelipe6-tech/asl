@@ -1,7 +1,8 @@
 node_modules/
 .env
 .env.local
-# Generado por `npm run build` desde src/client
-public/js/
+# Los bundles se versionan para que Vercel los publique desde public/.
+# Regenerarlos con `npm run build` cuando cambie src/client.
+public/js/*.map
 datos/frescura/
 datos/consolidado/
