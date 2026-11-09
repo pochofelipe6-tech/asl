@@ -5,7 +5,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "app.js": {
-      "includeFiles": "{public/index.html,views/**}"
+      "includeFiles": "{public/index.html,views/**,datos/preventas/inicial.json}"
     }
   },
   "outputDirectory": null

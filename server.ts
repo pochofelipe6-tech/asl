@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import XLSX from 'xlsx';
 import { rutasExcel } from './src/server/excel.ts';
+import { rutasPreventas } from './src/server/preventas.ts';
 
 const { SUPABASE_URL = '', SUPABASE_PUBLISHABLE_KEY = '', JWT_SECRET = '', PORT = '3001' } = process.env;
 const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET })
@@ -39,6 +40,7 @@ interface Sesion {
 
 const app = express();
 app.use('/api/excel', express.json({ limit: '2mb' }));
+app.use('/api/preventas', express.json({ limit: '20mb' }));
 app.use(express.json());
 app.use(cookieParser());
 app.use('/api', (_req, res, next) => {
@@ -65,9 +67,9 @@ const leerSesion = (req: Request): Sesion | null => {
   }
 };
 
-// Si ya hay sesión, el login redirige directamente al panel
+// Si ya hay sesión, muestra la selección de módulos.
 app.get('/', (req, res) => {
-  if (leerSesion(req)) { res.redirect('/panel'); return; }
+  if (leerSesion(req)) { res.redirect('/modulos'); return; }
   res.sendFile(path.join(import.meta.dirname, 'public', 'index.html'));
 });
 app.use(express.static(path.join(import.meta.dirname, 'public')));
@@ -146,6 +148,7 @@ app.get('/api/me', (req, res) => {
 });
 
 const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15000 }) : null;
+app.use('/api/preventas', rutasPreventas(dbFrescura, leerSesion));
 
 // El catalogo debe estar disponible aunque el servidor no tenga los JSON locales del Excel.
 app.get('/api/frescura/indice.json', async (req, res) => {
@@ -289,6 +292,8 @@ const paginaProtegida = (archivo: string): RequestHandler => (req, res) => {
 };
 
 app.get('/panel', paginaProtegida('panel.html'));
+app.get('/modulos', paginaProtegida('modulos.html'));
+app.get('/preventas', paginaProtegida('preventas.html'));
 
 export default app;
 

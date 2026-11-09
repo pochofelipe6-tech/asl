@@ -91,7 +91,7 @@ form.addEventListener('submit', async e => {
     if (res.ok) {
       const card = form.closest<HTMLElement>('.card');
       if (card) await salidaFormulario(card);
-      location.href = '/panel';
+      location.href = '/modulos';
       return;
     }
 

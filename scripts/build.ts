@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import * as esbuild from 'esbuild';
 
 const opciones: esbuild.BuildOptions = {
-  entryPoints: ['src/client/login.ts', 'src/client/panel.ts', 'src/client/excel-worker.ts'],
+  entryPoints: ['src/client/login.ts', 'src/client/panel.ts', 'src/client/excel-worker.ts', 'src/client/modulos.ts', 'src/client/preventas.ts', 'src/client/preventas-worker.ts'],
   outdir: 'public/js',
   bundle: true,
   format: 'esm',

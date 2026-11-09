@@ -19,14 +19,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid #ff6271; outline-
 .module:hover { background: #1b2130; color: white; }
 .module.active { color: #fff; border-color: #e03149; background: linear-gradient(105deg,#bd1530,#690d20); box-shadow: 0 8px 22px #b1002533; }
 .module-icon { width: 22px; text-align: center; font-size: 20px; color: #e5e9f1; }
-.sidebar-footer { display: flex; align-items: center; gap: 12px; border: 1px solid #313342; border-radius: 16px; padding: 12px; background: linear-gradient(90deg,#111624e8,#111624bb),url('/img/fondo-login.jpg') center/cover; font-size: 13px; }
+.sidebar-footer { display: flex; align-items: center; gap: 12px; border: 1px solid #313342; border-radius: 16px; padding: 12px; background: linear-gradient(90deg,#111624e8,#111624bb),url('/img/centro-logistico-norte.png') center/cover; font-size: 13px; }
 .footer-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 11px; background: #e91c37; font-size: 27px; font-weight: 800; }
 .main { min-width: 0; background: #0b101b; }
 .topbar { height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 36px; border-bottom: 1px solid #ffffff0d; background: #0a0e18; }
 .topbar-title { color: #8f99ad; font-size: 10px; font-weight: 700; letter-spacing: .12em; }.topbar-title span { color: #e72a41; padding: 0 8px; }
 .account { display: flex; align-items: center; gap: 18px; color: #d7dce6; font-size: 12px; }.account button { border: 1px solid #343a48; background: transparent; border-radius: 8px; color: #c9cfdb; padding: 9px 12px; }
 .mobile-menu { display: none; }
-.hero { min-height: 245px; position: relative; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 35px 48px; background: linear-gradient(90deg,#101b2c 1%,#111a2ce8 43%,#11182758),linear-gradient(0deg,#0b101b99,transparent),url('/img/fondo-login.jpg') 50% 54%/cover; border-bottom: 1px solid #ffffff0d; }
+.hero { min-height: 245px; position: relative; display: flex; align-items: center; justify-content: space-between; overflow: hidden; padding: 35px 48px; background: linear-gradient(90deg,#101b2c 1%,#111a2ce8 43%,#11182758),linear-gradient(0deg,#0b101b99,transparent),url('/img/centro-logistico-norte.png') 50% 54%/cover; border-bottom: 1px solid #ffffff0d; }
 .hero-content { position: relative; max-width: 700px; }.eyebrow { color: #f36472; font-size: 10px; font-weight: 800; letter-spacing: .16em; }.hero .eyebrow span, .source-badge span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ef3048; margin-right: 7px; }
 .hero h1 { margin: 16px 0 10px; font-size: clamp(30px,3.3vw,48px); line-height: 1.1; letter-spacing: -.04em; }.hero h1 em { color: #ff4052; font-style: normal; }.hero p { color: #ccd2de; font-size: 13px; line-height: 1.7; }.hero-mark { color: #ffffff14; font-size: clamp(65px,9vw,140px); font-weight: 800; letter-spacing: -.08em; }.hero-mark span { display: block; font-size: 14px; text-align: right; letter-spacing: .4em; }
 .workspace { max-width: 1700px; margin: auto; padding: 34px 36px; }.section-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }.section-eyebrow { color: #788398; }.section-eyebrow span:first-child { color: #e83c50; }.section-top h2 { font-size: 25px; margin: 10px 0 5px; }.description { margin: 0; color: #8c97a9; font-size: 12px; }.source-badge { white-space: nowrap; color: #d4dae6; background: #171e2a; border: 1px solid #2c3442; padding: 10px 12px; border-radius: 8px; font-size: 9px; font-weight: 700; letter-spacing: .08em; }.source-badge span { background: #44d79b; }
@@ -52,10 +52,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid #ff6271; outline-
 .module.active { background: linear-gradient(100deg,#9a001b,#e60020); border-color: #f72540; box-shadow: inset 3px 0 7px #ff6377, 0 0 20px #eb001b70; font-weight: 700; }
 .module.active::after { content: '›'; margin-left: auto; font-size: 26px; }
 .module-icon { width: 30px; color: #fff; font-size: 27px; font-weight: 700; }
-.sidebar-footer { min-height: 95px; padding: 14px 22px; background: linear-gradient(90deg,#08080cec 8%,#11111a80 65%,#11111a30),url('/img/fondo-login.jpg') center 58%/cover; border-radius: 17px; }
+.sidebar-footer { min-height: 95px; padding: 14px 22px; background: linear-gradient(90deg,#08080cec 8%,#11111a80 65%,#11111a30),url('/img/centro-logistico-norte.png') center 58%/cover; border-radius: 17px; }
 .sidebar-footer strong { font-size: 18px; }.sidebar-footer small { color: #fff; font-size: 13px; }.footer-icon { width: auto; height: auto; color: #ed0024; font-size: 35px; background: transparent; }
 .main { background: #05060a; }.topbar { height: 70px; padding: 0 28px; background: #050509; border: 0; }.topbar-title { font-size: 13px; letter-spacing: 0; color: white; font-weight: 600; }.topbar-title .home-icon { font-size: 28px; color: #fff; padding: 0 18px 0 0; border-right: 1px solid #20212a; margin-right: 14px; }.topbar-title .crumb-arrow { color: #fff; font-size: 22px; padding: 0 16px; }.account { color: #fff; font-weight: 600; }.account .user-avatar { display: grid; place-items: center; width: 34px; height: 34px; color: #21222b; background: #9293a3; border-radius: 50%; font-size: 22px; }.account button { color: #fa1635; border: 1px solid #fa0024; padding: 10px 15px; }.account button span { font-size: 19px; vertical-align: middle; }
-.hero { margin: 0 17px 0 10px; min-height: 230px; border: 1px solid #42414d; border-radius: 22px; padding: 32px 64px; background: linear-gradient(90deg,#0a0b14f5 0%,#11101be8 37%,#11111b22 79%),url('/img/fondo-login.jpg') center 58%/cover; box-shadow: 0 0 23px #c4a5ce14; }
+.hero { margin: 0 17px 0 10px; min-height: 230px; border: 1px solid #42414d; border-radius: 22px; padding: 32px 64px; background: linear-gradient(90deg,#0a0b14f5 0%,#11101be8 37%,#11111b22 79%),url('/img/centro-logistico-norte.png') center 58%/cover; box-shadow: 0 0 23px #c4a5ce14; }
 .hero::before { content: ''; position: absolute; left: 22px; top: 34px; bottom: 34px; width: 5px; background: #ef0024; border-radius: 6px; box-shadow: 0 0 12px #f12; }
 .hero .eyebrow { display: inline-block; padding: 9px 14px; border-radius: 11px; background: #ad001d; color: #fff; font-size: 14px; letter-spacing: 0; box-shadow: 0 0 20px #e0002870; }
 .hero .eyebrow .hero-pin { width: auto; height: auto; background: none; font-size: 13px; color: #fff; margin-right: 8px; }.hero h1 { margin: 19px 0 8px; font-size: clamp(34px,4vw,63px); font-weight: 750; letter-spacing: -.035em; }.hero h1 em { color: #f30024; }.hero-icon { font-size: .8em; margin-right: 15px; }.hero p { margin: 0; color: #d0cfd8; font-size: 16px; }
@@ -147,7 +147,7 @@ body { background: #10141c; }
 .module.active::after { font-size: 20px; }
 .module-icon { width: 22px; color: #9eabba; font-size: 19px; }
 .module.active .module-icon { color: #fff; }
-.sidebar-footer { min-height: 78px; padding: 13px; border-radius: 11px; background: linear-gradient(90deg,#111720f7,#11172094),url('/img/fondo-login.jpg') center/cover; }
+.sidebar-footer { min-height: 78px; padding: 13px; border-radius: 11px; background: linear-gradient(90deg,#111720f7,#11172094),url('/img/centro-logistico-norte.png') center/cover; }
 .sidebar-footer strong { font-size: 13px; }.sidebar-footer small { font-size: 11px; color: #c7d0dc; }.footer-icon { font-size: 19px; }
 .main { background: #10141c; }
 .topbar { height: 66px; padding: 0 32px; border-bottom: 1px solid #29303b; background: #151b24; }
@@ -158,7 +158,7 @@ body { background: #10141c; }
 .account .user-avatar { width: 32px; height: 32px; color: #d9e0e9; background: #3b4655; font-size: 17px; }
 .account button { border-color: #63323d; border-radius: 8px; color: #ff667c; font-size: 11px; }
 .account .theme-toggle { border-color: #3c4755; background: #1d2632; color: #e2e8f0; }
-.hero { min-height: 190px; margin: 25px 32px 0; padding: 30px 34px; border: 1px solid #343b47; border-radius: 15px; background: linear-gradient(90deg,#151c28 0%,#151c28e8 42%,#151c2833 100%),url('/img/fondo-login.jpg') center 57%/cover; box-shadow: 0 10px 30px #0002; }
+.hero { min-height: 190px; margin: 25px 32px 0; padding: 30px 34px; border: 1px solid #343b47; border-radius: 15px; background: linear-gradient(90deg,#151c28 0%,#151c28e8 42%,#151c2833 100%),url('/img/centro-logistico-norte.png') center 57%/cover; box-shadow: 0 10px 30px #0002; }
 .hero::before { top: 30px; bottom: 30px; left: 0; width: 4px; border-radius: 0 4px 4px 0; background: #ed2944; box-shadow: none; }
 .hero .eyebrow { padding: 0; background: transparent; box-shadow: none; color: #f47e8d; font-size: 10px; letter-spacing: .12em; }
 .hero .eyebrow .hero-pin { margin-right: 5px; color: #ef2944; font-size: 9px; }
@@ -411,7 +411,7 @@ body, .main { background: #070910; }
 .topbar-title { color: #f2f3f7; }
 .account .theme-toggle { background: #1a1c27; border-color: #474856; color: #f6f6f9; }
 .account button:not(.theme-toggle) { border-color: #f50031; color: #ff2145; }
-.hero { min-height: 195px; border-color: #46414d; background: linear-gradient(90deg,#090a13f9 0%,#10101de9 32%,#10101c42 72%,#10101c12),url('/img/fondo-login.jpg') center 58%/cover; }
+.hero { min-height: 195px; border-color: #46414d; background: linear-gradient(90deg,#090a13f9 0%,#10101de9 32%,#10101c42 72%,#10101c12),url('/img/centro-logistico-norte.png') center 58%/cover; }
 .hero::before { left: 22px; top: 30px; bottom: 30px; width: 6px; border-radius: 5px; background: #f0002c; box-shadow: 0 0 15px #f0002c; }
 .hero-content { padding-left: 30px; }
 .hero .eyebrow { color: #fff; text-shadow: 0 0 14px #ff526f; }
@@ -453,7 +453,7 @@ html[data-tema="claro"] .modules { background: transparent; }
 html[data-tema="claro"] .module.active { background: linear-gradient(105deg,#c90027,#f0002e); color: #fff; }
 html[data-tema="claro"] .account .theme-toggle { background: #fff1f3; color: #e6002b; border-color: #ffc1cc; }
 html[data-tema="claro"] .account button:not(.theme-toggle) { color: #e5002b; border-color: #f10030; }
-html[data-tema="claro"] .hero { border-color: #d8dce8; background: linear-gradient(90deg,#fffffffa 0%,#ffffffef 27%,#ffffff83 45%,#ffffff00 73%),url('/img/fondo-login.jpg') center 58%/cover; }
+html[data-tema="claro"] .hero { border-color: #d8dce8; background: linear-gradient(90deg,#fffffffa 0%,#ffffffef 27%,#ffffff83 45%,#ffffff00 73%),url('/img/centro-logistico-norte.png') center 58%/cover; }
 html[data-tema="claro"] .hero .eyebrow { color: #e00029; text-shadow: none; }
 html[data-tema="claro"] .hero h1 { color: #10172a; }
 html[data-tema="claro"] .hero h1 em { color: #ed002c; }
@@ -492,7 +492,7 @@ html[data-tema="claro"] .daily-pagination, html[data-tema="claro"] .sku-report-f
 .module-icon { display: grid; place-items: center; width: 37px; height: 37px; flex: none; border-radius: 9px; background: #222732; color: #e1e3e8; }
 .module-icon svg { display: block; width: 23px; height: 23px; }
 .module.active .module-icon { background: #f03350; color: #fff; }
-.sidebar-footer { min-height: 88px; gap: 12px; padding: 14px; border: 1px solid #d60031; border-radius: 12px; background: linear-gradient(90deg,#090d16ed 0%,#090d1680 60%,#090d1610),url('/img/fondo-login.jpg') center 58%/cover; }
+.sidebar-footer { min-height: 88px; gap: 12px; padding: 14px; border: 1px solid #d60031; border-radius: 12px; background: linear-gradient(90deg,#090d16ed 0%,#090d1680 60%,#090d1610),url('/img/centro-logistico-norte.png') center 58%/cover; }
 .sidebar-footer strong { color: #fff; font-size: 14px; }.sidebar-footer small { color: #e3e5ea; font-size: 11px; }
 html[data-tema="claro"] .sidebar { background: #fff; border-color: #e0e4ed; }
 html[data-tema="claro"] .sidebar-label { background: #fff; color: #20283a; border-color: #edb4bf; }
@@ -503,7 +503,7 @@ html[data-tema="claro"] .module:hover { background: #e8ebf2; }
 html[data-tema="claro"] .module-icon { background: #e4e8ef; color: #515c6d; }
 html[data-tema="claro"] .module.active { background: linear-gradient(110deg,#b80029,#ec002d); border-color: #f52042; color: #fff; }
 html[data-tema="claro"] .module.active .module-icon { background: #f03350; color: #fff; }
-html[data-tema="claro"] .sidebar-footer { background: linear-gradient(90deg,#090d16ed 0%,#090d1680 60%,#090d1610),url('/img/fondo-login.jpg') center 58%/cover; }
+html[data-tema="claro"] .sidebar-footer { background: linear-gradient(90deg,#090d16ed 0%,#090d1680 60%,#090d1610),url('/img/centro-logistico-norte.png') center 58%/cover; }
 @media(max-width: 950px) { .sidebar { width: 280px; }.sidebar-label button { display: block; padding: 0; line-height: 1; } }
 
 /* La tarjeta regional sigue al menú y la curva ocupa el fondo libre. */
@@ -709,3 +709,7 @@ html[data-tema="claro"] .excel-status, html[data-tema="claro"] .excel-message, h
 html[data-tema="claro"] .excel-message.excel-error { color: #b51735; }
 html[data-tema="claro"] .excel-summary { background: #f1f5f9; }
 @media(max-width: 600px) { .excel-actions { flex-direction: column; }.excel-toolbar { padding: 13px; }.excel-dialog { padding: 18px; }.excel-dialog-actions .excel-button { flex: 1; } }
+.module-return { color: inherit; text-decoration: none; font-size: 13px; font-weight: 700; white-space: nowrap; } .module-return:hover { color: #ff3156; } .module-return:focus-visible { outline: 2px solid #ff3156; outline-offset: 5px; }
+/* Shared warehouse photograph in the freshness module, both themes. */
+.hero,html[data-tema="claro"] .hero{background-image:linear-gradient(90deg,#090d17ef 0%,#10101dbb 38%,#10101c12 78%),url('/img/centro-logistico-norte.png');background-position:center;background-size:cover;border-radius:22px;border-color:#77607188;min-height:220px}
+.hero h1,html[data-tema="claro"] .hero h1{color:#fff}.hero p,html[data-tema="claro"] .hero p{color:#d8dce8}html[data-tema="claro"] .hero .hero-caption{color:#eee}

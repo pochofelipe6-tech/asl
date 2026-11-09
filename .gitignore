@@ -6,3 +6,5 @@ node_modules/
 public/js/*.map
 datos/frescura/
 datos/consolidado/
+
+datos/preventas/preview-*.png

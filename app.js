@@ -2,8 +2,8 @@
 
 // server.ts
 import path from "node:path";
-import { readFile } from "node:fs/promises";
-import express2 from "express";
+import { readFile as readFile2 } from "node:fs/promises";
+import express3 from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
@@ -286,6 +286,151 @@ function rutasExcel(pool, sesion, alImportar) {
   return router;
 }
 
+// src/server/preventas.ts
+import express2 from "express";
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
+// src/shared/preventas.ts
+var COLUMNAS_PREVENTAS = ["Fecha", "Cond de Exp", "Centro", "Material", "Descripci\xF3n", "UM", "Status", "Stock Disp", "Cant en planta", "Cant en transito", "Cant entrega Pendien", "Total Disponible", "Cant de pedidos", "Cantidad en Pedidos", "Disponible Final", "Canal", "Factor", "HL", "HL Preventa", "Inventarios", "Agotados", "CD", "Llave", "Tr\xE1nsitos", "TMS", "Llave 2", "Llave 3", "Llave 4", "FRC", "Categor\xEDa", "Mes", "Semana", "FRC D\xEDa", "FRC W", "Mes"];
+var MAX_PREVENTAS = 1e4;
+var numericas2 = [7, 8, 9, 10, 12, 13, 16, 17, 23, 24, 28, 31, 32, 33];
+function normalizarPreventa(input, numero = 1) {
+  if (!Array.isArray(input) || input.length !== 35) throw new Error(`Fila ${numero}: se requieren las 35 columnas de Datos.`);
+  const fila = input.map((v) => v === null || v === void 0 ? null : typeof v === "number" && Number.isFinite(v) ? v : String(v).trim());
+  const fecha = fechaExcel(fila[0]);
+  if (!fecha) throw new Error(`Fila ${numero}: falta la fecha.`);
+  fila[0] = fecha;
+  for (const i of [2, 3, 4, 15, 21]) {
+    if (!fila[i] || String(fila[i]).length > 180) throw new Error(`Fila ${numero}: completa ${COLUMNAS_PREVENTAS[i]} (m\xE1ximo 180 caracteres).`);
+    fila[i] = String(fila[i]).trim();
+  }
+  for (const i of numericas2) {
+    const valor = fila[i] === null || fila[i] === "" ? 0 : Number(fila[i]);
+    if (!Number.isFinite(valor) || Math.abs(valor) > 1e12) throw new Error(`Fila ${numero}: ${COLUMNAS_PREVENTAS[i]} debe ser num\xE9rico.`);
+    fila[i] = valor;
+  }
+  if (Number(fila[16]) <= 0 || Number(fila[17]) <= 0 || Number(fila[13]) < 0) throw new Error(`Fila ${numero}: Factor y HL deben ser positivos; los pedidos no pueden ser negativos.`);
+  for (const v of fila) if (typeof v === "string" && v.length > 500) throw new Error(`Fila ${numero}: texto demasiado largo.`);
+  fila[11] = Number(fila[7]) + Number(fila[8]) + Number(fila[9]) - Number(fila[10]);
+  fila[14] = Number(fila[11]) - Number(fila[13]);
+  fila[18] = Number(fila[13]) * Number(fila[16]) * Number(fila[17]);
+  fila[19] = Number(fila[11]) * Number(fila[16]) * Number(fila[17]);
+  fila[20] = Math.max(Number(fila[18]) - Number(fila[19]), 0);
+  fila[22] = `${fila[2]}${fila[3]}${fecha}`;
+  fila[25] = `${fila[2]}${fila[3]}`;
+  fila[26] = `${fila[2]}${fila[3]}${fila[31]}`;
+  fila[27] = `${fila[2]}${fecha}`;
+  return fila;
+}
+
+// src/server/preventas.ts
+function rutasPreventas(pool, sesion) {
+  const router = express2.Router();
+  router.use((req, res, next) => {
+    if (!sesion(req)) {
+      res.status(401).json({ error: "Inicia sesi\xF3n para abrir Preventas." });
+      return;
+    }
+    if (req.method !== "GET" && req.get("sec-fetch-site") === "cross-site") {
+      res.status(403).json({ error: "Abre la aplicaci\xF3n para guardar datos." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+  router.get("/datos", async (_req, res) => {
+    try {
+      if (pool) {
+        const lote = (await pool.query("select id,archivo,creado_en from public.preventas_lotes order by creado_en desc,id desc limit 1")).rows[0];
+        if (lote) {
+          const result = await pool.query("select fila,valores from public.preventas_datos where lote_id=$1 order by fila", [lote.id]);
+          const snapshot = (await pool.query("select fecha_excel as fecha,material,descripcion,cd,agotados_hl::float8 as agotados from public.preventas_so_snapshot where lote_id=$1", [lote.id])).rows;
+          res.json({ lote, filas: result.rows.map((r) => ({ id: r.fila, valores: r.valores })), snapshot, persistido: true });
+          return;
+        }
+      }
+    } catch (error) {
+      if (error.code !== "42P01") {
+        console.error("Consulta Preventas:", error.message);
+        res.status(503).json({ error: "No se pudo consultar Preventas. Reintenta en un momento." });
+        return;
+      }
+    }
+    const inicial = JSON.parse(await readFile("datos/preventas/inicial.json", "utf8"));
+    res.json({ lote: { id: null, archivo: inicial.archivo }, filas: inicial.filas.map((valores, i) => ({ id: i + 1, valores })), snapshot: inicial.snapshot, persistido: false });
+  });
+  router.post("/guardar", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    const { archivo, filas, modo, loteBase, snapshot = [] } = req.body ?? {};
+    if (!["importar", "agregar"].includes(modo) || !Array.isArray(filas) || !filas.length || filas.length > MAX_PREVENTAS || modo === "agregar" && filas.length !== 1 || typeof archivo !== "string" || archivo.length > 180) {
+      res.status(400).json({ error: "La carga no es v\xE1lida. M\xE1ximo 10.000 registros por archivo." });
+      return;
+    }
+    let datos;
+    try {
+      datos = filas.map((f, i) => normalizarPreventa(f, i + 2));
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    if (!Array.isArray(snapshot) || snapshot.length > 2e4 || snapshot.some((s) => !s || !Number.isInteger(s.fecha) || s.fecha < 1 || s.fecha > 2958465 || !["material", "descripcion", "cd"].every((k) => typeof s[k] === "string" && s[k].length > 0 && s[k].length < 500) || !Number.isFinite(s.agotados) || s.agotados < 0 || s.agotados > 1e12)) {
+      res.status(400).json({ error: "El corte hist\xF3rico de SO contiene datos no v\xE1lidos." });
+      return;
+    }
+    let client;
+    try {
+      client = await pool.connect();
+    } catch {
+      res.status(503).json({ error: "No se pudo conectar a Supabase. Reintenta en un momento." });
+      return;
+    }
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext('preventas:guardar'))");
+      const actual = (await client.query("select id from public.preventas_lotes order by creado_en desc,id desc limit 1")).rows[0]?.id ?? null;
+      if (!actual && modo === "agregar") {
+        await client.query("rollback");
+        res.status(409).json({ error: "Carga primero los datos iniciales en Supabase o importa un Excel completo." });
+        return;
+      }
+      if (actual !== loteBase) {
+        await client.query("rollback");
+        res.status(409).json({ error: "Los datos cambiaron. Recarga antes de guardar." });
+        return;
+      }
+      let lote = actual;
+      if (modo === "importar" || !lote) {
+        lote = randomUUID2();
+        await client.query("insert into public.preventas_lotes(id,archivo,usuario_id) values($1,$2,$3)", [lote, archivo, sesion(req).sub]);
+      }
+      const max = (await client.query("select coalesce(max(fila),0)::int as n from public.preventas_datos where lote_id=$1", [lote])).rows[0].n;
+      if (max + datos.length > MAX_PREVENTAS) throw new Error("El corte supera los 10.000 registros. Importa un nuevo corte.");
+      for (let i = 0; i < datos.length; i += 500) {
+        await client.query("insert into public.preventas_datos(lote_id,fila,valores) select $1,$2+ordinality::int,value from jsonb_array_elements($3::jsonb) with ordinality", [lote, max + i, JSON.stringify(datos.slice(i, i + 500))]);
+      }
+      if (modo === "importar" && snapshot.length) {
+        await client.query(`insert into public.preventas_so_snapshot(lote_id,fecha_excel,material,descripcion,cd,agotados_hl)
+          select $1,fecha,material,descripcion,cd,agotados from jsonb_to_recordset($2::jsonb)
+          as x(fecha integer,material text,descripcion text,cd text,agotados numeric)`, [lote, JSON.stringify(snapshot)]);
+      }
+      await client.query("commit");
+      res.json({ lote, guardadas: datos.length });
+    } catch (error) {
+      await client.query("rollback");
+      const falta = error.code === "42P01";
+      console.error("Guardado Preventas:", error.message);
+      res.status(503).json({ error: falta ? "Ejecuta preventas_schema.sql y preventas_datos_iniciales.sql en Supabase antes de guardar." : "No se pudieron guardar los datos. No se aplic\xF3 la carga; reintenta." });
+    } finally {
+      client.release();
+    }
+  });
+  return router;
+}
+
 // server.ts
 var { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
 var variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
@@ -298,9 +443,10 @@ var clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
 var COOKIE = "sesion";
 var DURACION_SESION = 8 * 60 * 60 * 1e3;
 var isProd = process.env.NODE_ENV === "production";
-var app = express2();
-app.use("/api/excel", express2.json({ limit: "2mb" }));
-app.use(express2.json());
+var app = express3();
+app.use("/api/excel", express3.json({ limit: "2mb" }));
+app.use("/api/preventas", express3.json({ limit: "20mb" }));
+app.use(express3.json());
 app.use(cookieParser());
 app.use("/api", (_req, res, next) => {
   if (variablesFaltantes.length) {
@@ -326,12 +472,12 @@ var leerSesion = (req) => {
 };
 app.get("/", (req, res) => {
   if (leerSesion(req)) {
-    res.redirect("/panel");
+    res.redirect("/modulos");
     return;
   }
   res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
 });
-app.use(express2.static(path.join(import.meta.dirname, "public")));
+app.use(express3.static(path.join(import.meta.dirname, "public")));
 var limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,
   limit: 10,
@@ -391,6 +537,7 @@ app.get("/api/me", (req, res) => {
   res.json({ correo: sesion.correo, nombre: sesion.nombre, rol: sesion.rol });
 });
 var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
+app.use("/api/preventas", rutasPreventas(dbFrescura, leerSesion));
 app.get("/api/frescura/indice.json", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -437,7 +584,7 @@ app.get("/api/frescura/:archivo", async (req, res) => {
     return;
   }
   try {
-    const contenido = await readFile(path.join(import.meta.dirname, "datos", "frescura", archivo));
+    const contenido = await readFile2(path.join(import.meta.dirname, "datos", "frescura", archivo));
     res.type("json").send(contenido);
   } catch {
     res.status(404).json({ error: "La informaci\xF3n solicitada no est\xE1 disponible." });
@@ -590,6 +737,8 @@ var paginaProtegida = (archivo) => (req, res) => {
   res.sendFile(path.join(import.meta.dirname, "views", archivo));
 };
 app.get("/panel", paginaProtegida("panel.html"));
+app.get("/modulos", paginaProtegida("modulos.html"));
+app.get("/preventas", paginaProtegida("preventas.html"));
 var server_default = app;
 if (!process.env.VERCEL) app.listen(Number(PORT), (err) => {
   if (err) {

@@ -1,0 +1,189 @@
+/* Shared logistics identity and module selection. */
+.header{min-height:86px;padding:15px 4.2%;background:linear-gradient(110deg,var(--surface),#16151f);border-radius:0 0 16px 16px;border-bottom:1px solid #ffffff15}
+.brand{gap:25px}.brand>span{border-left:1px solid #81828e;padding-left:25px}.brand strong{font-size:22px;letter-spacing:-.02em}.brand small{font-size:16px}.account{gap:34px}.account button{box-shadow:inset 0 1px 1px #ffffff12}.account .logout{background:linear-gradient(#ff173e,#cf0029);box-shadow:0 0 24px #ed003325,inset 0 1px 2px #ffffff60}.logout:before{content:'⇥';margin-right:12px;font-size:21px;vertical-align:-2px}
+.welcome{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,#0b0d17e8 0%,#0b0d17c4 33%,#0b0d1700 65%),url('/img/centro-logistico-norte.png') center/cover;border-color:#77607188;box-shadow:inset 0 0 0 1px #ffffff08,0 18px 70px #0003}
+.welcome .eyebrow{display:flex;align-items:center;gap:22px;color:#ffc0cb;letter-spacing:.24em;font-size:12px}.welcome .eyebrow:before{content:'';width:4px;height:20px;background:#ff073c;flex-shrink:0}.region{display:inline-flex;align-items:center;gap:10px;border-color:#ff174d;background:#0c0e16aa;font-size:14px;font-weight:600;padding:11px 20px}.region svg{width:19px;height:19px;color:#ff174d}
+
+/* Cambio de tema con bombillo, igual que en el índice de frescura. */
+.account .theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:42px;padding:6px 17px 6px 12px;border:1px solid #657487;border-radius:24px;background:linear-gradient(145deg,#202a39,#101724);color:#fff;font-weight:700;white-space:nowrap;box-shadow:inset 0 1px 8px #ffffff12;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.account .theme-toggle:hover{border-color:#8796ab;box-shadow:inset 0 1px 8px #ffffff1c,0 0 18px #9fb4d01a}
+.account .theme-toggle:active{transform:scale(.96)}
+html[data-tema='claro'] .account .theme-toggle{background:#fff0f3;color:#d90029;border-color:#ef9baa}
+.theme-bulb{display:inline-grid;place-items:center;width:25px;height:25px;flex:none;color:#dce4ef}
+.theme-bulb svg{width:25px;height:25px;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.theme-bulb .bulb-glass{fill:transparent;transition:fill .25s ease,filter .25s ease}
+.theme-bulb .bulb-rays{opacity:0;transform-origin:16px 14px}
+html[data-tema='claro'] .theme-bulb{color:#ed1539}
+html[data-tema='claro'] .theme-bulb .bulb-glass{fill:#ffe39b;filter:drop-shadow(0 0 5px #ffc337)}
+html[data-tema='claro'] .theme-bulb .bulb-rays{opacity:1}
+@keyframes bombillo-encender{0%{transform:scale(.86);filter:brightness(.8)}38%{transform:scale(1.2);filter:brightness(1.6)}65%{transform:scale(.98);filter:brightness(1.1)}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes rayos-encender{from{opacity:0;transform:scale(.45)}55%{opacity:1;transform:scale(1.18)}to{opacity:1;transform:scale(1)}}
+@keyframes bombillo-apagar{0%{transform:scale(1);filter:drop-shadow(0 0 5px #ffc337)}45%{transform:scale(.88);filter:brightness(.7)}100%{transform:scale(1);filter:none}}
+@keyframes rayos-apagar{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.35)}}
+.theme-bulb.bulb-turning-on svg{animation:bombillo-encender .55s ease-out}
+.theme-bulb.bulb-turning-on .bulb-rays{animation:rayos-encender .55s ease-out}
+.theme-bulb.bulb-turning-off svg{animation:bombillo-apagar .45s ease-in-out}
+.theme-bulb.bulb-turning-off .bulb-rays{animation:rayos-apagar .45s ease-in}
+
+/* Selección de módulos. */
+.module-selection{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 30% 70%,#43112233,transparent 45%),radial-gradient(ellipse at 75% 80%,#1e263933,transparent 50%),#090c13}
+.module-selection .container{width:100%;max-width:1540px;padding:26px 50px 45px}
+.module-selection .welcome{min-height:420px;padding:55px 64px;background:#0b0d17}
+.module-selection .welcome:before,.module-selection .welcome:after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none}
+.module-selection .welcome:before{background:url('/img/centro-logistico-norte.png') center/cover}
+.module-selection .welcome:after{background:linear-gradient(105deg,transparent 40%,#ff2d5524 50%,transparent 60%) -150% 0/60% 100% no-repeat,linear-gradient(90deg,#0b0d17e8 0%,#0b0d17c4 33%,#0b0d1700 65%)}
+.module-selection h1{font-size:clamp(40px,4.55vw,66px);font-weight:800;margin:24px 0 16px;line-height:1.02;letter-spacing:-.045em}
+.module-selection h1 em{display:inline-block}
+.module-selection .welcome p{font-size:18px;line-height:1.5;max-width:480px;margin:0}
+.module-selection .region{margin-top:18px}
+.section-heading{margin:40px 10px 26px;gap:28px}.section-heading h2{display:flex;align-items:center;gap:18px;font-size:28px;letter-spacing:-.03em}.section-heading h2 svg{width:36px;height:36px;color:#ff174d}.section-heading:after{content:'';height:1px;background:linear-gradient(90deg,var(--border),#ffffff0c);flex:1;order:1;transform-origin:left}.section-heading>span{order:2;font-size:14px;white-space:nowrap}
+.cards{gap:22px;padding:0 9px}
+.module-card{--action-gap:50px;position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:76px minmax(0,1fr);gap:0 20px;padding:30px 40px 32px;background:radial-gradient(ellipse at bottom right,#4a243a66,transparent 55%),linear-gradient(130deg,#181923,#0e1119 65%);border:1px solid #55536188;box-shadow:inset 0 1px 1px #ffffff0b,0 20px 35px #0003;transition:transform .35s cubic-bezier(.16,1,.3,1),border-color .25s ease,box-shadow .35s ease}
+.module-card.freshness{border:1px solid #ff174d;border-top-width:2px;background:radial-gradient(ellipse at bottom right,#800b2d66,transparent 58%),linear-gradient(135deg,#251720,#0e1119 60%)}
+.module-card:hover{transform:translateY(-6px);border-color:#ff2348;box-shadow:inset 0 1px 1px #ffffff0b,0 24px 50px #0006,0 0 38px #ff1e481c}
+.module-card:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),#ff1e4826,transparent 45%);opacity:0;transition:opacity .3s ease;pointer-events:none}
+.module-card:hover:before{opacity:1}
+.module-card:after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(110deg,transparent 35%,#ffffff10 45%,#ff3b5c1f 50%,#ffffff10 55%,transparent 65%);transform:translateX(-130%);pointer-events:none}
+.module-card:hover:after{animation:brillo-barrido .9s ease}
+.card-top{display:contents}.icon{grid-column:1;grid-row:1 / 3;width:68px;height:68px;border-radius:18px;background:linear-gradient(145deg,#ff1e48,#d3002b);box-shadow:inset 0 1px 2px #ffffff66,0 10px 22px #0003;transition:transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease}.icon svg{width:34px;height:34px}
+.module-card:hover .icon{transform:rotate(-8deg) scale(1.08);box-shadow:inset 0 1px 2px #ffffff66,0 10px 26px #ff1e4855}
+.badge{position:absolute;right:38px;top:40px;font-size:12px;padding:7px 12px;box-shadow:inset 0 0 10px #22dc9820}.badge>span{display:inline-grid;place-items:center;width:17px;height:17px;border:1px solid currentColor;border-radius:50%;margin-right:4px}
+.module-card h3{grid-column:2;font-size:28px;margin:8px 0 16px;letter-spacing:-.025em;padding-right:110px;min-height:37px}
+.module-card p{grid-column:2;font-size:16px;line-height:1.6;max-width:100%;margin:0 0 24px;color:#d6d7e0}
+.tags{--card-line:#ffffff30;grid-column:1 / -1;margin:0;gap:14px;padding-bottom:calc(var(--action-gap) / 2);background:linear-gradient(var(--card-line),var(--card-line)) left bottom/100% 1px no-repeat}
+.tags span{display:inline-flex;align-items:center;gap:10px;border-radius:30px;padding:9px 16px;font-size:13px;color:#f4f4fa;border-color:#73728166;box-shadow:inset 0 1px 1px #ffffff0a;background:#0c101740}.tags svg{width:20px;height:20px}
+.card-action{grid-column:1 / -1;justify-content:flex-start;gap:22px;width:max-content;border:1px solid #818592;border-radius:30px;margin-top:calc(var(--action-gap) / 2);padding:12px 30px;background:linear-gradient(#ffffff13,#ffffff02);box-shadow:inset 0 1px 2px #ffffff30;font-size:16px}
+.freshness .card-action{background:linear-gradient(#ff1745,#d0002b);border-color:#ff4264;box-shadow:0 6px 28px #e9003333,inset 0 1px 2px #ffffff50}
+.card-action>span{color:white;font-size:23px;line-height:1;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.module-card:hover .card-action>span{transform:translateX(6px)}
+.card-decoration{position:absolute;right:32px;bottom:20px;width:75px;height:75px;color:#b57d9c55;z-index:-1}.card-decoration svg{width:100%;height:100%;stroke-width:3}.freshness .card-decoration{color:#ff315970}
+.module-selection footer{display:flex;align-items:center;gap:35px;width:100%;max-width:1360px;margin:auto auto 0;padding:5px 40px 32px;letter-spacing:.28em;font-size:10px}.module-selection footer:before,.module-selection footer:after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,#565564)}
+
+html[data-tema='claro'] .header{background:linear-gradient(110deg,#fff,#ececf3)}html[data-tema='claro'] .module-selection{background:radial-gradient(ellipse at 25% 70%,#ffe6ed,transparent 50%),#f3f5f9}html[data-tema='claro'] .module-card{background:linear-gradient(140deg,#fff,#f4f1f6);box-shadow:0 12px 30px #25304b0a}html[data-tema='claro'] .module-card:hover{box-shadow:0 20px 40px #25304b1f,0 0 30px #ff1e4814}html[data-tema='claro'] .module-card p,html[data-tema='claro'] .tags span{color:#505b6d}html[data-tema='claro'] .tags{--card-line:#d3d6df}html[data-tema='claro'] .module-card:not(.freshness) .card-action>span{color:#344055}html[data-tema='claro'] .freshness .card-action{color:white}html[data-tema='claro'] .tags span{background:#fff8}
+
+/* Escritorio: todo el panel cabe en una pantalla; los tamaños se ajustan a la altura disponible. */
+@media(min-width:701px){
+.module-selection .header{min-height:0;padding:clamp(8px,1.3vh,12px) 3.4%}
+.module-selection .brand{gap:18px}
+.module-selection .brand img{width:clamp(40px,5.4vh,50px);height:clamp(40px,5.4vh,50px)}
+.module-selection .brand>span{padding-left:18px}
+.module-selection .brand strong{font-size:19px}
+.module-selection .brand small{font-size:13.5px;margin-top:3px}
+.module-selection .account{gap:14px;font-size:13px}
+.module-selection .account button{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;font-size:13px}
+.module-selection .account .theme-toggle{padding:0 16px 0 11px}
+.module-selection .logout:before{font-size:18px;margin-right:9px}
+.module-selection .container{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center;max-width:1540px;padding:clamp(12px,2.2vh,22px) 44px clamp(10px,1.6vh,16px)}
+.module-selection .welcome{flex:1 0 auto;max-height:440px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-height:clamp(220px,34vh,330px);padding:clamp(20px,4vh,42px) clamp(34px,4vw,58px)}
+.module-selection .welcome .eyebrow{font-size:11px;gap:16px}
+.module-selection .welcome .eyebrow:before{height:17px}
+.module-selection h1{font-size:clamp(32px,min(3.7vw,6.2vh),56px);margin:clamp(10px,1.8vh,18px) 0 clamp(8px,1.3vh,14px)}
+.module-selection .welcome p{font-size:clamp(14px,1.9vh,16.5px);max-width:470px}
+.module-selection .region{margin-top:clamp(10px,1.8vh,18px);padding:8px 16px;font-size:13px}
+.module-selection .region svg{width:17px;height:17px}
+.section-heading{margin:clamp(14px,2.4vh,26px) 8px clamp(10px,1.6vh,18px);gap:22px}
+.section-heading h2{font-size:clamp(19px,2.7vh,24px);gap:14px}
+.section-heading h2 svg{width:clamp(24px,3.4vh,30px);height:clamp(24px,3.4vh,30px)}
+.section-heading>span{font-size:13px}
+.cards{gap:20px;padding:0 8px}
+.module-card{--pad-y:clamp(16px,2.6vh,26px);--pad-x:clamp(22px,2.3vw,34px);--action-gap:clamp(16px,2.8vh,28px);grid-template-columns:clamp(48px,6.2vh,58px) minmax(0,1fr);grid-template-rows:auto 1fr auto auto;gap:0 18px;padding:var(--pad-y) var(--pad-x)}
+.icon{width:clamp(48px,6.2vh,58px);height:clamp(48px,6.2vh,58px);border-radius:15px}
+.icon svg{width:28px;height:28px}
+.badge{top:calc(var(--pad-y) + 4px);right:var(--pad-x);font-size:11px;padding:6px 11px}
+.badge>span{width:15px;height:15px}
+.module-card h3{font-size:clamp(20px,2.9vh,25px);margin:4px 0 clamp(4px,.9vh,8px);padding-right:120px;min-height:0}
+.module-card p{font-size:clamp(13.5px,1.75vh,15px);line-height:1.5;margin:0 0 clamp(10px,1.7vh,16px)}
+.tags{gap:10px}
+.tags span{padding:6px 13px;font-size:12px;gap:8px}
+.tags svg{width:16px;height:16px}
+.card-action{height:40px;padding:0 24px;font-size:14px;gap:16px}
+.card-action>span{font-size:20px}
+.card-decoration{width:54px;height:54px;right:var(--pad-x);bottom:calc(var(--pad-y) - 4px)}
+.module-selection footer{padding:4px 40px clamp(10px,2vh,20px);font-size:9.5px}
+}
+
+/* Tarjetas angostas: el estado pasa debajo del título. */
+@media(min-width:701px) and (max-width:1100px){
+.module-selection .header{flex-wrap:wrap;row-gap:8px}
+.module-selection .account{gap:10px}
+.module-selection .container{padding-left:28px;padding-right:28px}
+.module-card{grid-template-rows:auto auto 1fr auto auto}
+.module-card h3{grid-row:1;padding-right:0}
+.badge{position:static;grid-column:2;grid-row:2;justify-self:start;margin-bottom:8px}
+.module-card p{grid-row:3}
+}
+
+@media(max-width:700px){.header{padding:16px 20px;gap:18px}.brand{gap:17px}.brand>span{padding-left:17px}.brand strong{font-size:18px}.brand small{font-size:13px}.brand img{width:48px;height:48px}.account{gap:10px;justify-content:space-between}.account button{font-size:11px;padding:9px 11px}.account .theme-toggle{min-height:36px;gap:5px;padding:5px 9px;font-size:11px}.theme-bulb,.theme-bulb svg{width:22px;height:22px}.logout:before{font-size:17px;margin-right:6px}.module-selection .container{padding:20px 18px 30px}.module-selection .welcome{padding:30px 23px;min-height:380px}.module-selection .welcome:before{background-position:62% center}.module-selection .welcome:after{background:linear-gradient(105deg,transparent 40%,#ff2d5524 50%,transparent 60%) -150% 0/60% 100% no-repeat,linear-gradient(90deg,#0b0d17ee,#0b0d17b0)}.welcome{background-image:linear-gradient(90deg,#0b0d17ee,#0b0d17b0),url('/img/centro-logistico-norte.png')}.welcome .eyebrow{font-size:9px;gap:12px;letter-spacing:.16em}.module-selection h1{font-size:42px;margin-top:30px}.module-selection .welcome p{font-size:15px}.section-heading{margin:28px 0 20px;gap:12px}.section-heading h2{font-size:20px;gap:10px}.section-heading h2 svg{width:25px;height:25px}.section-heading:after{display:none}.section-heading>span{font-size:11px}.cards{padding:0;gap:20px}.module-card{--action-gap:40px;padding:24px;grid-template-columns:50px minmax(0,1fr);grid-template-rows:auto auto 1fr auto auto;gap:0 14px}.icon{width:50px;height:54px;border-radius:14px}.icon svg{width:27px;height:27px}.module-card h3{grid-row:1;font-size:23px;padding:0;margin:4px 0 8px;min-height:0}.badge{position:static;grid-column:2;grid-row:2;justify-self:start;margin-bottom:14px;font-size:10px;padding:5px 8px}.module-card p{grid-column:1 / -1;grid-row:3;font-size:15px;margin-bottom:20px}.tags{gap:8px}.tags span{padding:8px 10px;font-size:11px;gap:7px}.tags svg{width:16px;height:16px}.card-action{font-size:14px;padding:11px 20px;gap:15px}.card-decoration{width:55px;height:55px;right:23px;bottom:22px}.module-selection footer{padding:0 22px 25px;font-size:8px;letter-spacing:.18em;gap:12px}.compact{padding:30px 24px}}
+
+/* Entrada animada del panel de módulos. */
+@keyframes cabecera-entrada{from{opacity:0;transform:translateY(-100%)}}
+@keyframes logo-entrada{from{opacity:0;transform:rotate(-200deg) scale(.3)}}
+@keyframes deslizar-izquierda{from{opacity:0;transform:translateX(-18px)}}
+@keyframes caer-arriba{from{opacity:0;transform:translateY(-14px)}}
+@keyframes hero-revelar{from{opacity:0;clip-path:inset(9% 12% 9% 12% round 24px);transform:scale(.97)}to{opacity:1;clip-path:inset(0 0 0 0 round 24px);transform:scale(1)}}
+@keyframes hero-zoom{from{transform:scale(1.22);filter:blur(8px) brightness(.45)}to{transform:scale(1);filter:blur(0) brightness(1)}}
+@keyframes hero-brillo{from{background-position:-150% 0,0 0}to{background-position:250% 0,0 0}}
+@keyframes etiqueta-entrada{from{opacity:0;transform:translateX(-26px);letter-spacing:.7em;filter:blur(5px)}}
+@keyframes barra-crecer{from{transform:scaleY(0)}}
+@keyframes titulo-entrada{from{opacity:0;transform:translateY(34px) skewY(3deg);filter:blur(12px)}}
+@keyframes lugar-entrada{0%{opacity:0;transform:scale(1.9) rotate(-6deg);filter:blur(10px)}60%{opacity:1;transform:scale(.94) rotate(1deg);filter:blur(0)}100%{transform:scale(1) rotate(0)}}
+@keyframes lugar-brillo{0%,100%{text-shadow:0 0 0 #ff123f00}50%{text-shadow:0 0 24px #ff123f99}}
+@keyframes subir{from{opacity:0;transform:translateY(18px)}}
+@keyframes pastilla-entrada{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes pin-rebote{0%{transform:translateY(-14px);opacity:0}45%{transform:translateY(0);opacity:1}65%{transform:translateY(-5px)}85%{transform:translateY(0)}}
+@keyframes icono-pila{0%{opacity:0;transform:translateY(-16px) rotate(-120deg) scale(.4)}70%{opacity:1;transform:rotate(10deg) scale(1.12)}100%{transform:none}}
+@keyframes linea-crecer{from{transform:scaleX(0)}}
+@keyframes aparecer{from{opacity:0}}
+@keyframes tarjeta-entrada{from{opacity:0;transform:perspective(1000px) translateY(70px) rotateX(22deg) scale(.92);filter:blur(8px)}to{opacity:1;transform:perspective(1000px) translateY(0) rotateX(0) scale(1);filter:blur(0)}}
+@keyframes icono-entrada{0%{opacity:0;transform:scale(.3) rotate(-35deg)}60%{opacity:1;transform:scale(1.15) rotate(8deg)}100%{transform:none}}
+@keyframes desde-derecha{from{opacity:0;transform:translateX(24px)}}
+@keyframes enfocar{from{opacity:0;transform:translateY(14px);filter:blur(5px)}}
+@keyframes etiqueta-pop{0%{opacity:0;transform:translateY(10px) scale(.8)}70%{opacity:1;transform:scale(1.05)}100%{transform:none}}
+@keyframes linea-dibujar{from{background-size:0% 1px}}
+@keyframes deco-entrada{from{opacity:0;transform:translate(24px,24px) rotate(-25deg) scale(.6)}}
+@keyframes deco-flotar{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-4deg)}}
+@keyframes brillo-barrido{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
+@keyframes pulso-disponible{0%{box-shadow:0 0 0 0 #34d39966}70%{box-shadow:0 0 0 7px #34d39900}100%{box-shadow:0 0 0 0 #34d39900}}
+
+.module-selection .header{animation:cabecera-entrada .7s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .brand img{animation:logo-entrada .9s .1s cubic-bezier(.34,1.56,.64,1) backwards}
+.module-selection .brand>span{animation:deslizar-izquierda .6s .25s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .account>*{animation:caer-arriba .5s .2s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .account>:nth-child(2){animation-delay:.28s}.module-selection .account>:nth-child(3){animation-delay:.36s}
+.module-selection .welcome{animation:hero-revelar 1s .05s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .welcome:before{animation:hero-zoom 1.6s .05s cubic-bezier(.2,.7,.2,1) backwards}
+.module-selection .welcome:after{animation:hero-brillo 1.6s .7s ease-in-out backwards}
+.module-selection .welcome .eyebrow{animation:etiqueta-entrada .8s .3s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .welcome .eyebrow:before{animation:barra-crecer .5s .3s ease-out backwards}
+.module-selection h1{animation:titulo-entrada .9s .4s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection h1 em{animation:lugar-entrada .8s .75s cubic-bezier(.34,1.56,.64,1) backwards,lugar-brillo 3.2s 1.8s ease-in-out infinite}
+.module-selection .welcome p{animation:subir .7s .55s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .region{animation:pastilla-entrada .6s .65s cubic-bezier(.34,1.56,.64,1) backwards}
+.module-selection .region svg{animation:pin-rebote .8s .95s ease-out backwards}
+.module-selection .section-heading h2{animation:deslizar-izquierda .6s .75s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .section-heading h2 svg{animation:icono-pila .8s .7s cubic-bezier(.34,1.56,.64,1) backwards}
+.module-selection .section-heading:after{animation:linea-crecer .9s .8s cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .section-heading>span{animation:aparecer .5s 1s ease-out backwards}
+.module-selection .module-card{--d:.8s;animation:tarjeta-entrada .9s var(--d) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .module-card:nth-child(2){--d:.95s}
+.module-selection .module-card:after{animation:brillo-barrido 1.1s calc(var(--d) + .9s) ease-in-out}
+.module-selection .module-card:hover:after{animation:brillo-barrido .9s ease}
+.module-selection .icon{animation:icono-entrada .75s calc(var(--d) + .3s) cubic-bezier(.34,1.56,.64,1) backwards}
+.module-selection .module-card h3{animation:enfocar .6s calc(var(--d) + .35s) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .badge{animation:desde-derecha .55s calc(var(--d) + .45s) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .badge>span{animation:pulso-disponible 2.4s calc(var(--d) + 1.2s) ease-out infinite}
+.module-selection .module-card p{animation:subir .6s calc(var(--d) + .45s) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .tags{animation:linea-dibujar .8s calc(var(--d) + .55s) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .tags span{animation:etiqueta-pop .5s calc(var(--d) + .55s) cubic-bezier(.34,1.56,.64,1) backwards}
+.module-selection .tags span:nth-child(2){animation-delay:calc(var(--d) + .62s)}.module-selection .tags span:nth-child(3){animation-delay:calc(var(--d) + .69s)}
+.module-selection .card-action{animation:deslizar-izquierda .6s calc(var(--d) + .7s) cubic-bezier(.16,1,.3,1) backwards}
+.module-selection .card-decoration{animation:deco-entrada .8s calc(var(--d) + .75s) cubic-bezier(.34,1.56,.64,1) backwards,deco-flotar 6s calc(var(--d) + 1.6s) ease-in-out infinite}
+.module-selection footer{animation:aparecer .8s 1.5s ease-out backwards}
+
+@media(prefers-reduced-motion:reduce){
+.module-selection *,.module-selection *:before,.module-selection *:after{animation:none!important;transition:none!important}
+.module-card:hover,.module-card:hover .icon,.module-card:hover .card-action>span{transform:none}
+.theme-bulb.bulb-turning-on svg,.theme-bulb.bulb-turning-on .bulb-rays,.theme-bulb.bulb-turning-off svg,.theme-bulb.bulb-turning-off .bulb-rays{animation:none}
+.theme-bulb .bulb-glass,.account .theme-toggle{transition:none}
+}
+
