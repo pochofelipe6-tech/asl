@@ -1593,7 +1593,7 @@ export const catalogo: { materials: Record<string, {factor:number;hl:number;cate
     },
     "22102": {
       "factor": 6,
-      "hl": 0.0033,
+      "hl": 0.00269,
       "categoria": "Cervezas"
     },
     "22135": {
@@ -1690,6 +1690,21 @@ export const catalogo: { materials: Record<string, {factor:number;hl:number;cate
       "factor": 30,
       "hl": 0.002,
       "categoria": "Maltas"
+    },
+    "21159": {
+      "factor": 4,
+      "hl": 0.00269,
+      "categoria": "Cervezas"
+    },
+    "22271": {
+      "factor": 6,
+      "hl": 0.0031,
+      "categoria": "Cervezas"
+    },
+    "5630": {
+      "factor": 6,
+      "hl": 0.00473,
+      "categoria": "Cervezas"
     },
     "23425": {
       "factor": 24,

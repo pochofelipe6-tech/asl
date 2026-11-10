@@ -1,0 +1,19 @@
+{
+  "archivoBase": "10KA.xlsx",
+  "archivoReferencia": "Stock Disp Regional Norte Base - copia.xlsx",
+  "fecha": "2026-11-11",
+  "filasExcel": 1002,
+  "filasApp": 1002,
+  "excluidas": 492,
+  "totalesExcel": {
+    "preventa": 22005.544100000006,
+    "agotados": 1404.4233400000003,
+    "disponible": 20601.120760000005
+  },
+  "totalesApp": {
+    "preventa": 22005.544100000006,
+    "agotados": 1404.4233400000003,
+    "disponible": 20601.120760000005
+  },
+  "diferencias": []
+}
