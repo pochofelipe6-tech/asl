@@ -475,3 +475,43 @@ body[data-vista="so"] .so-leyenda{display:flex;align-items:center;justify-conten
 .so-leyenda>span{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .so-leyenda i{display:inline-block;width:28px;height:23px;border-radius:7px;background:linear-gradient(145deg,var(--so-claro),var(--so-color));box-shadow:inset 0 1px 1px #ffffff88}
 @media(max-width:700px){body[data-vista="so"] .so-leyenda{justify-content:flex-start;padding:14px}.so-leyenda strong{width:100%}}
+/* Hoja Datos: tabla con buscador, etiquetas y paginacion inferior. */
+.pv-data-search,.pv-data-footer{display:none}
+body[data-vista="datos"] #tableView{padding:20px 22px 22px;border:1px solid #d8deeb;border-radius:20px;background:linear-gradient(125deg,#fff,#fcfcff);box-shadow:0 18px 40px #19274b12}
+body[data-vista="datos"] .table-title{padding:0 0 22px;gap:20px}
+body[data-vista="datos"] .table-title>div:first-child{padding-left:42px;position:relative}
+body[data-vista="datos"] .table-title>div:first-child:before{content:'\25c7';position:absolute;left:3px;top:0;color:#ef003c;font-size:35px;line-height:1}
+body[data-vista="datos"] .table-title h3{font-size:23px;letter-spacing:-.7px;color:#111b35;margin-bottom:6px}
+body[data-vista="datos"] .table-title p{color:#56617a;font-size:13px}
+body[data-vista="datos"] .pv-row-bar{margin:0 0 16px;padding:3px 14px 3px 4px;min-height:49px;background:linear-gradient(110deg,#f7f8fc,#fff3f6);border:1px solid #f9ccd7;border-radius:13px;gap:16px}
+body[data-vista="datos"] .pv-data-search{display:flex;align-items:center;gap:10px;flex:1;max-width:475px;padding:0 12px;border:1px solid #d6deec;border-radius:10px;background:#f5f7fb;box-shadow:0 0 0 3px #fff;color:#293957}
+.pv-data-search span{font-size:24px}
+.pv-data-search input{width:100%;min-width:0;border:0;background:transparent;color:#182640;padding:11px 0;font:inherit;outline-offset:3px}
+body[data-vista="datos"] .pv-row-info{margin-left:auto;color:#831d38;gap:20px;font-size:12px}
+body[data-vista="datos"] #pvPage{padding-left:20px;border-left:1px solid #a75b70}
+body[data-vista="datos"] #pvTable{width:100%;table-layout:auto;min-width:1250px;font-size:12px;color:#171d2d;border-collapse:separate;border-spacing:0}
+body[data-vista="datos"] #pvTable thead th{background:#faf0f5;padding:0;border:0;color:#15203a;white-space:normal}
+body[data-vista="datos"] #pvTable thead th:first-child{border-radius:11px 0 0 11px}
+body[data-vista="datos"] #pvTable thead th:last-child{border-radius:0 11px 11px 0}
+body[data-vista="datos"] #pvTable th button{display:flex;align-items:center;justify-content:space-between;gap:5px;width:100%;min-height:52px;background:transparent;border:0;color:inherit;font:inherit;font-weight:700;text-align:inherit;padding:8px 7px;cursor:pointer}
+body[data-vista="datos"] #pvTable th button span{color:#a87e9c;font-size:13px}
+body[data-vista="datos"] #pvTable tbody td{padding:8px 7px;border-bottom:1px solid #e1e5ee;background:#ffffff80;color:#171d2d;white-space:nowrap}
+body[data-vista="datos"] #pvTable tbody tr:hover td{background:#f5f7fc}
+body[data-vista="datos"] #pvTable .pv-desc{max-width:245px;overflow:hidden;text-overflow:ellipsis}
+body[data-vista="datos"] #pvTable .pv-material-code{font-weight:800}
+.pv-centro-pill,.pv-category-pill,.pv-shortage-pill{display:inline-block;border-radius:20px;padding:4px 12px;line-height:1.15;font-weight:700}
+.pv-centro-pill{color:#a60029;background:linear-gradient(#ffeef1,#ffdce3)}
+.pv-category-pill{font-size:11px;min-width:67px;text-align:center}
+.pv-cerveza{color:#15467e;background:linear-gradient(#eff5ff,#dce9ff)}
+.pv-malta{color:#77501e;background:linear-gradient(#fff5e7,#fbedda)}
+.pv-shortage-pill{color:#e0002b;background:linear-gradient(#ffe9ec,#ffcdd4);min-width:56px;text-align:center}
+body[data-vista="datos"] #pvTable td.pv-stock-good{background:linear-gradient(135deg,#eefce8,#d5f5ca);border-radius:10px;font-weight:700}
+body[data-vista="datos"] #pvTable td.pv-stock-mid{background:linear-gradient(135deg,#fff9df,#fff0bf);border-radius:10px;font-weight:700}
+body[data-vista="datos"] #pvTable td.pv-stock-low{background:linear-gradient(135deg,#fff0f1,#ffd5da);border-radius:10px;font-weight:700}
+body[data-vista="datos"] .pv-data-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:18px;margin-top:15px;border-top:1px solid #edf0f6}
+.pv-data-footer nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pv-data-footer button,.pv-data-footer select{border:1px solid #dce1ee;border-radius:10px;background:linear-gradient(#fff,#f6f7fb);color:#17213a;min-height:37px;min-width:37px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer}
+.pv-data-footer button[aria-current]{background:linear-gradient(#ff1d54,#da0034);border-color:#ed1749;color:white;font-weight:800;box-shadow:0 3px 6px #f5194930}
+.pv-data-footer button:disabled{opacity:.4;cursor:default}
+.pv-data-footer button:focus-visible,.pv-data-footer select:focus-visible{outline:2px solid #e90042;outline-offset:2px}
+@media(max-width:750px){body[data-vista="datos"] #tableView{padding:16px 12px}body[data-vista="datos"] .pv-row-bar{flex-wrap:wrap;padding:7px}body[data-vista="datos"] .pv-data-search{max-width:none;flex-basis:100%}body[data-vista="datos"] .pv-row-info{margin:5px 0;width:100%;justify-content:space-between}body[data-vista="datos"] .pv-data-footer{flex-wrap:wrap}.pv-data-footer nav{gap:4px}body[data-vista="datos"] .table-title{flex-wrap:wrap}}

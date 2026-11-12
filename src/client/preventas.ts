@@ -453,32 +453,54 @@ function dibujarMatrizSo() {
   ].map(([clase, rango, etiqueta]) => `<span><i class="so-nivel-${clase}"></i><b>${rango}</b> ${etiqueta}</span>`).join('');
   actualizarColumnas();
 }
+let busquedaDatos = '', tamanoDatos = 15, ordenDatos = -1, ascDatos = true;
+function dibujarDatos() {
+  el('pvPrevious').hidden = el('pvNext').hidden = true;
+  let buscador = document.getElementById('pvDataSearch') as HTMLInputElement | null;
+  if (!buscador) {
+    const etiqueta = document.createElement('label');
+    etiqueta.className = 'pv-data-search';
+    etiqueta.innerHTML = '<span aria-hidden="true">&#9906;</span><input id="pvDataSearch" type="search" placeholder="Buscar en la tabla?" aria-label="Buscar en la tabla">';
+    el('tableView').querySelector('.pv-row-bar')!.prepend(etiqueta);
+    buscador = etiqueta.querySelector('input')!;
+    buscador.addEventListener('input', () => { busquedaDatos = buscador!.value; pagina = 0; dibujarDatos(); });
+  }
+  let pie = document.getElementById('pvDataFooter');
+  if (!pie) {
+    pie = document.createElement('div'); pie.id = 'pvDataFooter'; pie.className = 'pv-data-footer';
+    el('tableView').append(pie);
+  }
+  const texto = (v: Celda, i: number) => typeof v === 'number' ? (cabeceras[i] === 'HL/unidad' ? decimales5 : numero).format(v) : String(v ?? '');
+  const consulta = sinTildes(busquedaDatos.trim());
+  const registros = tabla.filter(r => !consulta || r.some((v, i) => sinTildes(texto(v, i)).includes(consulta)));
+  if (ordenDatos >= 0) registros.sort((a,b) => (typeof a[ordenDatos] === 'number' && typeof b[ordenDatos] === 'number' ? Number(a[ordenDatos])-Number(b[ordenDatos]) : String(a[ordenDatos] ?? '').localeCompare(String(b[ordenDatos] ?? ''), 'es', {numeric:true})) * (ascDatos ? 1 : -1));
+  const paginas = Math.max(1, Math.ceil(registros.length / tamanoDatos));
+  pagina = Math.max(0, Math.min(pagina, paginas - 1));
+  const desde = pagina * tamanoDatos, hasta = Math.min(desde + tamanoDatos, registros.length);
+  const celda = (v: Celda, i: number) => {
+    const c = cabeceras[i], contenido = esc(texto(v,i));
+    if (c === 'Centro') return '<span class="pv-centro-pill">' + contenido + '</span>';
+    if (c === 'Categoría') return '<span class="pv-category-pill ' + (sinTildes(String(v)).includes('malta') ? 'pv-malta' : 'pv-cerveza') + '">' + contenido + '</span>';
+    if (c === 'Agotados HL' && Number(v) > 0) return '<span class="pv-shortage-pill">' + contenido + '</span>';
+    return contenido;
+  };
+  el('pvTable').innerHTML = '<caption class="pv-sr">Registros guardados de Preventas</caption><thead><tr>' + cabeceras.map((c,i) => '<th scope="col" aria-sort="' + (ordenDatos === i ? ascDatos ? 'ascending' : 'descending' : 'none') + '"><button type="button" data-sort="'+i+'">'+esc(c)+'<span aria-hidden="true">'+(ordenDatos === i ? ascDatos ? '&#8593;' : '&#8595;' : '&#8597;')+'</span></button></th>').join('') + '</tr></thead><tbody>' + (registros.slice(desde,hasta).map(r => '<tr>'+r.map((v,i) => '<td class="'+(i < 7 ? 'txt ' : '')+(cabeceras[i] === 'Material' ? 'pv-material-code ' : '')+(cabeceras[i] === 'Descripción' ? 'pv-desc ' : '')+(cabeceras[i] === 'Stock' ? Number(v) >= 10000 ? 'pv-stock-good' : Number(v) >= 2000 ? 'pv-stock-mid' : 'pv-stock-low' : '')+'" title="'+esc(texto(v,i))+'">'+celda(v,i)+'</td>').join('')+'</tr>').join('') || '<tr><td colspan="'+cabeceras.length+'">No hay registros para esta búsqueda.</td></tr>')+'</tbody>';
+  el('pvTable').querySelectorAll<HTMLButtonElement>('[data-sort]').forEach(b => b.addEventListener('click', () => { const i=Number(b.dataset.sort); ascDatos=ordenDatos === i ? !ascDatos : true; ordenDatos=i; pagina=0; dibujarDatos(); }));
+  el('pvCount').textContent = registros.length ? 'Mostrando '+(desde+1)+'–'+hasta+' de '+entero.format(registros.length)+' registros' : '0 registros';
+  el('pvPage').textContent = 'Página '+(pagina+1)+' de '+paginas;
+  const candidatas = [...new Set([0,1,2,3,4,pagina-1,pagina,pagina+1,paginas-1])].filter(n => n>=0 && n<paginas).sort((a,b)=>a-b);
+  const boton = (n: number, label: string, disabled = false) => '<button type="button" data-page="'+n+'" '+(disabled ? 'disabled ' : '')+(n === pagina && label === String(n+1) ? 'aria-current="page" ' : '')+'aria-label="'+(label === String(n+1) ? 'Página '+label : esc(label))+'">'+label+'</button>';
+  pie.innerHTML = '<label><span class="pv-sr">Registros por página</span><select id="pvDataSize">'+[15,30,50,100].map(n=>'<option '+(tamanoDatos===n ? 'selected ' : '')+'value="'+n+'">'+n+' por página</option>').join('')+'</select></label><nav aria-label="Paginación de registros">'+boton(0,'«',pagina===0)+boton(pagina-1,'‹',pagina===0)+candidatas.map((n,i)=>(i && n>candidatas[i-1]+1 ? '<span>…</span>' : '')+boton(n,String(n+1))).join('')+boton(pagina+1,'›',pagina===paginas-1)+boton(paginas-1,'»',pagina===paginas-1)+'</nav>';
+  pie.querySelector('select')!.addEventListener('change', e => { tamanoDatos=Number((e.target as HTMLSelectElement).value); pagina=0; dibujarDatos(); });
+  pie.querySelectorAll<HTMLButtonElement>('[data-page]').forEach(b=>b.addEventListener('click',()=>{pagina=Number(b.dataset.page);dibujarDatos();}));
+  actualizarColumnas();
+}
 function dibujarTabla() {
   el('pvPrevious').hidden = el('pvNext').hidden = vista === 'so';
   if (vista === 'so') { dibujarMatrizSo(); return; }
-  const paginas = Math.max(1, Math.ceil(tabla.length / POR_PAGINA)); pagina = Math.min(pagina, paginas - 1);
-  // Columnas de texto a la izquierda y numéricas a la derecha; HL/unidad necesita más decimales (p. ej. 0,0033).
-  const esTexto = cabeceras.map((_, i) => tabla.some(r => typeof r[i] === 'string'));
-  const clases = (i: number, v: Celda) => [esTexto[i] ? 'txt' : '', cabeceras[i] === 'Descripción' ? 'pv-desc' : '', cabeceras[i].includes('Agotados') && Number(v) > 0 ? 'shortage' : ''].filter(Boolean).join(' ');
-  const textoCelda = (v: Celda, i: number) => typeof v === 'number' ? (cabeceras[i] === 'HL/unidad' ? decimales5 : numero).format(v) : String(v ?? '');
-  const celda = (v: Celda, i: number) => esc(textoCelda(v, i));
-  // Ancho de cada columna calculado con TODOS los registros (no solo la página visible): al pasar de página con
-  // las flechas la tabla no cambia de tamaño ni aparece desplazamiento en unas páginas sí y en otras no.
-  const anchos = cabeceras.map((c, i) => {
-    let n = Math.max(...c.split(' ').map(p => p.length));
-    for (const r of [...tabla, ...(totales.length ? [totales] : [])]) n = Math.max(n, textoCelda(r[i], i).length);
-    return c === 'Descripción' ? Math.min(n, 30) : n;
-  });
-  const fila = (r: Celda[], k = -1) => `<tr${k >= 0 ? ` style="--i:${k}"` : ''}>` + r.map((v, i) => { const c = clases(i, v); return `<td${c ? ` class="${c}"` : ''}${cabeceras[i] === 'Descripción' && v ? ` title="${esc(v)}"` : ''}>${celda(v, i)}</td>`; }).join('') + '</tr>';
-  const desde = pagina * POR_PAGINA, hasta = Math.min(desde + POR_PAGINA, tabla.length);
-  el('pvTable').innerHTML = `<colgroup>${anchos.map(n => `<col style="width:${n + 1}ch">`).join('')}</colgroup><thead><tr>${cabeceras.map((c, i) => `<th scope="col"${esTexto[i] ? ' class="txt"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${tabla.length ? tabla.slice(desde, hasta).map((r, k) => fila(r, k)).join('') : `<tr><td class="txt" colspan="${cabeceras.length}">No hay registros para los filtros seleccionados.</td></tr>`}</tbody>${totales.length ? `<tfoot>${fila(totales)}</tfoot>` : ''}`;
-  const nombre = vista === 'datos' ? 'registros' : 'materiales con agotados';
-  el('pvCount').textContent = tabla.length ? `Mostrando ${desde + 1}–${hasta} de ${tabla.length.toLocaleString('es-CO')} ${nombre}` : `0 ${nombre}`;
-  el('pvPage').textContent = `Página ${pagina + 1} de ${paginas}`;
-  el<HTMLButtonElement>('pvPrevious').disabled = pagina === 0;
-  el<HTMLButtonElement>('pvNext').disabled = pagina + 1 >= paginas;
-  actualizarColumnas();
+  if (vista === 'datos') { dibujarDatos(); return; }
 }
+
 async function cargar() {
   el<HTMLButtonElement>('refreshData').disabled = true;
   estado('Consultando datos…');
