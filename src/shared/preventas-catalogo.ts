@@ -1,6 +1,12 @@
 // Referencias del Excel original; los valores del corte Datos tienen prioridad.
 export const catalogo: { materials: Record<string, {factor:number;hl:number;categoria:string}>; centers: Record<string,string> } = {
   "materials": {
+    // Verificados en Datos de Stock Disp Regional Norte Base - copia (2).xlsx.
+    "23426": { "factor": 6, "hl": 0.0033, "categoria": "Cervezas" },
+    "21204": { "factor": 6, "hl": 0.0033, "categoria": "Cervezas" },
+    // Verificados en Datos del seguimiento del 12/11/2026, filas 367 y 375.
+    "22284": { "factor": 1, "hl": 0.297, "categoria": "Cervezas" },
+    "22256": { "factor": 12, "hl": 0.0033, "categoria": "Cervezas" },
     "26": {
       "factor": 1,
       "hl": 0.5,
@@ -1713,6 +1719,7 @@ export const catalogo: { materials: Record<string, {factor:number;hl:number;cate
     }
   },
   "centers": {
+    "AV03": "Barranquilla",
     "AV10": "Turbaco",
     "AV11": "Santa Marta",
     "AV12": "Valledupar",

@@ -1,0 +1,149 @@
+{
+  "checkedAt": "2026-11-09T18:49:53.036Z",
+  "sheets": [
+    {
+      "name": "Fuentes",
+      "range": "A1:BS732"
+    },
+    {
+      "name": "Hoja2",
+      "range": "A3:B1657"
+    },
+    {
+      "name": "Datos",
+      "range": "A1:AI1026309"
+    },
+    {
+      "name": "Tránsitos",
+      "range": "A1:Z413736"
+    },
+    {
+      "name": "Top 10 CDs",
+      "range": "A1:AK1991"
+    },
+    {
+      "name": "Preventa x Canal",
+      "range": "A1:T1991"
+    },
+    {
+      "name": "SO",
+      "range": "A1:Z969"
+    },
+    {
+      "name": "Preventa x Categorías",
+      "range": "A1:S1968"
+    },
+    {
+      "name": "Hoja1",
+      "range": "A1:R20"
+    }
+  ],
+  "lots": [
+    {
+      "id": "51d76f6f-74f0-43a6-b645-1037793abc00",
+      "archivo": "Stock Disp Regional Norte.xlsx",
+      "creado_en": "2026-11-09T15:18:39.380Z"
+    }
+  ],
+  "excelRows": 954,
+  "dbRows": 954,
+  "skipped": [],
+  "normalizedCellDifferences": [],
+  "rawCellDifferences": {
+    "3:Material": {
+      "count": 954,
+      "examples": [
+        {
+          "row": 2,
+          "excel": 1428,
+          "db": "1428"
+        },
+        {
+          "row": 3,
+          "excel": 2174,
+          "db": "2174"
+        }
+      ]
+    },
+    "8:Cant en planta": {
+      "count": 954,
+      "examples": [
+        {
+          "row": 2,
+          "excel": null,
+          "db": 0
+        },
+        {
+          "row": 3,
+          "excel": null,
+          "db": 0
+        }
+      ]
+    },
+    "32:FRC Día": {
+      "count": 954,
+      "examples": [
+        {
+          "row": 2,
+          "excel": null,
+          "db": 0
+        },
+        {
+          "row": 3,
+          "excel": null,
+          "db": 0
+        }
+      ]
+    }
+  },
+  "identicalDuplicateRows": {
+    "excel": 0,
+    "db": 0
+  },
+  "so": {
+    "excel": 126,
+    "db": 126,
+    "differences": [],
+    "extra": []
+  },
+  "totals": {
+    "excel": {
+      "preventa": 19164.59614000001,
+      "agotados": 760.4732599999998,
+      "disponible": 18404.122880000017
+    },
+    "db": {
+      "preventa": 19164.59614000001,
+      "agotados": 760.4732599999998,
+      "disponible": 18404.122880000017
+    }
+  },
+  "dates": [
+    46336
+  ],
+  "centers": [
+    "Turbaco",
+    "Santa Marta",
+    "Valledupar",
+    "Corozal",
+    "Cúcuta",
+    "San Andrés",
+    "Riohacha",
+    "Magangué",
+    "Fonseca",
+    "Curumaní",
+    "Montería",
+    "Caucasia",
+    "Apartadó",
+    "Cartagena KA",
+    "UDC Torices",
+    "La Árenosa",
+    "Galapa"
+  ],
+  "channels": [
+    "TAT",
+    "T4",
+    "x`º",
+    "KA"
+  ]
+}

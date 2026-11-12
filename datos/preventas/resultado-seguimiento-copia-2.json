@@ -1,0 +1,32 @@
+{
+  "archivo": "Stock Disp Regional Norte Base - copia (2).xlsx",
+  "fecha": "2026-11-12",
+  "lote": "28320023-8d0f-4e6f-b65c-eebbc186a9b8",
+  "filas": 1228,
+  "totales": {
+    "preventa": 23978.908639999987,
+    "disponible": 22835.818379999993,
+    "agotados": 1143.0902599999993
+  },
+  "otrosRegistrosConservados": 2365,
+  "soConservado": true,
+  "cdsVerificados": [
+    "UDC Torices",
+    "Caucasia",
+    "Curumaní",
+    "Santa Marta",
+    "Galapa",
+    "Apartadó",
+    "Valledupar",
+    "Cartagena KA",
+    "Corozal",
+    "Montería",
+    "Riohacha",
+    "Cúcuta",
+    "San Andrés",
+    "Fonseca",
+    "Turbaco",
+    "La Arenosa",
+    "Magangué"
+  ]
+}

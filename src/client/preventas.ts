@@ -30,6 +30,17 @@ const ordenTexto = (a: string, b: string) => a.localeCompare(b, 'es');
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 // Canales de la hoja Preventa Regional Norte, en su orden. Cualquier otro valor se marca para revisar en origen.
 const CANALES = ['TAT', 'KA', 'T4'];
+// Orden de los CD en las tres tablas de referencia del Excel.
+const ORDEN_CD = {
+  total: ['Apartadó', 'UDC Torices', 'Curumaní', 'Cartagena KA', 'Galapa', 'Santa Marta', 'Montería', 'Valledupar', 'Fonseca', 'Cúcuta', 'Corozal', 'San Andrés', 'Riohacha', 'La Arenosa', 'Turbaco', 'Magangué', 'Caucasia'],
+  disponible: ['Turbaco', 'Galapa', 'La Arenosa', 'Cúcuta', 'Corozal', 'Montería', 'Santa Marta', 'Valledupar', 'Riohacha', 'Magangué', 'Cartagena KA', 'Curumaní', 'San Andrés', 'Fonseca', 'UDC Torices', 'Apartadó', 'Caucasia'],
+  preventa: ['Turbaco', 'Galapa', 'La Arenosa', 'Cúcuta', 'Corozal', 'Montería', 'Santa Marta', 'Valledupar', 'Riohacha', 'Cartagena KA', 'Magangué', 'Curumaní', 'Apartadó', 'UDC Torices', 'San Andrés', 'Fonseca', 'Caucasia'],
+};
+function ordenarCd<T extends { cd: string }>(filas: T[], tipo: keyof typeof ORDEN_CD): T[] {
+  const posiciones = new Map(ORDEN_CD[tipo].map((cd, i) => [sinTildes(cd.trim()), i]));
+  return filas.sort((a, b) => (posiciones.get(sinTildes(a.cd.trim())) ?? posiciones.size)
+    - (posiciones.get(sinTildes(b.cd.trim())) ?? posiciones.size) || ordenTexto(a.cd, b.cd));
+}
 const CALENDARIO = '<svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const TITULOS = { total: 'Preventa total', disponible: 'Preventa disponible por canal', preventa: 'Preventa por canal' } as const;
 const MEDIDAS = { disponible: 'HL Disp Prev', preventa: 'HL Preventa' } as const;
@@ -45,6 +56,7 @@ let vista: Vista = 'canal', pagina = 0, ocupado = false;
 let aplicados: Filtros = { fechas: [], cds: [], canal: '', categoria: '', texto: '' };
 const fechasVista: Partial<Record<Vista, number[]>> = {};
 let cabeceras: string[] = [], tabla: Celda[][] = [], totales: Celda[] = [];
+let mostrarTodosSo = false, totalMaterialesSo = 0;
 let tablasCanal: Tabla[] = [];
 let pendiente: { archivo: string; filas: FilaPreventa[]; snapshot: Snapshot[] } | null = null;
 let exportarDatos: FilaPreventa[] = [];
@@ -73,7 +85,6 @@ function fechasDisponibles(v: Vista) {
   return [...fechas].filter(Number.isFinite).sort((a, b) => a - b);
 }
 function fechasPorDefecto(v: Vista) {
-  if (v === 'so' && datos?.snapshot.length) return [Math.max(...datos.snapshot.map(s => s.fecha))];
   const fechas = fechasDisponibles(v);
   return fechas.length ? [fechas[fechas.length - 1]] : [];
 }
@@ -250,12 +261,18 @@ function construirTablas(filas: FilaPreventa[], fechas: number[]) {
   for (const fecha of [...fechas].sort((a, b) => a - b)) {
     const delCorte = filas.filter(f => Number(f[0]) === fecha);
     if (!delCorte.length) continue;
-    tablas.push({ tipo: 'total', fecha, canal: '', ...resumir(delCorte) });
+    const resumen = resumir(delCorte);
+    ordenarCd(resumen.filas, 'total');
+    tablas.push({ tipo: 'total', fecha, canal: '', ...resumen });
     // Como en el Excel, las matrices y las tablas por canal solo usan TAT, KA y T4; los demás canales se suman en el total.
     const canales = CANALES.filter(c => delCorte.some(f => String(f[15]) === c));
     if (!canales.length) continue;
-    tablas.push({ tipo: 'disponible', fecha, ...matriz(delCorte, canales, m => m.disponible) });
-    tablas.push({ tipo: 'preventa', fecha, ...matriz(delCorte, canales, m => m.preventa) });
+    const disponible = matriz(delCorte, canales, m => m.disponible);
+    const preventa = matriz(delCorte, canales, m => m.preventa);
+    ordenarCd(disponible.filas, 'disponible');
+    ordenarCd(preventa.filas, 'preventa');
+    tablas.push({ tipo: 'disponible', fecha, ...disponible });
+    tablas.push({ tipo: 'preventa', fecha, ...preventa });
     for (const canal of canales) tablas.push({ tipo: 'canal', fecha, canal, ...resumir(delCorte.filter(f => String(f[15]) === canal)) });
   }
   return tablas;
@@ -298,7 +315,7 @@ function renderCanal(filas: FilaPreventa[]) {
   const n = tablasCanal.length;
   el('pvTablesCount').textContent = !n ? 'Sin tablas' : `${plural(n, 'tabla', 'tablas')}${porFecha.size > 1 ? ` · ${plural(porFecha.size, 'fecha', 'fechas')}` : ''}`;
   const cortes = aplicados.fechas.map(fechaTexto).join(', '), filtro = efectivos();
-  el('canalHelp').textContent = `Hoja Datos · ${aplicados.fechas.length === 1 ? 'corte' : 'cortes'} ${cortes} · ${filtro.cds.length ? plural(filtro.cds.length, 'CD seleccionado', 'CD seleccionados') : 'todos los CD'}${filtro.canal ? ` · canal ${filtro.canal}` : ''}${filtro.categoria ? ` · categoría ${filtro.categoria}` : ''}${filtro.texto ? ` · material «${filtro.texto}»` : ''} · valores en HL. Tablas ordenadas por % de participación SO; las matrices por canal, por total general.`;
+  el('canalHelp').textContent = `Hoja Datos · ${aplicados.fechas.length === 1 ? 'corte' : 'cortes'} ${cortes} · ${filtro.cds.length ? plural(filtro.cds.length, 'CD seleccionado', 'CD seleccionados') : 'todos los CD'}${filtro.canal ? ` · canal ${filtro.canal}` : ''}${filtro.categoria ? ` · categoría ${filtro.categoria}` : ''}${filtro.texto ? ` · material «${filtro.texto}»` : ''} · valores en HL. Las tres tablas principales conservan el orden de CD de la referencia del Excel; los resúmenes por canal se ordenan por participación SO.`;
   // Los canales fuera de TAT, KA y T4 (p. ej. "x`º") solo se suman en Preventa total, igual que en el Excel.
   const otros = filas.filter(f => !CANALES.includes(String(f[15])));
   el('canalNota').hidden = !otros.length;
@@ -339,6 +356,7 @@ function render() {
   document.title = `${textos.titulo}${textos.resalte} · Bavaria`;
   document.body.dataset.vista = vista;
   el('datosActions').hidden = vista !== 'datos'; el('canalView').hidden = vista !== 'canal'; el('tableView').hidden = vista === 'canal';
+  el('toggleSoRows').hidden = vista !== 'so';
   el('formulaNote').textContent = historico ? 'Corte conservado de la hoja SO del Excel. Solo contiene agotados por material y CD (sin canal ni categoría); por eso esos filtros no aplican a esta fecha.' :'Fórmulas del Excel: total disponible = stock + planta + tránsito − entregas pendientes. Preventa HL = pedidos × factor × HL. Agotados = máximo(preventa − inventario, 0). Preventa disponible = preventa − agotados. Se calcula por registro antes de consolidar; no se compensan faltantes entre materiales o canales.';
   if (vista === 'canal') { renderCanal(filas); return; }
   el('tableHelp').textContent = historico ? `Hoja SO · corte ${fechaTexto(fecha)} · valores en HL.` : `Hoja Datos · corte ${fechaTexto(fecha)} · valores en HL. Los filtros se aplican a toda la vista.`;
@@ -348,7 +366,10 @@ function render() {
     totales = []; el('pvTableTitle').textContent = 'Registros guardados · hoja Datos';
   } else {
     const fuente = historico ? snapshot : filas.map(f => ({ material: String(f[3]), descripcion: String(f[4]), cd: String(f[21]), agotados: Number(f[20]) }));
-    const cds = [...new Set(fuente.map(f => f.cd))].sort(ordenTexto);
+    const impactoCd = new Map<string, number>();
+    for (const f of fuente) impactoCd.set(f.cd, (impactoCd.get(f.cd) ?? 0) + f.agotados);
+    const cds = [...impactoCd.keys()].filter(cd => impactoCd.get(cd)! > 0)
+      .sort((a, b) => impactoCd.get(b)! - impactoCd.get(a)! || ordenTexto(a, b));
     const grupos = new Map<string, { descripcion: string; valores: Map<string, number> }>();
     for (const f of fuente) {
       let grupo = grupos.get(f.material);
@@ -357,24 +378,84 @@ function render() {
     }
     cabeceras = ['Material', 'Descripción', ...cds, 'Total agotados HL'];
     tabla = [...grupos].map(([material, g]) => { const v = cds.map(c => g.valores.get(c) ?? 0); return [material, g.descripcion, ...v, v.reduce((a, b) => a + b, 0)]; }).filter(r => Number(r.at(-1)) > 0).sort((a, b) => Number(b.at(-1)) - Number(a.at(-1)));
-    totales = ['Total filtrado', '', ...cds.map((_, c) => tabla.reduce((s, r) => s + Number(r[c + 2]), 0)), tabla.reduce((s, r) => s + Number(r.at(-1)), 0)];
-    el('pvTableTitle').textContent = 'Agotados Regional Norte · material × CD';
+    totales = ['Total general', '', ...cds.map((_, c) => tabla.reduce((s, r) => s + Number(r[c + 2]), 0)), tabla.reduce((s, r) => s + Number(r.at(-1)), 0)];
+    el('pvTableTitle').textContent = `Agotados Regional Norte · ${fechaTexto(fecha)}`;
+    el('tableHelp').textContent += ' CD de mayor a menor impacto. Valores redondeados; pasa sobre una cifra para ver los HL exactos.';
     // Indicadores de SO, con la misma fuente y filtros que la tabla (hoja SO o corte calculado desde Datos).
     const porCd = new Map<string, number>();
     for (const f of fuente) porCd.set(f.cd, (porCd.get(f.cd) ?? 0) + f.agotados);
     const totalAgotados = [...porCd.values()].reduce((a, b) => a + b, 0), peor = [...porCd].sort((a, b) => b[1] - a[1])[0];
+    totalMaterialesSo = tabla.length;
     kpi('kpiPreventa', totalAgotados);
     kpi('kpiDisponible', tabla.length, n => entero.format(n), tabla.length === 1 ? 'material' : 'materiales');
     kpi('kpiAgotados', [...porCd.values()].filter(v => v > 0.0005).length, n => entero.format(n), `de ${porCd.size} CD`);
     if (peor && peor[1] > 0.0005) kpiTexto('kpiSo', peor[0], `${numero.format(peor[1])} HL · ${porcentaje.format(peor[1] / totalAgotados)}`);
     else kpi('kpiSo', null);
+    // El resumen inicial replica el filtro Top 10 del Excel. Totales y CD
+    // corresponden a los materiales visibles; los indicadores conservan el corte completo.
+    const visibles = mostrarTodosSo ? tabla : tabla.slice(0, 10);
+    const columnas = cds.map((cd, i) => ({ cd, i: i + 2, total: visibles.reduce((s, r) => s + Number(r[i + 2]), 0) }))
+      .filter(c => c.total > 0).sort((a, b) => b.total - a.total || ordenTexto(a.cd, b.cd));
+    tabla = visibles.map(r => [r[0], r[1], ...columnas.map(c => r[c.i]), r.at(-1)!]);
+    cabeceras = ['Material', 'Descripción', ...columnas.map(c => c.cd), 'Total agotados HL'];
+    totales = ['Total general', '', ...columnas.map(c => c.total), tabla.reduce((s, r) => s + Number(r.at(-1)), 0)];
+    const boton = el<HTMLButtonElement>('toggleSoRows');
+    boton.textContent = mostrarTodosSo ? 'Ver los 10 principales' : 'Ver todos los datos';
+    boton.setAttribute('aria-expanded', String(mostrarTodosSo));
+    boton.disabled = totalMaterialesSo <= 10;
+    el('tableHelp').textContent += mostrarTodosSo ? ' Mostrando todos los materiales con agotados.' : ' Resumen de los 10 materiales con mayor agotado. Totales de las filas visibles; indicadores superiores del corte completo.';
   }
   dibujarTabla();
 }
 // Tabla de Datos y SO: un número fijo de registros por página y flechas para ver los demás, sin desplazamiento.
 const POR_PAGINA = 15;
 const decimales5 = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 5 });
+const iconoSo = (tipo: 'material' | 'descripcion' | 'cd' | 'total' | 'capas') => {
+  const trazos = {
+    material: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 5v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5"/>',
+    descripcion: '<path d="M14 3H5v18h14V8l-5-5Zm0 0v6h5M8 13h8M8 17h6"/>',
+    cd: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    total: '<path d="M5 15h2v6H5zM11 9h2v12h-2zM17 3h2v18h-2z"/>',
+    capas: '<path d="m12 3 10 5-10 5L2 8l10-5Zm-10 9 10 5 10-5M2 16l10 5 10-5"/>',
+  };
+  return `<svg class="so-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${trazos[tipo]}</svg>`;
+};
+function dibujarMatrizSo() {
+  const nivel = (v: number) => v >= 200 ? 'muy-alto' : v >= 100 ? 'alto' : v >= 50 ? 'medio-alto' : v >= 10 ? 'medio' : 'bajo';
+  const formato = (v: Celda) => Number(v) === 0 ? '<span class="so-cero">–</span>' : esc(entero.format(Number(v)));
+  const fila = (r: Celda[], pie = false) => `<tr>${r.map((v, i) => {
+    if (i === 0) return pie ? `<th scope="row" colspan="2" class="so-resumen">${iconoSo('capas')}Total general <span>HL</span></th>` : `<th scope="row" class="so-material"><span>${esc(v)}</span></th>`;
+    if (i === 1) return pie ? '' : `<td class="so-descripcion" title="${esc(v)}">${esc(v)}</td>`;
+    const total = i === cabeceras.length - 1;
+    const calor = !total && Number(v) > 0;
+    const contenido = total && !pie ? `<span class="so-total-pill">${formato(v)}</span>` : formato(v);
+    return `<td class="${total ? 'so-total' : 'so-valor'}${calor ? ` so-calor so-nivel-${nivel(Number(v))}` : ''}" title="${esc(cabeceras[i])}: ${esc(numero.format(Number(v)))} HL">${contenido}</td>`;
+  }).join('')}</tr>`;
+  const cds = cabeceras.slice(2, -1);
+  el('pvTable').style.setProperty('--so-columnas', String(cds.length));
+  el('pvTable').innerHTML = `<caption class="pv-sr">Agotados en HL por material y centro de distribución. ${esc(el('pvTableTitle').textContent)}</caption><colgroup><col class="so-col-material"><col class="so-col-descripcion">${cds.map(() => '<col class="so-col-cd">').join('')}<col class="so-col-total"></colgroup><thead><tr class="so-grupo"><th scope="col" rowspan="2" class="so-material">Material</th><th scope="col" rowspan="2" class="so-descripcion">Descripción del material</th>${cds.length ? `<th scope="colgroup" colspan="${cds.length}" class="so-grupo-cds">Centros de distribución <span>· Agotados HL</span></th>` : ''}<th scope="col" rowspan="2" class="so-total">Total<span class="so-unidad">HL</span></th></tr><tr class="so-centros">${cds.map(c => `<th scope="col" class="so-cd"><span>${esc(c)}</span></th>`).join('')}</tr></thead><tbody>${tabla.length ? tabla.map(r => fila(r)).join('') : `<tr><td colspan="${cabeceras.length}" class="so-vacio">Sin agotados para los filtros seleccionados.</td></tr>`}</tbody>${totales.length ? `<tfoot>${fila(totales, true)}</tfoot>` : ''}`;
+  for (const [selector, icono] of [['thead .so-material', 'material'], ['thead .so-descripcion', 'descripcion'], ['.so-grupo-cds', 'cd'], ['thead .so-total', 'total']] as const) {
+    el('pvTable').querySelector(selector)?.insertAdjacentHTML('afterbegin', iconoSo(icono));
+  }
+  el('pvCount').innerHTML = `${iconoSo('capas')}${entero.format(tabla.length)} de ${entero.format(totalMaterialesSo)} materiales con agotados · ${Math.max(0, cabeceras.length - 3)} CD · HL`;
+  el('pvPage').textContent = `Corte ${fechaTexto(aplicados.fechas[0])} · Mayor impacto primero · HL`;
+  let leyenda = document.getElementById('soLegend');
+  if (!leyenda) {
+    leyenda = document.createElement('div');
+    leyenda.id = 'soLegend';
+    leyenda.className = 'so-leyenda';
+    el('pvTable').closest('.pv-scroll')?.insertAdjacentElement('afterend', leyenda);
+  }
+  leyenda.innerHTML = '<strong>Escala de agotamiento (HL)</strong>' + [
+    ['bajo', '0 < HL < 10', 'Bajo'], ['medio', '10 ≤ HL < 50', 'Medio'],
+    ['medio-alto', '50 ≤ HL < 100', 'Medio alto'], ['alto', '100 ≤ HL < 200', 'Alto'],
+    ['muy-alto', '≥ 200', 'Muy alto'], ['cero', '—', 'Sin agotamiento'],
+  ].map(([clase, rango, etiqueta]) => `<span><i class="so-nivel-${clase}"></i><b>${rango}</b> ${etiqueta}</span>`).join('');
+  actualizarColumnas();
+}
 function dibujarTabla() {
+  el('pvPrevious').hidden = el('pvNext').hidden = vista === 'so';
+  if (vista === 'so') { dibujarMatrizSo(); return; }
   const paginas = Math.max(1, Math.ceil(tabla.length / POR_PAGINA)); pagina = Math.min(pagina, paginas - 1);
   // Columnas de texto a la izquierda y numéricas a la derecha; HL/unidad necesita más decimales (p. ej. 0,0033).
   const esTexto = cabeceras.map((_, i) => tabla.some(r => typeof r[i] === 'string'));
@@ -407,7 +488,8 @@ async function cargar() {
     if (res.status === 401) { location.replace('/'); return; }
     const body = await res.json(); if (!res.ok) throw new Error(body.error);
     datos = body;
-    el('sourceInfo').textContent = `${datos!.lote.archivo} · ${datos!.filas.length} registros · ${datos!.persistido ? 'Guardado en Supabase' : 'Vista inicial del Excel'}`;
+    const diasGuardados = new Set(datos!.filas.map(f => Number(f.valores[0]))).size;
+    el('sourceInfo').textContent = `Último archivo: ${datos!.lote.archivo} · ${datos!.filas.length} registros en ${diasGuardados} día(s) · ${datos!.persistido ? 'Guardado en Supabase' : 'Vista inicial del Excel'}`;
     el('saveNotice').hidden = datos!.persistido;
     el('saveNotice').textContent = 'Estás viendo los datos del Excel entregado. Para habilitar el guardado permanente, ejecuta los dos archivos SQL de Preventas en Supabase. Los datos de esta vista todavía no están guardados allí.';
     const filas = filasDatos();
@@ -429,7 +511,9 @@ for (const boton of document.querySelectorAll<HTMLButtonElement>('button[data-vi
   vista = destino; pagina = 0;
   for (const b of document.querySelectorAll<HTMLElement>('button[data-view]')) { const activa = b === boton; b.classList.toggle('active', activa); if (activa) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
   if (!datos) return;
-  aplicados = { ...aplicados, fechas: fechasValidas(vista, fechasVista[vista]) };
+  // Agotados sigue el corte que se está consultando, en lugar de rescatar una
+  // fecha anterior de esa pestaña. Si hay varias fechas, toma la más reciente.
+  aplicados = { ...aplicados, fechas: fechasValidas(vista, destino === 'so' ? aplicados.fechas : fechasVista[vista]) };
   sincronizarFiltros(); render();
 });
 // Sin barras de desplazamiento: las listas de fechas y CD y las columnas de la tabla se recorren con flechas,
@@ -522,7 +606,7 @@ function exportar() {
 // los CD y en alta resolución, con el estilo de la hoja "Preventa Regional Norte" del Excel.
 const FUENTE = 'Calibri, "Segoe UI", Arial, sans-serif';
 const TITULOS_EXCEL = { total: 'Preventa Total', disponible: 'Preventa Disponible por Canal', preventa: 'Preventa por Canal' } as const;
-const IMG = { margen: 32, ancho: 480, separacionX: 26, separacionY: 30, encabezado: 96, titulo: 30, cabecera: 26, fila: 22, escala: 2 };
+const IMG = { margen: 32, ancho: 480, separacionX: 26, separacionY: 30, encabezado: 64, titulo: 30, cabecera: 26, fila: 22, escala: 2 };
 const altoTablaImagen = (t: Tabla) => IMG.titulo + IMG.cabecera + (t.filas.length + 1) * IMG.fila;
 function escribir(ctx: CanvasRenderingContext2D, texto: string, x: number, y: number, ancho: number, alinear: 'left' | 'right' | 'center', tamano: number, estilo = '400', color = '#1f1f1f') {
   let t = tamano;
@@ -593,10 +677,6 @@ function exportarImagen() {
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#f2f2f2'; ctx.fillRect(margen, margen, W - margen * 2, 42);
   escribir(ctx, 'PREVENTA REGIONAL NORTE', margen, margen + 21, W - margen * 2, 'center', 23, 'italic 700', '#111');
-  const ahora = new Date(), dos = (n: number) => String(n).padStart(2, '0');
-  const filtro = efectivos(), cds = filtro.cds.length ? filtro.cds.length <= 4 ? `CD: ${filtro.cds.join(', ')}` : plural(filtro.cds.length, 'CD seleccionado', 'CD seleccionados') : 'Todos los CD';
-  const detalle = [`${porFecha.size === 1 ? 'Corte' : 'Cortes'} ${[...porFecha.keys()].map(fechaTexto).join(', ')}`, cds, filtro.canal ? `Canal ${filtro.canal}` : '', filtro.categoria ? `Categoría ${filtro.categoria}` : '', filtro.texto ? `Material «${filtro.texto}»` : '', 'Valores en HL', `Fuente: ${datos.lote.archivo}`, `Exportado el ${dos(ahora.getDate())}/${dos(ahora.getMonth() + 1)}/${ahora.getFullYear()} ${dos(ahora.getHours())}:${dos(ahora.getMinutes())}`].filter(Boolean).join('  ·  ');
-  escribir(ctx, detalle, margen, margen + 64, W - margen * 2, 'center', 13, '400', '#555');
   let y = margen + encabezado;
   filasTablas.forEach((grupo, i) => { grupo.forEach((t, j) => dibujarTablaImagen(ctx, t, margen + j * (ancho + separacionX), y)); y += altos[i] + separacionY; });
   const fechas = [...porFecha.keys()].map(fechaIso).join('_');
@@ -608,6 +688,11 @@ function exportarImagen() {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }, 'image/jpeg', 0.95);
 }
+const accionesSo = document.createElement('div'); accionesSo.className = 'actions so-table-actions';
+const toggleSo = document.createElement('button'); toggleSo.id = 'toggleSoRows'; toggleSo.type = 'button'; toggleSo.className = 'pv-btn pv-btn-primary pv-btn-sm'; toggleSo.hidden = true;
+toggleSo.setAttribute('aria-controls', 'pvTable');
+toggleSo.addEventListener('click', () => { mostrarTodosSo = !mostrarTodosSo; render(); });
+el('exportPv').before(accionesSo); accionesSo.append(toggleSo, el('exportPv'));
 el('exportPv').addEventListener('click', exportar);
 el('exportCanal').addEventListener('click', exportar);
 el('exportImagen').addEventListener('click', exportarImagen);
@@ -623,11 +708,34 @@ async function guardar(payload: { archivo: string; filas: FilaPreventa[]; snapsh
     return body;
   } finally { ocupado = false; ocultarCarga(); }
 }
+const alertaImportacion = el<HTMLDialogElement>('importAlertDialog');
+el('closeImportAlert').addEventListener('click', () => alertaImportacion.close());
+function mostrarAlertaImportacion(mensaje: string, archivo: string, guardado = false) {
+  const [resumen, ...registros] = mensaje.split('\n');
+  const bloqueada = mensaje.startsWith('Importación bloqueada:');
+  el('importAlertTitle').textContent = bloqueada ? 'Faltan referencias para importar' : guardado ? 'No se pudo guardar el corte' : 'Revisa el archivo de importación';
+  el('importAlertSummary').textContent = resumen;
+  el('importAlertFile').textContent = `Archivo: ${archivo}`;
+  const detalles = el('importAlertDetails');
+  detalles.replaceChildren();
+  for (const texto of registros.filter(r => r.trim())) {
+    const registro = document.createElement('p');
+    registro.textContent = texto;
+    detalles.append(registro);
+  }
+  detalles.hidden = !detalles.childElementCount;
+  el('importAlertHelp').textContent = bloqueada
+    ? 'No se guardó ningún dato. Los cortes anteriores se conservan. Completa las referencias indicadas y vuelve a importar el archivo.'
+    : guardado ? 'No se confirmó el guardado. Puedes volver a intentarlo; si el aviso indica que los datos cambiaron, recarga la página primero.'
+    : 'No se importó este archivo. Revisa el detalle y vuelve a seleccionarlo cuando esté corregido.';
+  estado(bloqueada ? 'Importación bloqueada: revisa las referencias indicadas en la alerta.' : resumen);
+  if (!alertaImportacion.open) alertaImportacion.showModal();
+}
 el<HTMLInputElement>('pvFile').addEventListener('change', async event => {
   const control = event.target as HTMLInputElement, file = control.files?.[0]; control.value = '';
   if (!file) return;
   if (ocupado) { estado('Espera a que termine la operación actual.'); return; }
-  if (!/\.(xlsx|xlsb)$/i.test(file.name) || file.size > 60 * 1024 * 1024) { estado('Selecciona un Excel .xlsx o .xlsb de hasta 60 MB.'); return; }
+  if (!/\.(xlsx|xlsb)$/i.test(file.name) || file.size > 60 * 1024 * 1024) { mostrarAlertaImportacion('Selecciona un Excel .xlsx o .xlsb de hasta 60 MB.', file.name); return; }
   pendiente = null; el('importPreview').hidden = true; ocupado = true;
   el<HTMLInputElement>('acceptExcluded').checked = false;
   el('excludedConsent').hidden = true;
@@ -639,21 +747,21 @@ el<HTMLInputElement>('pvFile').addEventListener('change', async event => {
   const worker = new Worker('/js/preventas-worker.js', { type: 'module' });
   worker.onmessage = event => {
     worker.terminate(); ocupado = false; ocultarCarga();
-    if (event.data.error) { estado(event.data.error); return; }
+    if (event.data.error) { mostrarAlertaImportacion(String(event.data.error), file.name); return; }
     pendiente = { archivo: file.name, filas: event.data.filas, snapshot: event.data.snapshot ?? [] };
     if (event.data.base) {
       const excluidas: {fila:number;material:string;descripcion:string;motivo:string}[] = event.data.excluidas;
       el('baseNotice').hidden = false;
-      el('baseNotice').textContent = `Archivo base ajustado para ${event.data.fecha}: ${pendiente.filas.length} filas listas y ${excluidas.length} excluidas. Factor, HL, categoría y CD se completan con las referencias del Excel original. Tránsitos adicionales, TMS y FRC quedan en cero porque este archivo no los contiene. No incluye un corte histórico de SO.`;
+      el('baseNotice').textContent = `Archivo base ajustado para ${event.data.fecha}: ${pendiente.filas.length} filas listas y ${excluidas.length} excluidas. Factor y HL se completan con referencias existentes o se calculan a partir del volumen y las unidades de la presentación (${event.data.completadas?.length ?? 0} filas calculadas). Cuando planta viene vacía, se recupera del total disponible si concuerda con el disponible final y los pedidos. Tránsitos adicionales, TMS y FRC quedan en cero porque este archivo no los contiene. No incluye un corte histórico de SO.`;
       el('excludedDetails').hidden = el('excludedConsent').hidden = !excluidas.length;
       el('excludedRows').textContent = excluidas.map(r => `Fila ${r.fila}: ${r.material} · ${r.descripcion} · ${r.motivo}`).join('\n');
       el<HTMLButtonElement>('confirmImport').disabled = !!excluidas.length;
     }
-    el('importSummary').textContent = `${file.name}: ${pendiente!.filas.length} registros válidos. Guardar creará un nuevo corte activo; el corte anterior se conserva en Supabase.`;
+    el('importSummary').textContent = `${file.name}: ${pendiente!.filas.length} registros válidos. Este reporte reemplazará el de las mismas fechas sin sumar el corte anterior. Los demás días se conservan. Se usa la fecha del corte del Excel o la seleccionada para el archivo base.`;
     el('importPreview').hidden = false; estado('Archivo validado. Revisa y pulsa Guardar nuevo corte.');
   };
-  worker.onerror = () => { worker.terminate(); ocupado = false; ocultarCarga(); estado('No se pudo leer el archivo. Verifica el formato y vuelve a intentar.'); };
-  worker.postMessage({file, fecha: el<HTMLInputElement>('baseDate').value});
+  worker.onerror = () => { worker.terminate(); ocupado = false; ocultarCarga(); mostrarAlertaImportacion('No se pudo leer el archivo. Verifica el formato y vuelve a intentar.', file.name); };
+  worker.postMessage({file, fecha: el<HTMLInputElement>('baseDate').value, referencias: datos?.filas.map(f => f.valores) ?? []});
 });
 el('acceptExcluded').addEventListener('change', () => {
   el<HTMLButtonElement>('confirmImport').disabled = !el<HTMLInputElement>('acceptExcluded').checked;
@@ -664,7 +772,7 @@ el('confirmImport').addEventListener('click', async () => {
   if (!el('excludedConsent').hidden && !el<HTMLInputElement>('acceptExcluded').checked) return;
   const boton = el<HTMLButtonElement>('confirmImport'); boton.disabled = true;
   try { await guardar({ ...pendiente, modo: 'importar' }); pendiente = null; el('importPreview').hidden = true; await cargar(); estado('Nuevo corte guardado en Supabase.'); }
-  catch (error) { estado((error as Error).message); }
+  catch (error) { mostrarAlertaImportacion((error as Error).message, pendiente?.archivo ?? 'Corte de preventa', true); }
   finally { boton.disabled = false; }
 });
 const dialog = el<HTMLDialogElement>('recordDialog'), form = el<HTMLFormElement>('recordForm');

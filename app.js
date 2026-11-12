@@ -344,8 +344,19 @@ function rutasPreventas(pool, sesion) {
       if (pool) {
         const lote = (await pool.query("select id,archivo,creado_en from public.preventas_lotes order by creado_en desc,id desc limit 1")).rows[0];
         if (lote) {
-          const result = await pool.query("select fila,valores from public.preventas_datos where lote_id=$1 order by fila", [lote.id]);
-          const snapshot = (await pool.query("select fecha_excel as fecha,material,descripcion,cd,agotados_hl::float8 as agotados from public.preventas_so_snapshot where lote_id=$1", [lote.id])).rows;
+          const result = await pool.query(`with cortes as (
+            select distinct on (d.fecha) d.fecha,d.lote_id
+            from public.preventas_datos d join public.preventas_lotes l on l.id=d.lote_id
+            order by d.fecha,l.creado_en desc,l.id desc
+          ) select row_number() over(order by d.fecha,d.fila)::int as fila,d.valores
+            from public.preventas_datos d join cortes c on c.fecha=d.fecha and c.lote_id=d.lote_id
+            order by d.fecha,d.fila`);
+          const snapshot = (await pool.query(`with cortes as (
+            select distinct on (s.fecha_excel) s.fecha_excel,s.lote_id
+            from public.preventas_so_snapshot s join public.preventas_lotes l on l.id=s.lote_id
+            order by s.fecha_excel,l.creado_en desc,l.id desc
+          ) select s.fecha_excel as fecha,s.material,s.descripcion,s.cd,s.agotados_hl::float8 as agotados
+            from public.preventas_so_snapshot s join cortes c on c.fecha_excel=s.fecha_excel and c.lote_id=s.lote_id`)).rows;
           res.json({ lote, filas: result.rows.map((r) => ({ id: r.fila, valores: r.valores })), snapshot, persistido: true });
           return;
         }
@@ -403,6 +414,11 @@ function rutasPreventas(pool, sesion) {
         return;
       }
       let lote = actual;
+      if (modo === "agregar") {
+        lote = (await client.query(`select d.lote_id from public.preventas_datos d
+          join public.preventas_lotes l on l.id=d.lote_id where d.valores->>0=$1
+          order by l.creado_en desc,l.id desc limit 1`, [String(datos[0][0])])).rows[0]?.lote_id ?? null;
+      }
       if (modo === "importar" || !lote) {
         lote = randomUUID2();
         await client.query("insert into public.preventas_lotes(id,archivo,usuario_id) values($1,$2,$3)", [lote, archivo, sesion(req).sub]);

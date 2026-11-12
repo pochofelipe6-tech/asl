@@ -64,6 +64,22 @@ test('schema, carga inicial y guardado transaccional en un esquema aislado', { s
     assert.equal((await post({ ...body, modo: 'agregar', loteBase: imported.lote.id })).status, 200);
     assert.equal((await get()).filas.length, 2);
     assert.equal((await pool.query(`select count(*)::int as n from ${schema}.preventas_lotes`)).rows[0].n, 2);
+    const diaAnterior = Number(inicial.filas[0][0]);
+    const nuevoDia = [...inicial.filas[0]]; nuevoDia[0] = diaAnterior + 1;
+    const previo = await get();
+    assert.equal((await post({ ...body, filas: [nuevoDia], loteBase: previo.lote.id })).status, 200);
+    const manana = await get();
+    assert.equal(manana.filas.length, 3); // dos del día anterior y una del nuevo
+    const actualizado = [...nuevoDia]; actualizado[13] = 200;
+    assert.equal((await post({ ...body, filas: [actualizado], loteBase: manana.lote.id })).status, 200);
+    const tarde = await get();
+    assert.equal(tarde.filas.length, 3);
+    assert.equal(tarde.filas.filter((f: { valores: unknown[] }) => f.valores[0] === diaAnterior).length, 2);
+    const actuales = tarde.filas.filter((f: { valores: unknown[] }) => f.valores[0] === diaAnterior + 1);
+    assert.equal(actuales.length, 1);
+    assert.equal(actuales[0].valores[13], 200);
+    assert.equal((await post({ ...body, filas: [actualizado], loteBase: tarde.lote.id })).status, 200);
+    assert.equal((await get()).filas.length, 3); // reimportar no duplica
     const view = await pool.query(`select * from ${schema}.preventas_detalle limit 1`);
     assert.ok(Number(view.rows[0].agotados_hl) > 0);
   } finally {
