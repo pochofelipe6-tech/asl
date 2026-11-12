@@ -514,4 +514,31 @@ body[data-vista="datos"] .pv-data-footer{display:flex;align-items:center;justify
 .pv-data-footer button[aria-current]{background:linear-gradient(#ff1d54,#da0034);border-color:#ed1749;color:white;font-weight:800;box-shadow:0 3px 6px #f5194930}
 .pv-data-footer button:disabled{opacity:.4;cursor:default}
 .pv-data-footer button:focus-visible,.pv-data-footer select:focus-visible{outline:2px solid #e90042;outline-offset:2px}
+/* La hoja Datos sigue el tema oscuro; la impresión conserva los colores claros. */
+@media screen {
+html:not([data-tema="claro"]) body[data-vista="datos"] #tableView{border-color:var(--pv-line);background:var(--pv-card);box-shadow:var(--pv-shadow);color-scheme:dark}
+html:not([data-tema="claro"]) body[data-vista="datos"] .table-title h3{color:var(--pv-text)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .table-title p{color:var(--pv-muted)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-row-bar{background:var(--pv-card-2);border-color:var(--pv-line)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-search{background:var(--pv-card);border-color:var(--pv-line);box-shadow:none;color:var(--pv-soft)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-search input{color:var(--pv-text)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-search input::placeholder{color:var(--pv-muted);opacity:1}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-row-info{color:var(--pv-soft)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvPage{color:var(--pv-muted);border-color:var(--pv-line)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable{color:var(--pv-text)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable thead th{background:var(--pv-head);color:var(--pv-text)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable th button span{color:var(--pv-muted)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable tbody td{background:var(--pv-card);border-color:var(--pv-line);color:var(--pv-text)}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable tbody tr:hover td{background:var(--pv-head)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-centro-pill{background:#471a2b;color:#ff9eb5}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-cerveza{background:#183251;color:#a9ceff}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-malta{background:#3e301b;color:#f2cf94}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-shortage-pill{background:#4a202d;color:#ffadbc}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable td.pv-stock-good{background:#203d2a;color:#c0f0bb}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable td.pv-stock-mid{background:#44381b;color:#ffe2a0}
+html:not([data-tema="claro"]) body[data-vista="datos"] #pvTable td.pv-stock-low{background:#48232e;color:#ffb8c4}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-footer{border-color:var(--pv-line);color:var(--pv-soft)}
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-footer button:not([aria-current]),
+html:not([data-tema="claro"]) body[data-vista="datos"] .pv-data-footer select{background:var(--pv-card-2);border-color:var(--pv-line);color:var(--pv-text)}
+}
 @media(max-width:750px){body[data-vista="datos"] #tableView{padding:16px 12px}body[data-vista="datos"] .pv-row-bar{flex-wrap:wrap;padding:7px}body[data-vista="datos"] .pv-data-search{max-width:none;flex-basis:100%}body[data-vista="datos"] .pv-row-info{margin:5px 0;width:100%;justify-content:space-between}body[data-vista="datos"] .pv-data-footer{flex-wrap:wrap}.pv-data-footer nav{gap:4px}body[data-vista="datos"] .table-title{flex-wrap:wrap}}
