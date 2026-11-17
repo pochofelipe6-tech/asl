@@ -357,6 +357,7 @@ function render() {
   document.body.dataset.vista = vista;
   el('datosActions').hidden = vista !== 'datos'; el('canalView').hidden = vista !== 'canal'; el('tableView').hidden = vista === 'canal';
   el('toggleSoRows').hidden = vista !== 'so';
+  el('exportImagenSo').hidden = vista !== 'so';
   el('formulaNote').textContent = historico ? 'Corte conservado de la hoja SO del Excel. Solo contiene agotados por material y CD (sin canal ni categoría); por eso esos filtros no aplican a esta fecha.' :'Fórmulas del Excel: total disponible = stock + planta + tránsito − entregas pendientes. Preventa HL = pedidos × factor × HL. Agotados = máximo(preventa − inventario, 0). Preventa disponible = preventa − agotados. Se calcula por registro antes de consolidar; no se compensan faltantes entre materiales o canales.';
   if (vista === 'canal') { renderCanal(filas); return; }
   el('tableHelp').textContent = historico ? `Hoja SO · corte ${fechaTexto(fecha)} · valores en HL.` : `Hoja Datos · corte ${fechaTexto(fecha)} · valores en HL. Los filtros se aplican a toda la vista.`;
@@ -681,6 +682,53 @@ function dibujarTablaImagen(ctx: CanvasRenderingContext2D, t: Tabla, x: number, 
   linea(ctx, x, y + alto, x + ancho, y + alto, '#bf9000', 2);
   ctx.strokeStyle = '#d0d0d0'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, ancho - 1, alto - 1);
 }
+function exportarImagenSo() {
+  if (!datos || !tabla.length) { estado('No hay agotados para exportar con los filtros seleccionados.'); return; }
+  const anchos = cabeceras.map((_, i) => i === 0 ? 100 : i === 1 ? 280 : i === cabeceras.length - 1 ? 80 : 48);
+  const xs = anchos.map((_, i) => 4 + anchos.slice(0, i).reduce((a, b) => a + b, 0));
+  const W = anchos.reduce((a, b) => a + b, 0) + 8, cuerpo = 180, fila = 24;
+  const H = cuerpo + (tabla.length + 1) * fila + 6;
+  const escala = Math.min(2, 16000 / W, 16000 / H);
+  const lienzo = document.createElement('canvas'); lienzo.width = Math.ceil(W * escala); lienzo.height = Math.ceil(H * escala);
+  const ctx = lienzo.getContext('2d');
+  if (!ctx) { estado('No se pudo generar la imagen en este navegador.'); return; }
+  ctx.scale(escala, escala); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#f2f1ef'; ctx.fillRect(4, 4, W - 8, cuerpo - 4);
+  ctx.fillStyle = '#d9d9d9'; ctx.fillRect(4, 4, 380, 24);
+  const fecha = fechaTexto(aplicados.fechas[0]);
+  escribir(ctx, 'Fecha', 12, 16, 80, 'center', 12);
+  escribir(ctx, fecha, 110, 16, 240, 'left', 12);
+  escribir(ctx, `AGOTADOS REGIONAL NORTE ${fecha}`, 4, 49, W - 8, 'center', 20, '700', '#111');
+  escribir(ctx, 'Agotados', 12, 78, 90, 'center', 12, '700');
+  escribir(ctx, 'CD', xs[2], 78, 48, 'center', 12, '700');
+  cabeceras.forEach((c, i) => {
+    if (i < 2) escribir(ctx, c, xs[i] + 4, 133, anchos[i] - 8, 'center', 13, '700');
+    else {
+      ctx.save(); ctx.translate(xs[i] + anchos[i] / 2, cuerpo - 12); ctx.rotate(-Math.PI / 2);
+      escribir(ctx, i === cabeceras.length - 1 ? 'Total general' : c, 0, 0, 88, 'left', 12, '700'); ctx.restore();
+    }
+    if (i) linea(ctx, xs[i], 66, xs[i], H - 6, '#b4aaa0', 1, true);
+  });
+  const pintarFila = (valores: Celda[], y: number, total = false) => {
+    if (total) { ctx.fillStyle = '#e4e4e4'; ctx.fillRect(4, y, W - 8, fila); }
+    valores.forEach((v, i) => {
+      const n = Number(v);
+      if (!total && i >= 2 && n >= 200) { ctx.fillStyle = '#ffc7ce'; ctx.fillRect(xs[i], y, anchos[i], fila); }
+      const texto = i < 2 ? String(v ?? '') : n === 0 ? '-' : entero.format(n);
+      escribir(ctx, texto, xs[i] + 5, y + fila / 2, anchos[i] - 10, i === 1 || total && i === 0 ? 'left' : i === 0 ? 'center' : 'right', 13, total || i === 0 ? '700' : '400', !total && i >= 2 && n >= 200 ? '#9c0006' : '#111');
+    });
+    linea(ctx, 4, y + fila, W - 4, y + fila, '#d4d4d4');
+  };
+  linea(ctx, 4, cuerpo, W - 4, cuerpo, '#aaa');
+  tabla.forEach((r, i) => pintarFila(r, cuerpo + i * fila));
+  pintarFila(totales, cuerpo + tabla.length * fila, true);
+  lienzo.toBlob(blob => {
+    if (!blob) { estado('No se pudo generar la imagen.'); return; }
+    const url = URL.createObjectURL(blob), enlace = document.createElement('a');
+    enlace.href = url; enlace.download = `Agotados_Regional_Norte_${fechaIso(aplicados.fechas[0])}.png`;
+    document.body.append(enlace); enlace.click(); enlace.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }, 'image/png');
+}
 function exportarImagen() {
   if (!datos || !tablasCanal.length) return;
   const porFecha = new Map<number, Tabla[]>();
@@ -715,6 +763,9 @@ const toggleSo = document.createElement('button'); toggleSo.id = 'toggleSoRows';
 toggleSo.setAttribute('aria-controls', 'pvTable');
 toggleSo.addEventListener('click', () => { mostrarTodosSo = !mostrarTodosSo; render(); });
 el('exportPv').before(accionesSo); accionesSo.append(toggleSo, el('exportPv'));
+const imagenSo = document.createElement('button'); imagenSo.type = 'button'; imagenSo.className = 'pv-btn pv-btn-sm';
+imagenSo.textContent = 'Descargar imagen'; imagenSo.id = 'exportImagenSo'; imagenSo.hidden = true;
+imagenSo.addEventListener('click', exportarImagenSo); accionesSo.append(imagenSo);
 el('exportPv').addEventListener('click', exportar);
 el('exportCanal').addEventListener('click', exportar);
 el('exportImagen').addEventListener('click', exportarImagen);
