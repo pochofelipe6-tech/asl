@@ -1,0 +1,295 @@
+/* Control de inventarios. Usa la base de preventas.css (cabecera, pestañas de la página y portada) y un lenguaje
+   propio tomado de la referencia del usuario: tarjeta oscura con acentos rojos, píldoras, círculos de ícono e ilustraciones. */
+/* Colores de las series de los gráficos, validados para daltonismo y contraste sobre los paneles
+   (oscuro: #101218, #14151c y #1c1016; claro: #fff, #fbfbfd y #fff4f6). Si se cambian, volver a validarlos.
+   En modo claro tres colores quedan por debajo de 3:1: por eso cada gráfico lleva leyenda, cifra en la punta y tabla. */
+.fm-page{--serie-1:#3987e5;--serie-2:#d95926;--serie-3:#199e70;--serie-4:#c98500;--serie-5:#d55181;--fm-eje:#3a4150}
+html[data-tema="claro"] .fm-page{--serie-1:#2a78d6;--serie-2:#eb6834;--serie-3:#1baf7a;--serie-4:#eda100;--serie-5:#e87ba4;--fm-eje:#c3c9d4}
+.fm-vista{margin-top:20px}
+.fm-ico{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Tarjeta compartida por las tres pestañas (formulario, resumen y respuestas) ---------- */
+body.fm-page{background:radial-gradient(ellipse 45% 40% at 100% 100%,#e8002e24,transparent 75%),radial-gradient(ellipse at 10% -8%,#4a0f2224,transparent 42%),radial-gradient(ellipse at 92% 108%,#1d263a40,transparent 50%),var(--pv-bg)}
+html[data-tema="claro"] body.fm-page{background:radial-gradient(ellipse 45% 40% at 100% 100%,#ff2b5514,transparent 75%),radial-gradient(ellipse at 10% -8%,#ffdfe7,transparent 42%),var(--pv-bg)}
+.fm-form,.fm-lienzo{--fm-texto:#f4f6fa;--fm-suave:#a3adbe;--fm-tenue:#6f778a;--fm-rojo:#ff2b55;--fm-rojo-texto:#ff5a78;--fm-bien:#4ade80;--fm-borde:#2a2e38;--fm-pildora:linear-gradient(180deg,#1a1c24,#121419);--fm-circulo:#08090d;--fm-panel:linear-gradient(90deg,#1c1016,#14151c 60%);--fm-campo:#0b0d12;--fm-campo-borde:#3a3f4b;--fm-velo:#ffffff08;--fm-velo-2:#ffffff0f;--fm-vacio:#ffffff1f;--fm-fila:#101218;--fm-fila-alt:#14161d;--fm-fila-hover:#1c1f29;--fm-cabeza:#191b23;--fm-pie:#2a0f18;
+  position:relative;margin:0 auto;padding:26px 34px 30px;border:1px solid #ff2b5533;border-radius:24px;color:var(--fm-texto);
+  background:radial-gradient(ellipse 50% 70% at 100% 100%,#e8002e2e,transparent 70%),linear-gradient(160deg,#16181f,#0c0e13 62%);box-shadow:0 34px 80px -40px #e8002e80,inset 0 1px 0 #ffffff0a}
+.fm-form{max-width:1380px;scroll-margin-top:16px}
+/* El lienzo es alto: el resplandor rojo se queda en la esquina y no tiñe las tablas. */
+.fm-lienzo{background:radial-gradient(640px 420px at 100% 100%,#e8002e2e,transparent 70%),linear-gradient(160deg,#16181f,#0c0e13 62%)}
+html[data-tema="claro"] :is(.fm-form,.fm-lienzo){--fm-texto:#1c2331;--fm-suave:#5a6578;--fm-tenue:#8d96a6;--fm-rojo-texto:#c8002c;--fm-bien:#15803d;--fm-borde:#e1e4ea;--fm-pildora:#f5f6f9;--fm-circulo:#1c2331;--fm-panel:linear-gradient(90deg,#fff4f6,#fbfbfd 60%);--fm-campo:#fff;--fm-campo-borde:#cfd5df;--fm-velo:#1c233105;--fm-velo-2:#1c23310d;--fm-vacio:#1c23311f;--fm-fila:#fff;--fm-fila-alt:#f8f9fc;--fm-fila-hover:#f0f2f7;--fm-cabeza:#f3f4f8;--fm-pie:#fdecef;
+  border-color:#f1cfd7;background:radial-gradient(ellipse 50% 70% at 100% 100%,#ff2b5512,transparent 70%),#fff;box-shadow:0 24px 60px -32px #e8002e4d}
+html[data-tema="claro"] .fm-lienzo{background:radial-gradient(640px 420px at 100% 100%,#ff2b5512,transparent 70%),#fff}
+
+/* Encabezado: cuadrado rojo con el ícono, título y, a la derecha, "Obligatorio" o los controles de la pestaña. Debajo, la línea roja brillante. */
+.fm-form-head{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 18px;padding-bottom:22px}
+.fm-form-head:after{content:'';position:absolute;left:-34px;right:-34px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--fm-rojo) 15%,var(--fm-rojo) 85%,transparent);box-shadow:0 0 14px #ff2b5580}
+.fm-head-icono{display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:linear-gradient(145deg,#ff3a61,#c8002c);box-shadow:0 12px 26px -8px #e8002ecc,inset 0 1px 1px #ffffff66;color:#fff}
+.fm-head-icono svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.fm-form-head h2{margin:0;font-size:21px;font-weight:800;letter-spacing:.005em;text-transform:uppercase}
+.fm-form-head p{margin:4px 0 0;color:var(--fm-suave);font-size:14.5px;line-height:1.45}
+.fm-obligatorio{display:inline-flex;align-items:center;gap:8px;align-self:start;margin-top:6px;color:var(--fm-suave);font-size:13px;white-space:nowrap}
+.fm-obligatorio i{width:8px;height:8px;border-radius:50%;background:var(--fm-rojo);box-shadow:0 0 8px var(--fm-rojo)}
+
+/* Píldoras: las partes del formulario y las pestañas del resumen. */
+.fm-pasos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0 0;padding:0;list-style:none}
+.fm-paso-boton{display:flex;align-items:center;gap:11px;width:100%;min-height:62px;padding:10px 12px 10px 11px;border:1px solid var(--fm-borde);border-radius:20px;background:var(--fm-pildora);color:var(--fm-texto);font:inherit;text-align:left;cursor:pointer;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+.fm-paso-boton:hover{border-color:#ff2b5566;transform:translateY(-1px)}
+.fm-paso-boton:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.fm-paso-num{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--fm-circulo);color:#fff;font-size:17px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff14,0 2px 6px #0000004d}
+.fm-paso-texto{display:flex;flex:1;flex-direction:column;gap:2px;min-width:0}
+.fm-paso-texto strong{font-size:14px;line-height:1.25}
+.fm-paso-texto small{overflow:hidden;color:var(--fm-suave);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
+.fm-paso-chevron{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;color:var(--fm-suave)}
+.fm-paso[data-estado="actual"] .fm-paso-boton{border-color:#ff5a78;background:linear-gradient(120deg,#e8002e,#b50028);color:#fff;box-shadow:0 14px 30px -12px #e8002ecc,inset 0 1px 1px #ffffff40}
+.fm-paso[data-estado="actual"] .fm-paso-num{background:#15060b}
+.fm-paso[data-estado="actual"] :is(.fm-paso-texto small,.fm-paso-chevron){color:#fff}
+.fm-paso[data-estado="hecha"] .fm-paso-num{color:#4ade80;box-shadow:inset 0 0 0 1.5px #4ade8066}
+
+/* Encabezado de cada parte: barra roja inclinada, texto corto en rojo y el título. */
+.fm-seccion{margin:28px 0 0;padding:0;border:0;min-width:0}
+.fm-seccion legend,.fm-res-titulo{display:block;width:100%;padding:0;font-size:27px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+.fm-res-titulo{margin:28px 0 0}
+.fm-parte-de{display:flex;align-items:center;gap:11px;margin:0 0 5px -2px;color:var(--fm-rojo-texto);font-size:13px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+.fm-parte-de:before{content:'';width:10px;height:22px;border-radius:2px;background:linear-gradient(#ff3a61,#c8002c);transform:skewX(-22deg);box-shadow:0 0 12px #ff2b5580}
+.fm-seccion-desc{margin:6px 0 0;color:var(--fm-suave);font-size:14px}
+
+/* Un solo panel por parte: círculo rojo con el ícono, contenido e ilustración. */
+.fm-panel-parte{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;margin-top:16px;padding:22px 26px;border:1px solid var(--fm-borde);border-radius:20px;background:var(--fm-panel);transition:border-color .2s ease,box-shadow .2s ease}
+.fm-panel-parte.fm-sin-ilustracion{grid-template-columns:auto minmax(0,1fr)}
+.fm-panel-parte:has(.fm-invalida){border-color:#ff2b55b3;box-shadow:inset 0 0 34px #e8002e24,0 0 24px -8px #e8002e66}
+.fm-parte-icono{display:grid;place-items:center;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff5a78,#e0002d 55%,#a10022);box-shadow:0 0 0 7px #e8002e1c,0 12px 30px -6px #e8002eaa,inset 0 1px 2px #ffffff66;color:#fff}
+.fm-parte-svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fm-ilustracion-caja{position:relative;display:flex;align-items:center;justify-content:center;width:290px;height:150px;padding-left:26px}
+.fm-ilustracion-caja:before{content:'';position:absolute;left:0;top:4%;bottom:4%;width:1px;background:linear-gradient(transparent,var(--fm-rojo),transparent);box-shadow:0 0 8px #ff2b5566}
+.fm-ilustracion{display:block;width:100%;height:100%;object-fit:contain}
+
+/* ---------- Formulario ---------- */
+.fm-grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px 22px;min-width:0}
+.fm-grilla-unica{grid-template-columns:minmax(0,440px)}
+/* Con varias preguntas por fila, etiqueta, campo y error comparten filas (subgrid):
+   si una etiqueta ocupa dos líneas, los campos de esa fila siguen alineados. */
+.fm-grilla:not(.fm-grilla-unica){row-gap:0}
+.fm-grilla:not(.fm-grilla-unica) .fm-pregunta{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;padding-bottom:18px}
+.fm-grilla:not(.fm-grilla-unica) .fm-enunciado{align-self:end;margin-bottom:9px}
+.fm-grilla:not(.fm-grilla-unica) .fm-error{margin-top:8px}
+
+/* Preguntas sin caja propia: etiqueta, campo y error con ícono. */
+.fm-pregunta{display:flex;flex-direction:column;gap:9px;min-width:0}
+.fm-enunciado{display:block;font-size:15px;font-weight:700;line-height:1.35}
+.fm-num{margin-right:5px}
+.fm-req{margin-left:4px;color:var(--fm-rojo)}
+.fm-pregunta :is(input,select,textarea){width:100%;min-height:46px;padding:0 14px;border:1px solid var(--fm-campo-borde);border-radius:12px;background:var(--fm-campo);color:var(--fm-texto);font-size:15px}
+.fm-pregunta.fm-invalida :is(input,select,textarea){border-color:var(--fm-rojo)}
+.fm-pregunta textarea{min-height:96px;padding:10px 14px;resize:vertical}
+.fm-opciones{display:flex;flex-wrap:wrap;gap:8px}
+.fm-opcion{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--fm-campo-borde);border-radius:999px;font-size:14px;cursor:pointer}
+.fm-opcion:has(input:checked){border-color:var(--fm-rojo);background:#e8002e1f}
+.fm-error{display:flex;align-items:center;gap:7px;margin:0;color:var(--fm-rojo-texto);font-size:13px;line-height:1.35}
+.fm-error:before{content:'i';display:grid;place-items:center;flex:none;width:16px;height:16px;border:1.6px solid currentColor;border-radius:50%;font-size:10.5px;font-weight:900;line-height:1}
+.fm-error:empty{display:none}
+
+/* Mensajes de cada pestaña como barra con ícono. */
+.fm-estado{display:flex;align-items:center;gap:12px;margin:18px 0 0;padding:13px 18px;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-velo);color:var(--fm-texto);font-size:14.5px}
+.fm-estado:empty{display:none}
+.fm-estado:before{content:'i';display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:#5d6679;color:#fff;font-size:13px;font-weight:900;line-height:1}
+.fm-estado[data-tipo="error"]{border-color:#ff2b5599;background:linear-gradient(90deg,#e8002e33,#e8002e14)}
+.fm-estado[data-tipo="error"]:before{background:var(--fm-rojo);box-shadow:0 0 10px #ff2b5599}
+.fm-estado[data-tipo="ok"]{border-color:#34d39980;background:linear-gradient(90deg,#16a34a33,#16a34a12)}
+.fm-estado[data-tipo="ok"]:before{content:'✓';background:#16a34a}
+html[data-tema="claro"] .fm-estado[data-tipo="error"]{background:#fff1f4}
+html[data-tema="claro"] .fm-estado[data-tipo="ok"]{background:#effcf4}
+
+/* Botones-píldora. */
+.fm-acciones{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:22px}
+#fmLimpiar{margin-right:auto}
+:is(.fm-acciones,.fm-lienzo) .pv-btn{border-radius:999px}
+.fm-acciones .pv-btn{min-height:48px;padding:0 24px;font-size:15px}
+.fm-acciones .pv-btn .pv-ico{width:19px;height:19px}
+.fm-lienzo .pv-btn{min-height:44px;padding:0 20px;font-size:14px}
+:is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#3d424e;background:#0d0f14;color:var(--fm-texto)}
+:is(.fm-acciones,.fm-lienzo) .fm-btn-sec:hover:not(:disabled){border-color:#ff2b5588}
+html[data-tema="claro"] :is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#cfd5df;background:#fff}
+:is(.fm-acciones,.fm-lienzo) .pv-btn-primary{padding:0 26px;background:linear-gradient(120deg,#ff1f4b,#c8002c);box-shadow:0 12px 28px -10px #e8002eee,inset 0 1px 1px #ffffff55}
+.fm-boton-texto{display:inline-flex;align-items:center;gap:10px}
+.fm-form[data-ultimo] .fm-no-ultimo,.fm-form:not([data-ultimo]) .fm-solo-ultimo{display:none}
+
+/* ---------- Resumen ---------- */
+.fm-res-filtro{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px}
+.fm-res-filtro label{color:var(--fm-suave);font-size:13px;font-weight:700}
+.fm-page .fm-res-filtro input[type=date]{width:auto;min-height:44px;padding:0 14px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font-size:14px}
+/* Al recargar se conserva lo pintado, atenuado, sin saltos. */
+.fm-cargando :is(#fmResCuerpo,#vistaRespuestas .fm-tabla-caja){opacity:.55;transition:opacity .2s ease}
+
+/* Pestañas: el nombre de la parte arriba y su cifra principal abajo. */
+.fm-res-tabs .fm-paso-boton{min-height:70px}
+.fm-res-tabs .fm-paso-num .fm-ico{width:20px;height:20px}
+.fm-res-tabs .fm-paso-texto small{font-size:12.5px;font-weight:600}
+.fm-res-tabs .fm-paso-texto strong{display:flex;align-items:baseline;gap:7px;overflow:hidden;white-space:nowrap}
+.fm-res-tabs .fm-paso-texto strong b{font-size:21px;font-weight:800;letter-spacing:-.01em}
+.fm-res-tabs .fm-paso-texto strong span{overflow:hidden;color:var(--fm-suave);font-size:13px;font-weight:600;text-overflow:ellipsis}
+.fm-res-tabs .fm-paso[data-estado="actual"] .fm-paso-texto strong span{color:#fff}
+
+/* Panel de la pestaña: totales a la izquierda, gráficos al centro e ilustración a la derecha. */
+.fm-res-caja{align-items:stretch}
+.fm-res-caja>.fm-parte-icono{align-self:start}
+.fm-res-caja .fm-ilustracion-caja{align-self:stretch;width:270px;height:auto}
+.fm-res-caja .fm-ilustracion{height:auto;max-height:150px}
+.fm-res-contenido{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);align-items:start;gap:26px 34px;min-width:0}
+.fm-res-totales{display:flex;flex-direction:column;gap:16px;min-width:0}
+.fm-res-dato{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fm-res-dato+.fm-res-dato{padding-top:16px;border-top:1px solid var(--fm-borde)}
+.fm-res-etiqueta{color:var(--fm-suave);font-size:13px;font-weight:600}
+.fm-res-heroe{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.fm-res-medio{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+:is(.fm-res-heroe,.fm-res-medio) small{margin-left:8px;color:var(--fm-suave);font-size:15px;font-weight:600;letter-spacing:0}
+.fm-res-franja{display:flex;gap:2px;height:8px;margin-top:8px;overflow:hidden;border-radius:999px}
+.fm-res-franja span{flex:1 1 0;min-width:0;background:var(--c)}
+.fm-res-desglose{display:flex;flex-direction:column;gap:7px;margin:6px 0 0;padding:0;list-style:none;font-size:13px}
+.fm-res-desglose li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 42px;align-items:center;gap:10px}
+.fm-res-desglose :is(b,em){font-variant-numeric:tabular-nums;text-align:right}
+.fm-res-desglose em{color:var(--fm-suave);font-style:normal}
+.fm-res-extra{display:flex;justify-content:space-between;gap:14px;margin:0;color:var(--fm-suave);font-size:13px}
+.fm-res-extra b{color:var(--fm-texto);text-align:right}
+.fm-res-derecha{display:flex;flex-direction:column;min-width:0}
+/* Cada gráfico ocupa tres filas compartidas (título, leyenda y barras): con dos gráficos lado a lado, las barras arrancan a la misma altura. */
+.fm-res-graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0 34px;min-width:0;margin-bottom:-22px}
+.fm-res-nota{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;margin:16px 0 0;color:var(--fm-suave);font-size:13px}
+.fm-enlace{padding:0;border:0;background:none;color:var(--fm-rojo-texto);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.fm-enlace:focus-visible{outline:2px solid #ffba48;outline-offset:3px;border-radius:4px}
+
+/* Gráficos de barras por CD. */
+.fm-grafico{display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0;margin:0;padding-bottom:22px}
+.fm-grafico figcaption{display:flex;flex-wrap:wrap;align-items:baseline;grid-row:1;gap:2px 12px}
+.fm-grafico h4{margin:0;font-size:16px;font-weight:800}
+.fm-grafico figcaption p{margin:0;color:var(--fm-suave);font-size:12.5px}
+.fm-leyenda{display:flex;flex-wrap:wrap;grid-row:2;gap:6px 16px;margin:10px 0 0;padding:0;list-style:none;color:var(--fm-suave);font-size:12.5px}
+.fm-leyenda li{display:inline-flex;align-items:center;gap:7px}
+.fm-muestra{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.fm-barras{grid-row:3;margin-top:10px;border-radius:8px}
+.fm-barras:focus-visible{outline:2px solid #ffba48;outline-offset:4px}
+.fm-barra-fila{display:grid;grid-template-columns:minmax(84px,112px) minmax(0,1fr);align-items:center;gap:10px;padding:0 6px;border-radius:6px}
+.fm-barra-fila:hover,.fm-barra-fila.activa{background:var(--fm-velo-2)}
+.fm-barra-cd{overflow:hidden;font-size:12.5px;text-overflow:ellipsis;white-space:nowrap}
+/* La pista reserva a la derecha el espacio del total, que va pegado a la punta de la barra. */
+.fm-barra-pista{display:flex;align-items:center;min-width:0;height:28px;padding-right:72px;border-left:1px solid var(--fm-eje)}
+.fm-barra{display:flex;flex:none;gap:2px;height:14px;overflow:hidden;border-radius:0 4px 4px 0}
+.fm-seg{flex:1 1 0;min-width:0;background:var(--c)}
+.fm-barra-valor{flex:none;margin-left:8px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.fm-tooltip{position:fixed;z-index:50;display:flex;flex-direction:column;gap:4px;min-width:190px;max-width:290px;padding:10px 12px;border:1px solid var(--pv-line);border-radius:10px;background:var(--pv-card);box-shadow:0 12px 30px #00000059;color:var(--pv-text);font-size:12px;pointer-events:none}
+.fm-tt-titulo{margin-bottom:2px;font-size:13px}
+.fm-tt-fila{display:flex;align-items:center;gap:8px}
+.fm-tt-fila i{flex:none;width:12px;height:2px;border-radius:1px;background:var(--c)}
+.fm-tt-fila b{font-variant-numeric:tabular-nums}
+.fm-tt-fila span{color:var(--pv-muted)}
+.fm-tt-total{padding-left:20px}
+.fm-tt-pie{margin-top:4px;padding-top:6px;border-top:1px solid var(--pv-line);color:var(--pv-muted);line-height:1.4}
+
+/* Parte 1: cobertura de reportes. */
+.fm-res-cobertura{display:flex;flex-direction:column;gap:22px;min-width:0}
+.fm-res-cob-top{display:flex;flex-wrap:wrap;align-items:center;gap:16px 40px}
+.fm-res-cob-cifra{display:flex;align-items:baseline;gap:12px;margin:0;color:var(--fm-suave);font-size:18px;font-weight:600}
+.fm-res-cob-cifra .fm-res-heroe{color:var(--fm-texto)}
+.fm-res-cob-avance{display:flex;flex:1;flex-direction:column;gap:9px;min-width:240px;max-width:620px}
+.fm-res-medidor{display:flex;gap:4px}
+.fm-res-medidor i{flex:1;height:10px;border-radius:999px;background:var(--fm-vacio)}
+.fm-res-medidor i.lleno{background:linear-gradient(#ff3a61,#d0002b);box-shadow:0 0 10px #ff2b5566}
+.fm-res-cob-pie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin:0;color:var(--fm-suave);font-size:13px}
+.fm-res-cob-pie b{color:var(--fm-texto)}
+.fm-res-sub{margin:0 0 10px;color:var(--fm-suave);font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.fm-res-cds{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.fm-res-cd{display:flex;flex-direction:column;gap:3px;min-width:0;padding:11px 14px;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-velo)}
+.fm-res-cd strong{font-size:14.5px}
+.fm-res-cd-cuando{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.fm-res-cd-cuando .fm-ico{color:var(--fm-bien)}
+.fm-res-cd-quien{overflow:hidden;color:var(--fm-suave);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.fm-res-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.fm-res-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 13px 6px 9px;border:1px dashed var(--fm-campo-borde);border-radius:999px;color:var(--fm-suave);font-size:13px}
+
+/* Sin reportes. */
+.fm-res-vacio{margin-top:24px}
+.fm-res-vacio h3{margin:0;font-size:24px;font-weight:800}
+.fm-res-vacio p{max-width:520px;margin:8px 0 18px;color:var(--fm-suave);font-size:15px;line-height:1.5}
+
+/* ---------- Tablas (inventario por CD y respuestas) ---------- */
+.fm-tabla-caja{margin-top:16px;overflow-x:auto;border:1px solid var(--fm-borde);border-radius:16px;background:var(--fm-fila);scrollbar-width:thin}
+.fm-tabla-caja:focus-visible{outline:2px solid #ffba48;outline-offset:2px}
+.fm-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;font-variant-numeric:tabular-nums}
+.fm-tabla :is(th,td){padding:11px 12px;border-bottom:1px solid var(--fm-borde);background:var(--fm-fila);text-align:left;white-space:nowrap}
+.fm-tabla thead th{background:var(--fm-cabeza);color:var(--fm-suave);font-size:11.5px;font-weight:700;line-height:1.3;white-space:normal;vertical-align:bottom}
+.fm-tabla thead .fm-grupo{color:var(--fm-texto);text-align:center;vertical-align:middle;text-transform:uppercase;letter-spacing:.06em}
+.fm-grupo .fm-ico{margin-right:8px;color:var(--fm-rojo-texto);vertical-align:-3px}
+/* Cada parte del formulario abre su grupo de columnas con una línea. */
+.fm-tabla .inicio{border-left:1px solid var(--fm-borde)}
+.fm-tabla .num{text-align:right}
+.fm-tabla thead .num{min-width:62px}
+.fm-tabla tbody tr:nth-child(even) :is(td,th){background:var(--fm-fila-alt)}
+.fm-tabla tbody tr:hover :is(td,th){background:var(--fm-fila-hover)}
+.fm-tabla tbody :is(th,td){padding-top:9px;padding-bottom:9px}
+.fm-tabla tbody th,.fm-tabla td.cd{font-weight:700}
+.fm-tabla .total{font-weight:800}
+.fm-tabla .vacia{color:var(--fm-tenue)}
+.fm-tabla tbody tr:last-child :is(td,th){border-bottom:0}
+.fm-tabla tfoot :is(th,td){border-top:1px solid #ff2b5566;border-bottom:0;background:var(--fm-pie);font-weight:800}
+/* La primera columna queda fija al desplazar la tabla hacia los lados. */
+.fm-tabla .fija{position:sticky;left:0;z-index:1;padding-left:18px;box-shadow:1px 0 0 var(--fm-borde)}
+.fm-tabla thead .fija{z-index:2}
+.fm-celda-reporte small{display:block;margin-top:2px;color:var(--fm-suave);font-size:11.5px}
+
+/* Respuestas: buscador y páginas. */
+.fm-herramientas{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:22px}
+.fm-buscar{flex:1;max-width:440px;margin:0}
+.fm-buscar .pv-ico{left:15px}
+.fm-page .fm-buscar input{min-height:44px;padding:0 16px 0 40px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font-size:14px}
+.fm-paginas{display:flex;align-items:center;gap:12px;color:var(--fm-suave);font-size:13px;white-space:nowrap}
+.fm-paginas .pv-flecha{width:36px;height:36px;border-radius:50%}
+
+@media(max-width:1500px){
+  /* En pantallas medianas los gráficos del resumen necesitan el ancho de la ilustración. */
+  .fm-res-caja{grid-template-columns:auto minmax(0,1fr)}
+  .fm-res-caja .fm-ilustracion-caja{display:none}
+}
+@media(max-width:1200px){
+  .fm-panel-parte{grid-template-columns:auto minmax(0,1fr)}
+  .fm-ilustracion-caja{display:none}
+}
+@media(max-width:1000px){
+  .fm-res-contenido{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .fm-pasos{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .fm-form,.fm-lienzo{padding:20px 16px 22px;border-radius:20px}
+  .fm-form-head{grid-template-columns:auto minmax(0,1fr);gap:4px 14px}
+  .fm-form-head:after{left:-16px;right:-16px}
+  .fm-head-icono{width:46px;height:46px;border-radius:13px}
+  .fm-head-icono svg{width:24px;height:24px}
+  .fm-form-head h2{font-size:16px}
+  .fm-form-head p{font-size:13px}
+  .fm-obligatorio{grid-column:2;margin-top:2px}
+  .fm-res-filtro,.fm-form-head>.pv-btn{grid-column:1 / -1;justify-content:flex-start;justify-self:start;margin-top:10px}
+  .fm-pasos{gap:10px}
+  .fm-paso-boton{min-height:56px;padding:8px 10px;gap:9px;border-radius:16px}
+  .fm-paso-num{width:32px;height:32px;font-size:14px}
+  .fm-paso-chevron{display:none}
+  .fm-paso-texto strong{font-size:12.5px}
+  .fm-paso-texto small{font-size:12px}
+  .fm-res-tabs .fm-paso-boton{min-height:60px}
+  .fm-res-tabs .fm-paso-num .fm-ico{width:17px;height:17px}
+  .fm-res-tabs .fm-paso-texto small{font-size:11.5px}
+  .fm-res-tabs .fm-paso-texto strong{flex-wrap:wrap;gap:0 6px}
+  .fm-res-tabs .fm-paso-texto strong b{font-size:17px}
+  .fm-res-tabs .fm-paso-texto strong span{font-size:11.5px}
+  .fm-seccion legend,.fm-res-titulo{font-size:22px}
+  .fm-panel-parte{grid-template-columns:1fr;gap:16px;padding:18px 16px}
+  .fm-parte-icono{width:56px;height:56px}
+  .fm-parte-svg{width:28px;height:28px}
+  .fm-acciones .pv-btn{flex:1}
+  #fmLimpiar{flex-basis:100%;order:3;margin-right:0}
+  .fm-res-heroe{font-size:44px}
+  .fm-res-cds{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .fm-tabla :is(th,td){padding:10px}
+  .fm-buscar{max-width:none;flex-basis:100%}
+}

@@ -22,17 +22,20 @@ export function transformarBase(rows: unknown[][], fecha: string, referencias: F
   // Aprende de los Datos ya guardados; el corte más reciente tiene prioridad.
   for (const f of [...referencias].sort((a, b) => Number(a[0]) - Number(b[0]))) {
     if (Number(f[16]) > 0 && Number(f[17]) > 0 && f[29]) materiales.set(String(f[3]), { factor: Number(f[16]), hl: Number(f[17]), categoria: String(f[29]) });
-    if (f[2] && f[21]) centros.set(String(f[2]), String(f[21]));
+    if (f[2] && f[21]) centros.set(String(f[2]).trim().toUpperCase(), String(f[21]));
   }
   const filas = [], excluidas = [], completadas = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]; if (!r?.some(v => v !== null && v !== undefined && v !== '')) continue;
     if (filas.length + excluidas.length >= MAX_PREVENTAS) throw new Error('Máximo 10.000 registros por archivo.');
-    const material = String(r[2] ?? '').trim(), centro = String(r[1] ?? '').trim();
+    const material = String(r[2] ?? '').trim(), centro = String(r[1] ?? '').trim().toUpperCase();
     const conversion = conversionPresentacion(r[3]), categoria = categoriaPresentacion(r[3]);
     const conocida = materiales.get(material) ?? catalogo.materials[material];
     const ref = conocida ?? (conversion && categoria ? { ...conversion, categoria } : undefined), cd = centros.get(centro) ?? catalogo.centers[centro];
     if (!material || !centro || !r[3] || !r[14]) throw new Error(`Fila ${i + 1}: faltan centro, material, descripción o canal.`);
+    if (!cd && ref && Number(r[12]) > 0) {
+      throw new Error(`Importación bloqueada: hay pedidos en un centro sin referencia.\nFila ${i + 1}: centro ${centro} · material ${material} · ${r[3]}`);
+    }
     if (!ref || !cd) {
       const registro = { fila: i + 1, material, descripcion: String(r[3]), motivo: !cd ? `Centro ${centro} sin referencia` : 'Material sin referencia de factor, HL y categoría' };
       // Solo se calcula una conversión si la presentación indica volumen y unidades.
@@ -40,6 +43,7 @@ export function transformarBase(rows: unknown[][], fecha: string, referencias: F
       continue;
     }
     const f: unknown[] = [dia, ...Array.from({length: 15}, (_, c) => r[c] ?? null), ref.factor, ref.hl, 0, 0, 0, cd, '', 0, 0, '', '', '', 0, ref.categoria, mes, semana, 0, 0, mes];
+    f[2] = centro;
     // Algunos archivos omiten planta pero conservan Total Disponible y Disponible Final.
     // Recupera ese componente solo si ambas cifras originales concuerdan con los pedidos.
     if ((r[7] === null || r[7] === undefined || r[7] === '') && typeof r[10] === 'number' && typeof r[13] === 'number' && typeof r[12] === 'number' && Math.abs(r[10] - r[13] - r[12]) < 1e-8) {

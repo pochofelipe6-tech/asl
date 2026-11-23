@@ -129,7 +129,7 @@ html[data-tema="claro"] .pv-pending{color:#8a5a00}
 .pv-section-head p{margin:5px 0 0 36px;color:var(--pv-muted);font-size:12px;line-height:1.5}
 .pv-section-meta{display:flex;flex:none;align-items:center;gap:14px;color:var(--pv-soft);font-size:13px}
 .pv-channel-groups{display:grid;gap:16px}
-.pv-channel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,410px),1fr));gap:16px;align-items:start}
+.pv-channel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,max(350px,calc((100% - 32px)/3))),1fr));gap:16px;align-items:start}
 .pv-card{min-width:0;padding:14px 12px 12px;border:1px solid var(--pv-line);border-radius:14px;background:linear-gradient(160deg,var(--pv-card),var(--pv-card-2));box-shadow:var(--pv-shadow)}
 .pv-card-head{display:flex;align-items:center;gap:10px;min-height:28px;margin:0 2px 12px}
 .pv-pill{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 16px;border-radius:999px;background:linear-gradient(#ff1745,#d0002b);color:#fff;font-size:13px;font-weight:800;letter-spacing:.02em;box-shadow:0 4px 14px #e900333b}

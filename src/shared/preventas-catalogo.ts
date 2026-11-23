@@ -1719,6 +1719,7 @@ export const catalogo: { materials: Record<string, {factor:number;hl:number;cate
     }
   },
   "centers": {
+    "AG01": "Barranquilla",
     "AV03": "Barranquilla",
     "AV10": "Turbaco",
     "AV11": "Santa Marta",

@@ -30,17 +30,6 @@ const ordenTexto = (a: string, b: string) => a.localeCompare(b, 'es');
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 // Canales de la hoja Preventa Regional Norte, en su orden. Cualquier otro valor se marca para revisar en origen.
 const CANALES = ['TAT', 'KA', 'T4'];
-// Orden de los CD en las tres tablas de referencia del Excel.
-const ORDEN_CD = {
-  total: ['Apartadó', 'UDC Torices', 'Curumaní', 'Cartagena KA', 'Galapa', 'Santa Marta', 'Montería', 'Valledupar', 'Fonseca', 'Cúcuta', 'Corozal', 'San Andrés', 'Riohacha', 'La Arenosa', 'Turbaco', 'Magangué', 'Caucasia'],
-  disponible: ['Turbaco', 'Galapa', 'La Arenosa', 'Cúcuta', 'Corozal', 'Montería', 'Santa Marta', 'Valledupar', 'Riohacha', 'Magangué', 'Cartagena KA', 'Curumaní', 'San Andrés', 'Fonseca', 'UDC Torices', 'Apartadó', 'Caucasia'],
-  preventa: ['Turbaco', 'Galapa', 'La Arenosa', 'Cúcuta', 'Corozal', 'Montería', 'Santa Marta', 'Valledupar', 'Riohacha', 'Cartagena KA', 'Magangué', 'Curumaní', 'Apartadó', 'UDC Torices', 'San Andrés', 'Fonseca', 'Caucasia'],
-};
-function ordenarCd<T extends { cd: string }>(filas: T[], tipo: keyof typeof ORDEN_CD): T[] {
-  const posiciones = new Map(ORDEN_CD[tipo].map((cd, i) => [sinTildes(cd.trim()), i]));
-  return filas.sort((a, b) => (posiciones.get(sinTildes(a.cd.trim())) ?? posiciones.size)
-    - (posiciones.get(sinTildes(b.cd.trim())) ?? posiciones.size) || ordenTexto(a.cd, b.cd));
-}
 const CALENDARIO = '<svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const TITULOS = { total: 'Preventa total', disponible: 'Preventa disponible por canal', preventa: 'Preventa por canal' } as const;
 const MEDIDAS = { disponible: 'HL Disp Prev', preventa: 'HL Preventa' } as const;
@@ -262,15 +251,12 @@ function construirTablas(filas: FilaPreventa[], fechas: number[]) {
     const delCorte = filas.filter(f => Number(f[0]) === fecha);
     if (!delCorte.length) continue;
     const resumen = resumir(delCorte);
-    ordenarCd(resumen.filas, 'total');
     tablas.push({ tipo: 'total', fecha, canal: '', ...resumen });
     // Como en el Excel, las matrices y las tablas por canal solo usan TAT, KA y T4; los demás canales se suman en el total.
     const canales = CANALES.filter(c => delCorte.some(f => String(f[15]) === c));
     if (!canales.length) continue;
     const disponible = matriz(delCorte, canales, m => m.disponible);
     const preventa = matriz(delCorte, canales, m => m.preventa);
-    ordenarCd(disponible.filas, 'disponible');
-    ordenarCd(preventa.filas, 'preventa');
     tablas.push({ tipo: 'disponible', fecha, ...disponible });
     tablas.push({ tipo: 'preventa', fecha, ...preventa });
     for (const canal of canales) tablas.push({ tipo: 'canal', fecha, canal, ...resumir(delCorte.filter(f => String(f[15]) === canal)) });
@@ -315,7 +301,7 @@ function renderCanal(filas: FilaPreventa[]) {
   const n = tablasCanal.length;
   el('pvTablesCount').textContent = !n ? 'Sin tablas' : `${plural(n, 'tabla', 'tablas')}${porFecha.size > 1 ? ` · ${plural(porFecha.size, 'fecha', 'fechas')}` : ''}`;
   const cortes = aplicados.fechas.map(fechaTexto).join(', '), filtro = efectivos();
-  el('canalHelp').textContent = `Hoja Datos · ${aplicados.fechas.length === 1 ? 'corte' : 'cortes'} ${cortes} · ${filtro.cds.length ? plural(filtro.cds.length, 'CD seleccionado', 'CD seleccionados') : 'todos los CD'}${filtro.canal ? ` · canal ${filtro.canal}` : ''}${filtro.categoria ? ` · categoría ${filtro.categoria}` : ''}${filtro.texto ? ` · material «${filtro.texto}»` : ''} · valores en HL. Las tres tablas principales conservan el orden de CD de la referencia del Excel; los resúmenes por canal se ordenan por participación SO.`;
+  el('canalHelp').textContent = `Hoja Datos · ${aplicados.fechas.length === 1 ? 'corte' : 'cortes'} ${cortes} · ${filtro.cds.length ? plural(filtro.cds.length, 'CD seleccionado', 'CD seleccionados') : 'todos los CD'}${filtro.canal ? ` · canal ${filtro.canal}` : ''}${filtro.categoria ? ` · categoría ${filtro.categoria}` : ''}${filtro.texto ? ` · material «${filtro.texto}»` : ''} · valores en HL. Los resúmenes se ordenan por participación SO y las matrices por el total de cada CD.`;
   // Los canales fuera de TAT, KA y T4 (p. ej. "x`º") solo se suman en Preventa total, igual que en el Excel.
   const otros = filas.filter(f => !CANALES.includes(String(f[15])));
   el('canalNota').hidden = !otros.length;

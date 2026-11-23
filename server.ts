@@ -10,6 +10,7 @@ import pg from 'pg';
 import XLSX from 'xlsx';
 import { rutasExcel } from './src/server/excel.ts';
 import { rutasPreventas } from './src/server/preventas.ts';
+import { rutasFormularios } from './src/server/formularios.ts';
 
 const { SUPABASE_URL = '', SUPABASE_PUBLISHABLE_KEY = '', JWT_SECRET = '', PORT = '3001' } = process.env;
 const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET })
@@ -149,6 +150,7 @@ app.get('/api/me', (req, res) => {
 
 const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15000 }) : null;
 app.use('/api/preventas', rutasPreventas(dbFrescura, leerSesion));
+app.use('/api/formularios', rutasFormularios(dbFrescura, leerSesion));
 
 // El catalogo debe estar disponible aunque el servidor no tenga los JSON locales del Excel.
 app.get('/api/frescura/indice.json', async (req, res) => {
@@ -294,6 +296,7 @@ const paginaProtegida = (archivo: string): RequestHandler => (req, res) => {
 app.get('/panel', paginaProtegida('panel.html'));
 app.get('/modulos', paginaProtegida('modulos.html'));
 app.get('/preventas', paginaProtegida('preventas.html'));
+app.get('/formularios', paginaProtegida('formularios.html'));
 
 export default app;
 

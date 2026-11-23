@@ -166,6 +166,7 @@ html[data-tema='claro'] .header{background:linear-gradient(110deg,#fff,#ececf3)}
 .module-selection .section-heading>span{animation:aparecer .5s 1s ease-out backwards}
 .module-selection .module-card{--d:.8s;animation:tarjeta-entrada .9s var(--d) cubic-bezier(.16,1,.3,1) backwards}
 .module-selection .module-card:nth-child(2){--d:.95s}
+.module-selection .module-card:nth-child(3){--d:1.1s}
 .module-selection .module-card:after{animation:brillo-barrido 1.1s calc(var(--d) + .9s) ease-in-out}
 .module-selection .module-card:hover:after{animation:brillo-barrido .9s ease}
 .module-selection .icon{animation:icono-entrada .75s calc(var(--d) + .3s) cubic-bezier(.34,1.56,.64,1) backwards}

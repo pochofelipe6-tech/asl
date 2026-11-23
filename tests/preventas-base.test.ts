@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { esBase, transformarBase } from '../src/shared/preventas-base.ts';
+import { metricasPreventa } from '../src/shared/preventas.ts';
 const header = ['Cond de Exp','Centro','Material','Descripcion','UM','Status','Stock Disp',null,'Cant en transito','Cant entrega Pendien','Total Disponible','Cant de pedidos','Cantidad en Pedidos','Disponible Final',null];
 const row = ['TODAS','AV10','1428','Poker Lta 330cc X 6','SXP','',111,null,0,8,999,7,132,999,'TAT'];
 test('base: completa referencias y recalcula cantidades, fecha y llaves', () => {
@@ -19,17 +20,24 @@ test('base: no inventa referencias ni descarta filas silenciosamente', () => {
   assert.throws(()=>transformarBase([header,unknown],'2026-11-10'),/referencias/);
 });
 
-test('base: permite cargar las filas válidas e informa centros y materiales pendientes', () => {
+test('base: bloquea los pedidos de materiales conocidos con centros sin referencia', () => {
   const historico = [...row]; historico[2] = '21662'; historico[3] = 'Electrolit Maracuya 625mlx3und';
   const resultado = transformarBase([header, row, historico], '2026-11-12');
   assert.equal(resultado.filas.length, 1);
   assert.equal(resultado.excluidas.length, 1);
   const centroNuevo = [...row]; centroNuevo[1] = 'NUEVO';
-  const centro = transformarBase([header, row, centroNuevo], '2026-11-12');
-  assert.equal(centro.filas.length, 1);
-  assert.match(centro.excluidas[0].motivo, /Centro NUEVO sin referencia/);
+  assert.throws(() => transformarBase([header, row, centroNuevo], '2026-11-12'), /Importación bloqueada:.*\nFila 3: centro NUEVO/);
   historico[1] = 'NUEVO';
   assert.equal(transformarBase([header, row, historico], '2026-11-12').excluidas.length, 1);
+});
+
+test('base: incluye los pedidos de AG01 en Barranquilla y en el canal T4', () => {
+  const pedido = ['TODAS', ' ag01 ', 3617, 'Costeñita R 175cc X 38', 'CA', '', 440, null, 0, 0, 440, 1, 1944, -1504, 'T4'];
+  const { filas, excluidas } = transformarBase([header, pedido], '2026-11-19');
+  assert.equal(excluidas.length, 0);
+  assert.equal(filas[0][15], 'T4');
+  assert.equal(filas[0][21], 'Barranquilla');
+  assert.deepEqual(Object.values(metricasPreventa(filas[0])).map(Math.round), [129, 29, 100]);
 });
 
 test('base: incorpora el barril de Riohacha y el shrinkpack de Montería', () => {

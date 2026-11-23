@@ -1,0 +1,5 @@
+
+> bavaria-transporte@1.0.0 start
+> node scripts/build.ts && node --env-file-if-exists=.env.local server.ts
+
+Bavaria Transporte en http://localhost:3001
