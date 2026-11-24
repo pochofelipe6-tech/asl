@@ -494,7 +494,6 @@ html[data-tema="claro"] .fm-page{--fm-enfasis:#e8002e;--fm-gris-dato:#b4bac6}
 html[data-tema="claro"] .fm-accion.editar:hover{color:#1d4ed8}
 html[data-tema="claro"] .fm-accion.eliminar{color:#c8002c}
 .fm-accion:focus-visible{outline:2px solid #ffba48;outline-offset:2px}
-.fm-sin-permiso{color:var(--fm-tenue);font-size:12px;cursor:help}
 
 /* Ventana para editar un reporte: la misma tarjeta del módulo, con las preguntas agrupadas por parte. */
 .fm-lienzo.fm-dialogo{width:min(1000px,calc(100vw - 32px));max-height:calc(100vh - 40px);margin:auto;padding:0;overflow:hidden}
@@ -519,7 +518,35 @@ html[data-tema="claro"] .fm-accion.eliminar{color:#c8002c}
 .fm-modal-peligro{border-color:#ff2b5566;background:radial-gradient(ellipse 80% 55% at 50% 0,#e8002e33,transparent 70%),linear-gradient(160deg,#16181f,#0c0e13 62%);box-shadow:0 30px 80px -20px #000000cc,0 0 60px -22px #e8002e99}
 html[data-tema="claro"] .fm-modal-peligro{border-color:#fecdd3;background:radial-gradient(ellipse 80% 55% at 50% 0,#e8002e1f,transparent 70%),#fff}
 .fm-modal-icono{display:grid;place-items:center;width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#e8002e26;box-shadow:inset 0 0 0 2px #ff2b5566;color:#ff4d6d}
-.fm-modal-icono svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* Bote de basura: al eliminar, la tapa se abre, el reporte cae adentro, la tapa se cierra, el bote rebota y aparece el chulo. */
+.fm-modal-icono{position:relative}
+.fm-bote{width:60px;height:60px;overflow:visible;fill:none;stroke:currentColor;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
+.fm-bote-papel{opacity:0;fill:#fff;stroke-width:3.5}
+.fm-bote-tapa{transform-box:fill-box;transform-origin:0% 100%}
+.fm-bote-ok{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 4px #12141b;color:#fff;transform:scale(0)}
+html[data-tema="claro"] .fm-bote-ok{box-shadow:0 0 0 4px #fff}
+.fm-bote-ok svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.fm-solo-eliminado,.eliminado .fm-solo-confirmar{display:none}
+.eliminado .fm-solo-eliminado{display:flex}
+.eliminado .fm-bote-tapa{animation:fm-tapa 1.15s ease-in-out both}
+.eliminado .fm-bote-papel{animation:fm-papel .8s .18s cubic-bezier(.45,0,.8,.4) both}
+.eliminado .fm-bote{animation:fm-bote-salto .35s 1.1s ease-out both}
+.eliminado .fm-modal-icono{animation:fm-icono-verde .45s 1.15s ease both}
+.eliminado .fm-bote-ok{animation:fm-ok-pop .45s 1.3s cubic-bezier(.34,1.6,.64,1) both}
+.eliminado :is(h3,#fmEliminarTexto,.fm-solo-eliminado){animation:fm-aparecer .4s 1.2s ease both}
+.fm-modal-peligro.eliminado{border-color:#22c55e66;box-shadow:0 30px 80px -20px #000000cc,0 0 60px -22px #22c55e99;transition:border-color .4s 1.15s,box-shadow .4s 1.15s}
+.fm-modal-peligro.eliminado .pv-btn-primary{border-color:#22c55e;background:linear-gradient(120deg,#22c55e,#15803d);box-shadow:0 12px 28px -10px #16a34aee,inset 0 1px 1px #ffffff55}
+@keyframes fm-tapa{0%{transform:rotate(0)}20%,62%{transform:rotate(-40deg)}80%{transform:rotate(5deg)}100%{transform:rotate(0)}}
+@keyframes fm-papel{0%{opacity:0;transform:translate(0,-16px) rotate(-16deg)}14%{opacity:1}100%{opacity:1;transform:translate(0,46px) rotate(12deg) scale(.82)}}
+@keyframes fm-bote-salto{0%{transform:scale(1)}40%{transform:scale(1.1,.9)}100%{transform:scale(1)}}
+@keyframes fm-icono-verde{to{background:#22c55e26;box-shadow:inset 0 0 0 2px #22c55e66;color:#22c55e}}
+@keyframes fm-ok-pop{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes fm-aparecer{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .eliminado :is(.fm-bote-tapa,.fm-bote-papel,.fm-bote,.fm-modal-icono,.fm-bote-ok,h3,#fmEliminarTexto,.fm-solo-eliminado){animation:none}
+  .eliminado .fm-modal-icono{background:#22c55e26;box-shadow:inset 0 0 0 2px #22c55e66;color:#22c55e}
+  .eliminado .fm-bote-ok{transform:none}
+}
 .fm-modal .fm-modal-error{margin:-10px 0 18px;color:#ff8aa0;font-size:13.5px;font-weight:700}
 html[data-tema="claro"] .fm-modal .fm-modal-error{color:#c8002c}
 .fm-modal .fm-modal-error:empty{display:none}

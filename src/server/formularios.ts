@@ -4,12 +4,10 @@ import type pg from 'pg';
 import { MAX_RESPUESTAS_LISTADO, buscarFormulario, normalizarRespuestas } from '../shared/formularios.ts';
 
 const TABLA_FALTANTE = 'Falta crear la tabla de respuestas. Ejecuta supabase/formularios_schema.sql en Supabase.';
-/** Rol que puede editar y eliminar cualquier respuesta (ver supabase/usuarios.sql). Los demás, solo las suyas. */
-const ROL_ADMINISTRADOR = 'administrador';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface UsuarioSesion { sub: string; nombre: string; rol?: string }
-const puedeCambiar = (usuario: UsuarioSesion, autor: string | null) => usuario.rol === ROL_ADMINISTRADOR || (!!autor && autor === usuario.sub);
+// Cualquier usuario con sesión puede registrar, editar y eliminar respuestas (decisión del usuario, 24/11/2026).
+interface UsuarioSesion { sub: string; nombre: string }
 
 export function rutasFormularios(pool: pg.Pool | null, sesion: (req: Request) => UsuarioSesion | null) {
   const router = express.Router();
@@ -30,16 +28,13 @@ export function rutasFormularios(pool: pg.Pool | null, sesion: (req: Request) =>
     const formulario = buscarFormulario(req.query.formulario);
     if (!formulario) { res.status(404).json({ error: 'El formulario no existe.' }); return; }
     if (!pool) { res.status(503).json({ error: 'Configura la conexión de Supabase para consultar las respuestas.' }); return; }
-    const usuario = sesion(req)!;
     try {
       const { rows } = await pool.query(
-        `select id, usuario_id, usuario_nombre, creado_en, respuestas from public.formularios_respuestas
+        `select id, usuario_nombre, creado_en, respuestas from public.formularios_respuestas
          where formulario = $1 order by creado_en desc, id desc limit ${MAX_RESPUESTAS_LISTADO + 1}`,
         [formulario.id],
       );
-      // El id de quien registró no sale del servidor: el navegador solo sabe si puede editar o eliminar.
-      const respuestas = rows.slice(0, MAX_RESPUESTAS_LISTADO).map(({ usuario_id, ...fila }) => ({ ...fila, editable: puedeCambiar(usuario, usuario_id ?? null) }));
-      res.json({ respuestas, truncado: rows.length > MAX_RESPUESTAS_LISTADO });
+      res.json({ respuestas: rows.slice(0, MAX_RESPUESTAS_LISTADO), truncado: rows.length > MAX_RESPUESTAS_LISTADO });
     } catch (error) {
       fallo(res, error, 'Consulta', 'No se pudieron consultar las respuestas. Reintenta en un momento.');
     }
@@ -59,30 +54,26 @@ export function rutasFormularios(pool: pg.Pool | null, sesion: (req: Request) =>
          values ($1, $2, $3, $4) returning id, usuario_nombre, creado_en, respuestas`,
         [formulario.id, JSON.stringify(respuestas), usuario.sub, usuario.nombre],
       );
-      res.status(201).json({ respuesta: { ...rows[0], editable: true } });
+      res.status(201).json({ respuesta: rows[0] });
     } catch (error) {
       fallo(res, error, 'Guardado', 'No se pudo guardar la respuesta. Reintenta en un momento.');
     }
   });
 
-  /** Busca la respuesta y comprueba que quien la pide pueda cambiarla. Si no, responde el error y devuelve null. */
-  async function respuestaPropia(req: Request, res: Response, db: pg.Pool) {
+  /** Busca la respuesta por su id. Si no existe, responde el error y devuelve null. */
+  async function buscarRespuesta(req: Request, res: Response, db: pg.Pool) {
     const id = req.params.id;
     if (typeof id !== 'string' || !UUID.test(id)) { res.status(404).json({ error: 'La respuesta no existe.' }); return null; }
-    const { rows } = await db.query('select id, formulario, usuario_id from public.formularios_respuestas where id = $1', [id]);
-    const fila = rows[0] as { id: string; formulario: string; usuario_id: string | null } | undefined;
+    const { rows } = await db.query('select id, formulario from public.formularios_respuestas where id = $1', [id]);
+    const fila = rows[0] as { id: string; formulario: string } | undefined;
     if (!fila) { res.status(404).json({ error: 'La respuesta ya no existe. Actualiza la tabla.' }); return null; }
-    if (!puedeCambiar(sesion(req)!, fila.usuario_id)) {
-      res.status(403).json({ error: 'Solo quien registró el reporte o un administrador puede cambiarlo.' });
-      return null;
-    }
     return fila;
   }
 
   router.put('/respuestas/:id', async (req, res) => {
     if (!pool) { res.status(503).json({ error: 'Configura la conexión de Supabase para guardar.' }); return; }
     try {
-      const fila = await respuestaPropia(req, res, pool);
+      const fila = await buscarRespuesta(req, res, pool);
       if (!fila) return;
       const formulario = buscarFormulario(fila.formulario);
       if (!formulario) { res.status(404).json({ error: 'El formulario no existe.' }); return; }
@@ -94,7 +85,7 @@ export function rutasFormularios(pool: pg.Pool | null, sesion: (req: Request) =>
         'update public.formularios_respuestas set respuestas = $2 where id = $1 returning id, usuario_nombre, creado_en, respuestas',
         [fila.id, JSON.stringify(respuestas)],
       );
-      res.json({ respuesta: { ...rows[0], editable: true } });
+      res.json({ respuesta: rows[0] });
     } catch (error) {
       fallo(res, error, 'Edición', 'No se pudo guardar el cambio. Reintenta en un momento.');
     }
@@ -103,7 +94,7 @@ export function rutasFormularios(pool: pg.Pool | null, sesion: (req: Request) =>
   router.delete('/respuestas/:id', async (req, res) => {
     if (!pool) { res.status(503).json({ error: 'Configura la conexión de Supabase para eliminar.' }); return; }
     try {
-      const fila = await respuestaPropia(req, res, pool);
+      const fila = await buscarRespuesta(req, res, pool);
       if (!fila) return;
       await pool.query('delete from public.formularios_respuestas where id = $1', [fila.id]);
       res.status(204).end();

@@ -5,8 +5,7 @@ import { porId } from './dom.ts';
 import { CDS_REGIONAL_NORTE, FORMULARIOS, normalizarValor, preguntasDe, textoRespuesta, ultimoPorCd } from '../shared/formularios.ts';
 import type { Pregunta } from '../shared/formularios.ts';
 
-/** Una respuesta guardada. "editable" lo calcula el servidor: quien la registró o un administrador. */
-interface Registro { id: string; usuario_nombre: string; creado_en: string; respuestas: Record<string, unknown>; editable?: boolean }
+interface Registro { id: string; usuario_nombre: string; creado_en: string; respuestas: Record<string, unknown> }
 
 const formulario = FORMULARIOS[0];
 const preguntas = preguntasDe(formulario);
@@ -1404,15 +1403,9 @@ const TRAZOS_ACCION = {
 const cdDe = (r: Registro) => textoRespuesta(r.respuestas.cd) || 'sin CD';
 const describir = (r: Registro) => `${cdDe(r)} · ${formatoFecha.format(new Date(r.creado_en))} · ${r.usuario_nombre}`;
 
-/** Botones Editar y Eliminar de una fila; si el usuario no puede cambiarla, se dice por qué. */
+/** Botones Editar y Eliminar de una fila (cualquier usuario puede usarlos). */
 function celdaAcciones(r: Registro): HTMLTableCellElement {
   const celda = crear('td', 'acciones');
-  if (!r.editable) {
-    const aviso = crear('span', 'fm-sin-permiso', 'Solo lectura');
-    aviso.title = 'Solo quien registró el reporte o un administrador puede editarlo o eliminarlo.';
-    celda.append(aviso);
-    return celda;
-  }
   const boton = (clase: 'editar' | 'eliminar', texto: string, accion: () => void) => {
     const b = crear('button', `fm-accion ${clase}`);
     b.type = 'button';
@@ -1573,13 +1566,25 @@ formEditar.addEventListener('submit', async evento => {
 
 function abrirEliminacion(r: Registro) {
   porEliminar = r;
+  // Vuelve al estado de confirmación (la ventana pudo quedar en "Eliminado correctamente").
+  dialogoEliminar.classList.remove('eliminado');
+  porId('fmEliminarTitulo').textContent = '¿Eliminar este reporte?';
   porId('fmEliminarTexto').textContent = `Se eliminará el reporte de ${cdDe(r)} del ${formatoFecha.format(new Date(r.creado_en))}, registrado por ${r.usuario_nombre}. Esta acción no se puede deshacer.`;
   estadoEliminar.textContent = '';
   dialogoEliminar.showModal();
 }
 
+/** Tras eliminar: el reporte cae al bote, la tapa se cierra y aparece el chulo con el mensaje (animación en CSS, clase "eliminado"). */
+function mostrarEliminado(registro: Registro) {
+  porId('fmEliminarTitulo').textContent = 'Eliminado correctamente';
+  porId('fmEliminarTexto').textContent = `El reporte de ${cdDe(registro)} del ${formatoFecha.format(new Date(registro.creado_en))} se eliminó.`;
+  dialogoEliminar.classList.add('eliminado');
+  porId('fmEliminarListo').focus();
+}
+
 const cerrarEliminacion = () => { dialogoEliminar.close(); porEliminar = null; };
 porId('fmEliminarCancelar').addEventListener('click', cerrarEliminacion);
+porId('fmEliminarListo').addEventListener('click', cerrarEliminacion);
 dialogoEliminar.addEventListener('click', evento => { if (evento.target === dialogoEliminar) cerrarEliminacion(); });
 botonConfirmarEliminar.addEventListener('click', async () => {
   const registro = porEliminar;
@@ -1595,7 +1600,8 @@ botonConfirmarEliminar.addEventListener('click', async () => {
     }
     if (registros) registros = registros.filter(r => r.id !== registro.id);
     pintarTodo();
-    cerrarEliminacion();
+    porEliminar = null;
+    mostrarEliminado(registro);
     mostrarEstado(estadoTabla, `Se eliminó el reporte de ${cdDe(registro)} del ${formatoFecha.format(new Date(registro.creado_en))}`, 'ok');
   } catch {
     estadoEliminar.textContent = sinConexion;

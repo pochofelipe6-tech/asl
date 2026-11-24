@@ -107,7 +107,7 @@ test('la API exige sesión, valida y guarda la respuesta con el usuario', async 
   }
 });
 
-test('editar y eliminar: solo quien registró o un administrador, y siempre con las mismas reglas del formulario', async () => {
+test('editar y eliminar: cualquier usuario con sesión, siempre con las mismas reglas del formulario', async () => {
   // Base en memoria: una respuesta de u1 y otra de u2.
   const filas = new Map<string, { id: string; formulario: string; usuario_id: string; usuario_nombre: string; creado_en: Date; respuestas: Record<string, unknown> }>();
   const id1 = '11111111-1111-4111-8111-111111111111';
@@ -116,7 +116,7 @@ test('editar y eliminar: solo quien registró o un administrador, y siempre con 
   filas.set(id2, { id: id2, formulario: formulario.id, usuario_id: 'u2', usuario_nombre: 'Otro', creado_en: new Date('2026-11-23T16:00:00Z'), respuestas: normalizarRespuestas(formulario, { ...completas, cd: 'Monteria' }) });
   const pool = {
     query: async (sql: string, params: unknown[] = []) => {
-      if (sql.startsWith('select id, formulario, usuario_id')) { const f = filas.get(String(params[0])); return { rows: f ? [f] : [] }; }
+      if (sql.startsWith('select id, formulario from')) { const f = filas.get(String(params[0])); return { rows: f ? [f] : [] }; }
       if (sql.startsWith('update')) {
         const f = filas.get(String(params[0]))!;
         f.respuestas = JSON.parse(String(params[1]));
@@ -130,21 +130,22 @@ test('editar y eliminar: solo quien registró o un administrador, y siempre con 
   app.use(express.json());
   app.use('/api/formularios', rutasFormularios(pool, req => {
     const quien = req.get('x-test-user');
-    return quien ? { sub: quien, nombre: quien, rol: req.get('x-test-rol') ?? 'sin rol' } : null;
+    return quien ? { sub: quien, nombre: quien } : null;
   }));
   const server = app.listen(0);
   await new Promise<void>(resolve => server.once('listening', resolve));
   try {
     const url = `http://localhost:${(server.address() as { port: number }).port}/api/formularios/respuestas`;
-    const como = (usuario: string, rol = 'sin rol') => ({ 'x-test-user': usuario, 'x-test-rol': rol, 'Content-Type': 'application/json' });
+    const como = (usuario: string) => ({ 'x-test-user': usuario, 'Content-Type': 'application/json' });
     const editar = (id: string, headers: Record<string, string>, respuestas: unknown) => fetch(`${url}/${id}`, { method: 'PUT', headers, body: JSON.stringify({ respuestas }) });
 
-    // La lista dice qué puede cambiar cada usuario, sin mostrar el id de quien registró.
-    const lista = await (await fetch(`${url}?formulario=${formulario.id}`, { headers: como('u1') })).json();
-    assert.deepEqual(lista.respuestas.map((r: { editable: boolean }) => r.editable), [true, false]);
-    assert.equal('usuario_id' in lista.respuestas[0], false);
+    // Sin sesión no se puede cambiar nada.
+    assert.equal((await editar(id1, { 'Content-Type': 'application/json' }, completas)).status, 401);
+    // u1 puede editar el reporte que registró u2.
+    const ajena = await editar(id2, como('u1'), { ...completas, cd: 'Monteria', estibas_b: '7' });
+    assert.equal(ajena.status, 200);
+    assert.equal(filas.get(id2)!.respuestas.estibas_b, 7);
 
-    assert.equal((await editar(id2, como('u1'), completas)).status, 403);
     assert.equal((await editar(id1, como('u1'), { ...completas, estibas_a: '-3' })).status, 400);
     assert.equal((await editar('no-es-un-id', como('u1'), completas)).status, 404);
     const editada = await editar(id1, como('u1'), { ...completas, estibas_a: '99' });
@@ -152,10 +153,10 @@ test('editar y eliminar: solo quien registró o un administrador, y siempre con 
     assert.equal((await editada.json()).respuesta.respuestas.estibas_a, 99);
     assert.equal(filas.get(id1)!.creado_en.toISOString(), '2026-11-23T15:00:00.000Z');
 
-    assert.equal((await fetch(`${url}/${id2}`, { method: 'DELETE', headers: como('u1') })).status, 403);
-    assert.equal((await fetch(`${url}/${id2}`, { method: 'DELETE', headers: como('u9', 'administrador') })).status, 204);
+    // u1 puede eliminar el reporte de u2; si ya no existe, responde 404.
+    assert.equal((await fetch(`${url}/${id2}`, { method: 'DELETE', headers: como('u1') })).status, 204);
     assert.equal(filas.has(id2), false);
-    assert.equal((await fetch(`${url}/${id2}`, { method: 'DELETE', headers: como('u9', 'administrador') })).status, 404);
+    assert.equal((await fetch(`${url}/${id2}`, { method: 'DELETE', headers: como('u1') })).status, 404);
   } finally {
     server.close();
   }
