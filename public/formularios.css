@@ -114,6 +114,35 @@ html[data-tema="claro"] :is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#c
 .fm-boton-texto{display:inline-flex;align-items:center;gap:10px}
 .fm-form[data-ultimo] .fm-no-ultimo,.fm-form:not([data-ultimo]) .fm-solo-ultimo{display:none}
 
+/* Tarjeta "Guardado": aparece al guardar una respuesta, con un chulo verde que se dibuja. */
+.fm-modal{width:min(420px,calc(100vw - 32px));padding:34px 30px 26px;border:1px solid #34d39966;border-radius:24px;background:radial-gradient(ellipse 80% 55% at 50% 0,#16a34a33,transparent 70%),linear-gradient(160deg,#16181f,#0c0e13 62%);box-shadow:0 30px 80px -20px #000000cc,0 0 60px -22px #22c55e99;color:#f4f6fa;text-align:center}
+.fm-modal::backdrop{background:#05070bb8;backdrop-filter:blur(4px)}
+.fm-modal[open]{animation:fm-modal-entra .32s cubic-bezier(.34,1.4,.64,1) both}
+.fm-modal[open]::backdrop{animation:fm-fondo-entra .25s ease both}
+.fm-modal-chulo{display:block;width:96px;height:96px;margin:0 auto 14px;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.fm-chulo-fondo{fill:#22c55e24;transform-origin:center}
+.fm-chulo-aro{stroke:#22c55e;stroke-width:5;stroke-dasharray:252;transform:rotate(-90deg);transform-origin:center}
+.fm-chulo-trazo{stroke:#4ade80;stroke-width:7;stroke-dasharray:56}
+.fm-modal[open] .fm-chulo-fondo{animation:fm-chulo-pulso .6s .55s ease-out both}
+.fm-modal[open] .fm-chulo-aro{animation:fm-chulo-dibuja .55s .1s cubic-bezier(.65,0,.35,1) both}
+.fm-modal[open] .fm-chulo-trazo{animation:fm-chulo-dibuja .35s .55s cubic-bezier(.65,0,.35,1) both}
+.fm-modal h3{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em}
+.fm-modal p{margin:8px 0 22px;color:#a3adbe;font-size:15px;line-height:1.5}
+.fm-modal-acciones{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.fm-modal .pv-btn{min-height:46px;padding:0 24px;border-radius:999px;font-size:15px}
+.fm-modal .fm-btn-sec{border-color:#3d424e;background:#0d0f14;color:#f4f6fa}
+.fm-modal .pv-btn-primary{border-color:#22c55e;background:linear-gradient(120deg,#22c55e,#15803d);box-shadow:0 12px 28px -10px #16a34aee,inset 0 1px 1px #ffffff55;color:#fff}
+html[data-tema="claro"] .fm-modal{border-color:#bbf7d0;background:radial-gradient(ellipse 80% 55% at 50% 0,#22c55e24,transparent 70%),#fff;box-shadow:0 30px 80px -24px #0f172a66;color:#1c2331}
+html[data-tema="claro"] .fm-modal p{color:#5a6578}
+html[data-tema="claro"] .fm-modal .fm-btn-sec{border-color:#cfd5df;background:#fff;color:#1c2331}
+html[data-tema="claro"] .fm-chulo-trazo{stroke:#16a34a}
+@keyframes fm-modal-entra{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes fm-fondo-entra{from{opacity:0}to{opacity:1}}
+@keyframes fm-chulo-dibuja{from{stroke-dashoffset:var(--largo,252)}to{stroke-dashoffset:0}}
+@keyframes fm-chulo-pulso{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+.fm-chulo-trazo{--largo:56}
+@media(prefers-reduced-motion:reduce){.fm-modal[open],.fm-modal[open]::backdrop,.fm-modal[open] :is(.fm-chulo-fondo,.fm-chulo-aro,.fm-chulo-trazo){animation:none}}
+
 /* ---------- Resumen ---------- */
 .fm-res-filtro{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px}
 .fm-res-filtro label{color:var(--fm-suave);font-size:13px;font-weight:700}
@@ -130,52 +159,252 @@ html[data-tema="claro"] :is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#c
 .fm-res-tabs .fm-paso-texto strong span{overflow:hidden;color:var(--fm-suave);font-size:13px;font-weight:600;text-overflow:ellipsis}
 .fm-res-tabs .fm-paso[data-estado="actual"] .fm-paso-texto strong span{color:#fff}
 
-/* Panel de la pestaña: totales a la izquierda, gráficos al centro e ilustración a la derecha. */
-.fm-res-caja{align-items:stretch}
-.fm-res-caja>.fm-parte-icono{align-self:start}
-.fm-res-caja .fm-ilustracion-caja{align-self:stretch;width:270px;height:auto}
-.fm-res-caja .fm-ilustracion{height:auto;max-height:150px}
-.fm-res-contenido{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);align-items:start;gap:26px 34px;min-width:0}
-.fm-res-totales{display:flex;flex-direction:column;gap:16px;min-width:0}
-.fm-res-dato{display:flex;flex-direction:column;gap:6px;min-width:0}
-.fm-res-dato+.fm-res-dato{padding-top:16px;border-top:1px solid var(--fm-borde)}
-.fm-res-etiqueta{color:var(--fm-suave);font-size:13px;font-weight:600}
+/* Panel de la pestaña Centro De Distribución: ícono, cobertura e ilustración. */
+.fm-res-caja{align-items:start}
+.fm-res-caja .fm-ilustracion-caja{align-self:center;width:270px}
 .fm-res-heroe{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}
-.fm-res-medio{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
-:is(.fm-res-heroe,.fm-res-medio) small{margin-left:8px;color:var(--fm-suave);font-size:15px;font-weight:600;letter-spacing:0}
-.fm-res-franja{display:flex;gap:2px;height:8px;margin-top:8px;overflow:hidden;border-radius:999px}
-.fm-res-franja span{flex:1 1 0;min-width:0;background:var(--c)}
-.fm-res-desglose{display:flex;flex-direction:column;gap:7px;margin:6px 0 0;padding:0;list-style:none;font-size:13px}
-.fm-res-desglose li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 42px;align-items:center;gap:10px}
-.fm-res-desglose :is(b,em){font-variant-numeric:tabular-nums;text-align:right}
-.fm-res-desglose em{color:var(--fm-suave);font-style:normal}
-.fm-res-extra{display:flex;justify-content:space-between;gap:14px;margin:0;color:var(--fm-suave);font-size:13px}
-.fm-res-extra b{color:var(--fm-texto);text-align:right}
-.fm-res-derecha{display:flex;flex-direction:column;min-width:0}
-/* Cada gráfico ocupa tres filas compartidas (título, leyenda y barras): con dos gráficos lado a lado, las barras arrancan a la misma altura. */
-.fm-res-graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0 34px;min-width:0;margin-bottom:-22px}
+.fm-res-heroe small{margin-left:8px;color:var(--fm-suave);font-size:15px;font-weight:600;letter-spacing:0}
 .fm-res-nota{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;margin:16px 0 0;color:var(--fm-suave);font-size:13px}
 .fm-enlace{padding:0;border:0;background:none;color:var(--fm-rojo-texto);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .fm-enlace:focus-visible{outline:2px solid #ffba48;outline-offset:3px;border-radius:4px}
 
-/* Gráficos de barras por CD. */
-.fm-grafico{display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0;margin:0;padding-bottom:22px}
-.fm-grafico figcaption{display:flex;flex-wrap:wrap;align-items:baseline;grid-row:1;gap:2px 12px}
+/* Gráficos de columnas agrupadas: un grupo por CD y, dentro, una columna por serie. El eje de valores va a la izquierda. */
+.fm-grafico{--alto:230px;flex:0 1 auto;width:min(100%,calc(var(--n,16) * 120px + 64px));min-width:0;margin:0}
+.fm-grafico-titulos{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
 .fm-grafico h4{margin:0;font-size:16px;font-weight:800}
 .fm-grafico figcaption p{margin:0;color:var(--fm-suave);font-size:12.5px}
-.fm-leyenda{display:flex;flex-wrap:wrap;grid-row:2;gap:6px 16px;margin:10px 0 0;padding:0;list-style:none;color:var(--fm-suave);font-size:12.5px}
+.fm-leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 0;padding:0;list-style:none;color:var(--fm-suave);font-size:12.5px}
 .fm-leyenda li{display:inline-flex;align-items:center;gap:7px}
 .fm-muestra{width:12px;height:12px;border-radius:3px;background:var(--c)}
-.fm-barras{grid-row:3;margin-top:10px;border-radius:8px}
-.fm-barras:focus-visible{outline:2px solid #ffba48;outline-offset:4px}
-.fm-barra-fila{display:grid;grid-template-columns:minmax(84px,112px) minmax(0,1fr);align-items:center;gap:10px;padding:0 6px;border-radius:6px}
-.fm-barra-fila:hover,.fm-barra-fila.activa{background:var(--fm-velo-2)}
-.fm-barra-cd{overflow:hidden;font-size:12.5px;text-overflow:ellipsis;white-space:nowrap}
-/* La pista reserva a la derecha el espacio del total, que va pegado a la punta de la barra. */
-.fm-barra-pista{display:flex;align-items:center;min-width:0;height:28px;padding-right:72px;border-left:1px solid var(--fm-eje)}
-.fm-barra{display:flex;flex:none;gap:2px;height:14px;overflow:hidden;border-radius:0 4px 4px 0}
-.fm-seg{flex:1 1 0;min-width:0;background:var(--c)}
-.fm-barra-valor{flex:none;margin-left:8px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* En pantallas angostas el gráfico se desplaza hacia los lados en vez de apretar las columnas. */
+.fm-cols-caja{margin-top:6px;overflow-x:auto;scrollbar-width:thin}
+.fm-cols{display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:10px;min-width:calc(var(--n,16) * 62px + 48px);padding-top:24px}
+.fm-cols-eje{display:flex;flex-direction:column-reverse;justify-content:space-between;height:var(--alto);color:var(--fm-suave);font-size:11.5px;font-variant-numeric:tabular-nums}
+.fm-cols-eje span{display:flex;align-items:center;justify-content:flex-end;height:0;white-space:nowrap}
+.fm-cols-plano{position:relative;min-width:0}
+.fm-cols-lineas{position:absolute;inset:0 0 auto;display:flex;flex-direction:column-reverse;justify-content:space-between;height:var(--alto);pointer-events:none}
+.fm-cols-lineas i{height:0;border-top:1px solid var(--fm-borde)}
+.fm-cols-lineas i:first-child{border-color:var(--fm-eje)}
+.fm-cols-grupos{position:relative;display:flex;border-radius:8px}
+.fm-cols-grupos:focus-visible{outline:2px solid #ffba48;outline-offset:4px}
+.fm-cols-grupo{flex:1 1 0;min-width:0;border-radius:8px}
+.fm-cols-grupo:hover,.fm-cols-grupo.activa{background:var(--fm-velo-2)}
+.fm-cols-barras{display:flex;align-items:flex-end;justify-content:center;gap:2px;height:var(--alto);padding:0 max(5px,10%)}
+.fm-col{position:relative;flex:1 1 0;min-width:0;max-width:24px;min-height:2px;border-radius:4px 4px 0 0;background:var(--c);container-type:inline-size}
+.fm-col-cero{min-height:0}
+/* La cifra va sobre la columna solo cuando cabe (según el ancho de la columna y el largo de la cifra más larga del gráfico). */
+.fm-col-valor{display:none;position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);color:var(--fm-texto);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
+@container (min-width:9px){.fm-col-valor[data-ancho="1"]{display:block}}
+@container (min-width:15px){.fm-col-valor[data-ancho="2"]{display:block}}
+@container (min-width:21px){.fm-col-valor[data-ancho="3"]{display:block}}
+@container (min-width:24px){.fm-col-valor[data-ancho="4"]{display:block}}
+.fm-cols-cd{display:block;padding:8px 2px 6px;font-size:11.5px;line-height:1.25;text-align:center}
+
+/* ---------- Tablero de una categoría (Estibas, Cajas plásticas) ---------- */
+.fm-tb{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+/* Encabezado con foto: siempre oscuro, como la portada, para que el texto blanco se lea en los dos temas. */
+.fm-tb-cabeza{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:132px;padding:22px 28px;border:1px solid #ff2b5540;border-radius:20px;background:#0b0d14;color:#fff}
+.fm-tb-cabeza:before{content:'';position:absolute;inset:0;z-index:-2;background:url('/img/fondo-login.jpg') center 42%/cover}
+.fm-tb-cabeza:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#0b0d14 0%,#0b0d14f0 30%,#0b0d14a8 58%,#0b0d1440 80%,#e8002e80 100%)}
+.fm-tb-cabeza .fm-res-titulo{margin:0;color:#fff;font-size:32px}
+.fm-tb-cabeza .fm-parte-de{color:#ff5a78}
+.fm-tb-cabeza p{margin:6px 0 0;color:#d9dee8;font-size:15px}
+.fm-tb-fecha{display:inline-flex;flex:none;align-items:center;gap:9px;min-height:44px;padding:0 14px 0 16px;border:1px solid #ffffff4d;border-radius:12px;background:#0b0d14b8;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;backdrop-filter:blur(6px)}
+.fm-tb-fecha:hover{border-color:#ffffff99}
+.fm-tb-fecha:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+
+/* Fila de tarjetas: total (roja), promedio (azul), reparto (dona) e ilustración. */
+.fm-tb-kpis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1.3fr) minmax(0,.8fr);gap:16px}
+.fm-tb-kpi{position:relative;overflow:hidden;min-width:0;min-height:158px;padding:20px 22px;border:1px solid var(--fm-borde);border-radius:18px;background:var(--fm-fila)}
+.fm-tb-cuadro{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(145deg,#ff3a61,#c8002c);box-shadow:0 8px 18px -8px #e8002ecc,inset 0 1px 1px #ffffff55;color:#fff}
+.fm-tb-cuadro .fm-ico{width:21px;height:21px}
+.fm-tb-circulo{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;color:#fff}
+.fm-tb-circulo .fm-ico{width:20px;height:20px}
+.fm-tb-etiqueta{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;line-height:1.25}
+.fm-tb-unidad{font-size:14px;font-weight:600;opacity:.85}
+.fm-tb-grande{font-size:48px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.fm-tb-medio{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.fm-tb-mini{font-size:12.5px;opacity:.85}
+
+.fm-tb-rojo{container-type:inline-size;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:'icono etiqueta etiqueta' 'icono numero delta' 'icono unidad delta';align-content:center;gap:4px 16px;border-color:#ff5a78;background:radial-gradient(ellipse 70% 90% at 100% 0,#ff4d7366,transparent 60%),linear-gradient(135deg,#e8002e,#99001f);box-shadow:0 18px 40px -22px #e8002e;color:#fff}
+.fm-tb-rojo .fm-tb-cuadro{grid-area:icono;align-self:center;width:58px;height:58px;border-radius:50%;background:#ffffff26;box-shadow:inset 0 0 0 1px #ffffff40}
+.fm-tb-rojo .fm-tb-cuadro .fm-ico{width:28px;height:28px}
+.fm-tb-rojo .fm-tb-etiqueta{grid-area:etiqueta}
+.fm-tb-rojo .fm-tb-grande{grid-area:numero;margin-top:4px;font-size:clamp(30px,11cqi,48px)}
+.fm-tb-rojo .fm-tb-unidad{grid-area:unidad}
+.fm-tb-delta{grid-area:delta;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;max-width:120px;text-align:center}
+.fm-tb-delta b{padding:5px 12px;border:1px solid #ffffff59;border-radius:999px;background:#0b0d1440;font-size:15px;white-space:nowrap}
+.fm-tb-delta small{font-size:11.5px;line-height:1.3;opacity:.9}
+
+.fm-tb-azul{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 18px;border-color:#3d6fd1;background:radial-gradient(ellipse 80% 90% at 0 0,#3b82f633,transparent 60%),linear-gradient(135deg,#17336d,#0c1733);color:#fff}
+.fm-tb-azul-izq{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fm-tb-azul .fm-tb-circulo{background:#3b82f6;box-shadow:0 6px 16px -6px #3b82f6}
+.fm-tb-azul-der{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding-left:18px;border-left:1px solid #ffffff33}
+.fm-tb-azul-der strong{font-size:17px}
+.fm-tb-pastilla{padding:5px 16px;border-radius:8px;background:linear-gradient(120deg,#ff1f4b,#c8002c);font-size:17px;font-weight:800;box-shadow:0 8px 18px -8px #e8002e}
+
+.fm-tb-reparto h4{margin:0 0 10px;font-size:15px;font-weight:800}
+.fm-tb-reparto-cuerpo{display:flex;align-items:center;gap:18px}
+.fm-tb-dona{position:relative;flex:none;width:112px;height:112px}
+.fm-tb-dona svg{width:100%;height:100%;transform:rotate(-90deg)}
+.fm-tb-dona circle{fill:none;stroke-width:16}
+.fm-tb-dona-pista{stroke:var(--fm-velo-2)}
+.fm-tb-dona-arco{stroke:var(--c)}
+.fm-tb-dona-centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.fm-tb-dona-centro strong{font-size:19px;font-weight:800}
+.fm-tb-dona-centro small{color:var(--fm-suave);font-size:11.5px}
+.fm-tb-leyenda{display:flex;flex:1;flex-direction:column;gap:6px;min-width:0;margin:0;padding:0;list-style:none;font-size:13px}
+.fm-tb-leyenda li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 40px;align-items:center;gap:9px}
+.fm-tb-leyenda span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fm-tb-leyenda :is(b,em){font-variant-numeric:tabular-nums;text-align:right}
+.fm-tb-leyenda em{color:var(--fm-suave);font-style:normal;font-weight:700}
+
+.fm-tb-imagen{display:grid;place-items:center;padding:10px;border-color:#ff5a7866;background:radial-gradient(ellipse 80% 80% at 70% 60%,#ff2b5566,transparent 70%),linear-gradient(150deg,#2a0b14,#e8002e 140%)}
+.fm-tb-imagen .fm-ilustracion-caja{width:100%;height:100%;padding:0}
+.fm-tb-imagen .fm-ilustracion-caja:before{display:none}
+.fm-tb-imagen .fm-ilustracion{max-height:140px}
+
+/* Tarjetas del tablero: gráfico, detalle e indicadores. */
+.fm-tb-card{min-width:0;padding:18px 22px 20px;border:1px solid var(--fm-borde);border-radius:18px;background:var(--fm-fila)}
+.fm-tb-card-cabeza{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.fm-tb-card-cabeza h4{margin:0;font-size:17px;font-weight:800}
+.fm-tb-card .fm-grafico{--alto:200px;width:100%}
+.fm-tb-card .fm-grafico-cabeza{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.fm-tb-card .fm-grafico h4{font-size:17px}
+.fm-tb-card .fm-grafico-titulos{flex-direction:column;align-items:flex-start;gap:2px}
+.fm-tb-card .fm-leyenda{margin:0 0 0 auto}
+.fm-tb-conmutador{display:flex;gap:4px;padding:4px;border:1px solid var(--fm-borde);border-radius:12px;background:var(--fm-velo)}
+.fm-tb-opcion{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 13px;border:0;border-radius:9px;background:transparent;color:var(--fm-texto);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.fm-tb-opcion[aria-pressed="true"]{background:linear-gradient(120deg,#e8002e,#b50028);color:#fff;box-shadow:0 6px 14px -6px #e8002ecc}
+.fm-tb-opcion:focus-visible{outline:2px solid #ffba48;outline-offset:2px}
+.fm-tb-vista-tabla{margin-top:14px}
+/* Columna recortada: llega al tope con dos rayas diagonales y su cifra real siempre visible. */
+.fm-col-quiebre{border-radius:4px 4px 0 0}
+.fm-col-quiebre:after{content:'';position:absolute;left:-3px;right:-3px;top:10px;height:9px;background:linear-gradient(-18deg,transparent 32%,var(--fm-fila) 32% 44%,transparent 44% 56%,var(--fm-fila) 56% 68%,transparent 68%)}
+.fm-col-quiebre .fm-col-valor{display:block}
+.fm-grafico-nota{display:flex;align-items:center;gap:9px;margin:10px 0 0;color:var(--fm-suave);font-size:12px}
+.fm-corte-muestra{flex:none;width:18px;height:12px;border-radius:2px;background:linear-gradient(-18deg,var(--serie-1) 32%,var(--fm-fila) 32% 44%,var(--serie-1) 44% 56%,var(--fm-fila) 56% 68%,var(--serie-1) 68%)}
+
+.fm-tb-abajo{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(260px,1fr);align-items:stretch;gap:16px}
+/* El detalle muestra 5 CD por página (con flechas, sin barra de desplazamiento) y queda del alto de "Indicadores clave". */
+.fm-tb-detalle{display:flex;flex-direction:column}
+.fm-tb-detalle .fm-tb-tabla-caja,.fm-tb-vista-tabla{max-height:none;overflow-y:hidden}
+.fm-tb-paginas{display:flex;align-items:center;gap:10px;margin-left:auto;color:var(--fm-suave);font-size:12.5px;font-weight:700;white-space:nowrap}
+.fm-tb-paginas[hidden]{display:none}
+.fm-tb-paginas+.fm-tb-buscar{margin-left:0}
+.fm-tb-rango{min-width:92px;text-align:center;font-variant-numeric:tabular-nums}
+.fm-tb-buscar{position:relative;display:flex;align-items:center;flex:1;max-width:320px;margin-left:auto}
+.fm-tb-buscar .fm-ico{position:absolute;left:13px;color:var(--fm-suave);pointer-events:none}
+.fm-page .fm-tb-buscar input{width:100%;min-height:40px;padding:0 14px 0 38px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font-size:13.5px}
+.fm-lienzo .fm-tb-exportar{min-height:40px;padding:0 16px;font-size:13.5px}
+.fm-tb-exportar .fm-ico{width:17px;height:17px}
+
+/* Tabla del tablero: encabezado rojo y fijo; el cuerpo se desplaza si hay muchos CD. */
+.fm-tb-tabla-caja{max-height:420px;margin-top:14px;overflow:auto;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-fila);box-shadow:0 10px 26px -18px #0f172a59;scrollbar-width:thin}
+.fm-tb-tabla-caja:focus-visible{outline:2px solid #ffba48;outline-offset:2px}
+.fm-tb-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums}
+.fm-tb-tabla :is(th,td){height:32px;padding:5px 10px;border-bottom:1px solid var(--fm-velo-2);background:var(--fm-fila);text-align:left;white-space:nowrap}
+.fm-tb-tabla thead th{position:sticky;top:0;z-index:1;height:34px;border-bottom:0;background:linear-gradient(#e0063a,#b0002a);color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.01em}
+.fm-tb-tabla thead th:first-child,.fm-tb-tabla tbody th{padding-left:14px}
+.fm-tb-tabla .num{text-align:right}
+.fm-tb-tabla tbody th{font-weight:700;font-size:12.5px}
+.fm-tb-tabla tbody tr:nth-child(even) :is(th,td){background:var(--fm-fila-alt)}
+.fm-tb-tabla tbody tr:hover :is(th,td){background:var(--fm-fila-hover)}
+.fm-tb-tabla td.total{color:var(--fm-texto);font-weight:800;box-shadow:inset 1px 0 0 var(--fm-velo-2),inset -1px 0 0 var(--fm-velo-2)}
+.fm-tb-tabla tbody td:not(.total){color:var(--fm-suave)}
+.fm-tb-part i{display:inline-block;width:42px;height:5px;margin-right:8px;border-radius:999px;background:linear-gradient(90deg,var(--serie-1) calc(var(--p,0) * 100%),var(--fm-velo-2) 0);vertical-align:middle}
+.fm-tb-tabla tfoot :is(th,td){position:sticky;bottom:0;height:34px;border-top:1px solid #ff2b5566;border-bottom:0;background:var(--fm-pie);color:var(--fm-texto);font-size:12.5px;font-weight:800}
+.fm-tb-tabla tfoot th{padding-left:14px}
+.fm-tb-estado{display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 7px;border-radius:999px;font-size:11px;font-weight:800}
+.fm-tb-estado .fm-ico{width:12px;height:12px;stroke-width:2.6}
+.fm-tb-estado.bien{background:#16a34a2e;color:#4ade80}
+.fm-tb-estado.atencion{background:#f59e0b2e;color:#fbbf24}
+.fm-tb-estado.sin-datos{background:var(--fm-velo-2);color:var(--fm-suave)}
+html[data-tema="claro"] .fm-tb-estado.bien{background:#dcfce7;color:#15803d}
+html[data-tema="claro"] .fm-tb-estado.atencion{background:#fef3c7;color:#a16207}
+.fm-tb-regla,.fm-tb-vacio{display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;color:var(--fm-suave);font-size:11.5px;line-height:1.45}
+.fm-tb-regla .fm-ico{flex:none;width:14px;height:14px;margin-top:1px}
+.fm-tb-regla .fm-ico{color:#f59e0b}
+.fm-tb-card .fm-res-nota{margin-top:8px}
+
+.fm-tb-ind-lista{display:flex;flex-direction:column;margin:14px 0 0;padding:0;list-style:none}
+.fm-tb-ind-lista li{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--fm-borde)}
+.fm-tb-ind-lista li:first-child{border-top:0;padding-top:4px}
+.fm-tb-ind-lista span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fm-tb-ind-lista small{color:var(--fm-suave);font-size:12.5px}
+.fm-tb-ind-lista b{font-size:16px}
+.fm-tb-circulo.oro{background:linear-gradient(145deg,#fbbf24,#d97706)}
+.fm-tb-circulo.verde{background:linear-gradient(145deg,#22c55e,#15803d)}
+.fm-tb-circulo.azul{background:linear-gradient(145deg,#60a5fa,#2563eb)}
+.fm-tb-circulo.ambar{background:linear-gradient(145deg,#fb923c,#ea580c)}
+
+@media(max-width:1400px){
+  .fm-tb-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fm-tb-abajo{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .fm-tb-cabeza{flex-direction:column;align-items:flex-start;padding:18px}
+  .fm-tb-cabeza .fm-res-titulo{font-size:24px}
+  .fm-tb-kpis{grid-template-columns:1fr}
+  .fm-tb-grande{font-size:40px}
+  .fm-tb-buscar{max-width:none;flex-basis:100%;margin-left:0}
+}
+
+/* ---------- HL bloqueados ---------- */
+.fm-hl{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+.fm-hl-cabeza{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.fm-hl-cabeza h3{position:relative;margin:0;padding-left:20px;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.fm-hl-cabeza h3:before{content:'';position:absolute;left:0;top:3px;bottom:3px;width:6px;border-radius:3px;background:linear-gradient(#ff3a61,#c8002c);box-shadow:0 0 14px #ff2b5599}
+.fm-hl-cabeza p{margin:6px 0 0 20px;color:var(--fm-suave);font-size:15px}
+.fm-hl-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.fm-hl-fecha{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 16px;border:1px solid var(--fm-campo-borde);border-radius:14px;background:var(--fm-campo);color:var(--fm-texto);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.fm-hl-fecha .fm-ico{width:18px;height:18px}
+.fm-hl-fecha:hover{border-color:#ff2b5588}
+.fm-hl-fecha:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.fm-lienzo .fm-hl-actualizar{min-height:48px;padding:0 22px}
+.fm-hl-actualizar .pv-ico{width:18px;height:18px}
+.fm-hl-cuerpo{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,410px);align-items:start;gap:16px}
+.fm-hl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.fm-hl .fm-grafico{--alto:150px}
+/* Los gráficos de HL no se desplazan: muestran los CD que caben y las flechas pasan a los siguientes. */
+.fm-hl .fm-cols-caja{overflow-x:hidden}
+.fm-cols-paginas{margin-left:0}
+.fm-cols-paginas .pv-flecha{width:32px;height:32px}
+.fm-hl .fm-res-nota{margin:0}
+/* Énfasis: el CD con más HL por verter en rojo y los demás en gris. */
+.fm-page{--fm-enfasis:#ff2b55;--fm-gris-dato:#5d6576}
+html[data-tema="claro"] .fm-page{--fm-enfasis:#e8002e;--fm-gris-dato:#b4bac6}
+
+.fm-hl-estado-cuerpo{display:flex;align-items:center;gap:20px;margin-top:16px}
+.fm-hl-estado .fm-tb-dona{width:148px;height:148px}
+.fm-hl-estado .fm-tb-dona-centro strong{font-size:26px}
+.fm-hl-estado .fm-tb-dona-centro small{font-size:12.5px;font-weight:700}
+.fm-hl-leyenda{display:flex;flex:1;flex-direction:column;gap:12px;min-width:0;margin:0;padding:0;list-style:none;font-size:13.5px}
+.fm-hl-leyenda li{display:grid;grid-template-columns:12px minmax(0,1fr);align-items:center;gap:2px 10px}
+.fm-hl-leyenda span{color:var(--fm-suave)}
+.fm-hl-leyenda b{grid-column:2;font-size:15px;font-variant-numeric:tabular-nums}
+.fm-hl-leyenda-total{padding-top:10px;border-top:1px solid var(--fm-borde)}
+.fm-hl-leyenda-total span{grid-column:1 / -1}
+.fm-hl-leyenda-total b{grid-column:1 / -1}
+
+.fm-hl-cuadros{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 0;padding:0;list-style:none}
+.fm-hl-cuadro{display:flex;flex-direction:column;gap:6px;min-width:0;padding:14px;border:1px solid var(--t-borde);border-radius:14px;background:linear-gradient(150deg,var(--t-fondo),transparent 140%)}
+.fm-hl-cuadro.morado{--t-borde:#8b5cf666;--t-fondo:#8b5cf633;--t-icono:linear-gradient(145deg,#a78bfa,#6d28d9)}
+.fm-hl-cuadro.azul{--t-borde:#3b82f666;--t-fondo:#3b82f633;--t-icono:linear-gradient(145deg,#60a5fa,#1d4ed8)}
+.fm-hl-cuadro.verde{--t-borde:#22c55e66;--t-fondo:#22c55e2e;--t-icono:linear-gradient(145deg,#4ade80,#15803d)}
+.fm-hl-cuadro.ambar{--t-borde:#f59e0b66;--t-fondo:#f59e0b2e;--t-icono:linear-gradient(145deg,#fbbf24,#d97706)}
+.fm-hl-cuadro-arriba{display:flex;align-items:center;gap:10px}
+.fm-hl-cuadro .fm-tb-circulo{width:36px;height:36px;border-radius:10px;background:var(--t-icono)}
+.fm-hl-cuadro .fm-tb-circulo .fm-ico{width:18px;height:18px}
+.fm-hl-cuadro b{font-size:20px;font-weight:800;line-height:1.15;white-space:nowrap}
+.fm-hl-cuadro small{color:var(--fm-texto);font-size:12.5px;font-weight:700;line-height:1.3}
+.fm-hl-cuadro em{color:var(--fm-suave);font-size:11.5px;font-style:normal;line-height:1.35}
+
+/* En pantallas medianas los gráficos necesitan todo el ancho: el estado y los indicadores pasan debajo. */
+@media(max-width:1500px){
+  .fm-hl-cuerpo{grid-template-columns:1fr}
+  .fm-hl-lado{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+}
 
 .fm-tooltip{position:fixed;z-index:50;display:flex;flex-direction:column;gap:4px;min-width:190px;max-width:290px;padding:10px 12px;border:1px solid var(--pv-line);border-radius:10px;background:var(--pv-card);box-shadow:0 12px 30px #00000059;color:var(--pv-text);font-size:12px;pointer-events:none}
 .fm-tt-titulo{margin-bottom:2px;font-size:13px}
@@ -245,17 +474,65 @@ html[data-tema="claro"] :is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#c
 .fm-paginas{display:flex;align-items:center;gap:12px;color:var(--fm-suave);font-size:13px;white-space:nowrap}
 .fm-paginas .pv-flecha{width:36px;height:36px;border-radius:50%}
 
+/* Respuestas: encabezado rojo como el detalle por CD, filas compactas, fecha fija a la izquierda y acciones fijas a la derecha. */
+#vistaRespuestas .fm-tabla{font-size:12.5px}
+#vistaRespuestas .fm-tabla :is(th,td){padding:8px 11px}
+#vistaRespuestas .fm-tabla thead th{border-bottom:1px solid #ffffff2e;background:linear-gradient(#e0063a,#b0002a);color:#fff;font-size:11.5px}
+#vistaRespuestas .fm-tabla thead .fm-grupo{background:#8f0021;color:#fff;font-size:11px}
+#vistaRespuestas .fm-grupo .fm-ico{color:#ffc2ce}
+#vistaRespuestas .fm-tabla thead .inicio{border-left-color:#ffffff3d}
+#vistaRespuestas .fm-tabla tbody td.num{color:var(--fm-suave)}
+#vistaRespuestas .fm-tabla tbody td.cd{color:var(--fm-texto)}
+#vistaRespuestas .fm-tabla .acciones{position:sticky;right:0;z-index:1;box-shadow:-1px 0 0 var(--fm-borde);text-align:center;white-space:nowrap}
+#vistaRespuestas .fm-tabla thead .acciones{z-index:2;vertical-align:middle}
+.fm-accion{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 11px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:border-color .15s ease,background .15s ease,color .15s ease}
+.fm-accion+.fm-accion{margin-left:6px}
+.fm-accion .fm-ico{width:14px;height:14px}
+.fm-accion.editar:hover{border-color:#3b82f6;color:#60a5fa}
+.fm-accion.eliminar{border-color:#ff2b5566;color:#ff6b86}
+.fm-accion.eliminar:hover{border-color:#ff2b55;background:#e8002e1f}
+html[data-tema="claro"] .fm-accion.editar:hover{color:#1d4ed8}
+html[data-tema="claro"] .fm-accion.eliminar{color:#c8002c}
+.fm-accion:focus-visible{outline:2px solid #ffba48;outline-offset:2px}
+.fm-sin-permiso{color:var(--fm-tenue);font-size:12px;cursor:help}
+
+/* Ventana para editar un reporte: la misma tarjeta del módulo, con las preguntas agrupadas por parte. */
+.fm-lienzo.fm-dialogo{width:min(1000px,calc(100vw - 32px));max-height:calc(100vh - 40px);margin:auto;padding:0;overflow:hidden}
+.fm-dialogo::backdrop{background:#05070bb8;backdrop-filter:blur(4px)}
+.fm-dialogo[open]{animation:fm-modal-entra .3s cubic-bezier(.34,1.3,.64,1) both}
+.fm-dialogo form{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.fm-dialogo-cabeza{flex:none;padding:22px 28px 18px}
+.fm-dialogo-cabeza:after{left:0;right:0}
+.fm-dialogo-cerrar{display:grid;place-items:center;align-self:start;width:40px;height:40px;border:1px solid var(--fm-campo-borde);border-radius:50%;background:var(--fm-campo);color:var(--fm-texto);cursor:pointer}
+.fm-dialogo-cerrar:hover{border-color:#ff2b5588}
+.fm-dialogo-cerrar:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.fm-dialogo-cuerpo{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 28px 6px;scrollbar-width:thin}
+.fm-dialogo-seccion{margin:18px 0 0;padding:0;border:0;min-width:0}
+.fm-dialogo-seccion legend{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:0;font-size:16px;font-weight:800}
+.fm-dialogo-seccion legend .fm-ico{width:30px;height:30px;padding:6px;border-radius:9px;background:linear-gradient(145deg,#ff3a61,#c8002c);color:#fff}
+.fm-dialogo .fm-grilla{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.fm-dialogo .fm-grilla-unica{grid-template-columns:minmax(0,420px)}
+.fm-dialogo .fm-estado{flex:none;margin:12px 28px 0}
+.fm-dialogo-acciones{display:flex;flex:none;justify-content:flex-end;gap:12px;margin-top:14px;padding:16px 28px 22px;border-top:1px solid var(--fm-borde)}
+
+/* Confirmación para eliminar: misma tarjeta de "Guardado", en rojo. */
+.fm-modal-peligro{border-color:#ff2b5566;background:radial-gradient(ellipse 80% 55% at 50% 0,#e8002e33,transparent 70%),linear-gradient(160deg,#16181f,#0c0e13 62%);box-shadow:0 30px 80px -20px #000000cc,0 0 60px -22px #e8002e99}
+html[data-tema="claro"] .fm-modal-peligro{border-color:#fecdd3;background:radial-gradient(ellipse 80% 55% at 50% 0,#e8002e1f,transparent 70%),#fff}
+.fm-modal-icono{display:grid;place-items:center;width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:#e8002e26;box-shadow:inset 0 0 0 2px #ff2b5566;color:#ff4d6d}
+.fm-modal-icono svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fm-modal .fm-modal-error{margin:-10px 0 18px;color:#ff8aa0;font-size:13.5px;font-weight:700}
+html[data-tema="claro"] .fm-modal .fm-modal-error{color:#c8002c}
+.fm-modal .fm-modal-error:empty{display:none}
+.fm-modal-peligro .pv-btn-primary{border-color:#ff5a78;background:linear-gradient(120deg,#ff1f4b,#c8002c);box-shadow:0 12px 28px -10px #e8002eee,inset 0 1px 1px #ffffff55}
+
 @media(max-width:1500px){
-  /* En pantallas medianas los gráficos del resumen necesitan el ancho de la ilustración. */
+  /* En pantallas medianas la lista de CD necesita el ancho de la ilustración. */
   .fm-res-caja{grid-template-columns:auto minmax(0,1fr)}
   .fm-res-caja .fm-ilustracion-caja{display:none}
 }
 @media(max-width:1200px){
   .fm-panel-parte{grid-template-columns:auto minmax(0,1fr)}
   .fm-ilustracion-caja{display:none}
-}
-@media(max-width:1000px){
-  .fm-res-contenido{grid-template-columns:1fr}
 }
 @media(max-width:900px){
   .fm-pasos{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -289,6 +566,7 @@ html[data-tema="claro"] :is(.fm-acciones,.fm-lienzo) .fm-btn-sec{border-color:#c
   .fm-acciones .pv-btn{flex:1}
   #fmLimpiar{flex-basis:100%;order:3;margin-right:0}
   .fm-res-heroe{font-size:44px}
+  .fm-grafico{--alto:190px}
   .fm-res-cds{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   .fm-tabla :is(th,td){padding:10px}
   .fm-buscar{max-width:none;flex-basis:100%}

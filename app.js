@@ -3,7 +3,7 @@
 // server.ts
 import path from "node:path";
 import { readFile as readFile2 } from "node:fs/promises";
-import express3 from "express";
+import express4 from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
@@ -447,6 +447,201 @@ function rutasPreventas(pool, sesion) {
   return router;
 }
 
+// src/server/formularios.ts
+import express3 from "express";
+
+// src/shared/formularios.ts
+var CDS_REGIONAL_NORTE = [
+  "Apartado",
+  "Cartagena KA",
+  "Caucasia",
+  "Corozal",
+  "Cucuta",
+  "Curumani",
+  "Fonseca",
+  "Galapa",
+  "La Arenosa",
+  "Magangue",
+  "Monteria",
+  "Riohacha",
+  "San Andres",
+  "Santa Marta",
+  "Turbaco",
+  "Valledupar"
+];
+var UNIDADES = { tipo: "numero", entero: true, minimo: 0 };
+var EN_UNIDADES = "Indique todas las respuestas en unidades";
+var FORMULARIOS = [
+  {
+    id: "control-inventarios",
+    titulo: "Control de inventarios - Regional Norte",
+    descripcion: "Seguimiento al inventario de estibas, isotanques y cajas pl\xE1sticas",
+    secciones: [
+      {
+        titulo: "Centro De Distribuci\xF3n",
+        preguntas: [
+          // En el Microsoft Form no es obligatoria, pero sin CD la respuesta no se puede ubicar.
+          { id: "cd", titulo: "Seleccione el CD", corto: "CD", tipo: "lista", obligatoria: true, opciones: CDS_REGIONAL_NORTE }
+        ]
+      },
+      {
+        titulo: "Informaci\xF3n de estibas",
+        descripcion: EN_UNIDADES,
+        sumable: true,
+        preguntas: [
+          { id: "estibas_a", titulo: "Cantidad de estibas tipo A", corto: "Tipo A", obligatoria: true, ...UNIDADES },
+          { id: "estibas_b", titulo: "Cantidad de estibas tipo B", corto: "Tipo B", obligatoria: true, ...UNIDADES },
+          { id: "estibas_c", titulo: "Cantidad de estibas tipo C", corto: "Tipo C", obligatoria: true, ...UNIDADES }
+        ]
+      },
+      {
+        titulo: "Informaci\xF3n de HL bloqueados",
+        descripcion: EN_UNIDADES,
+        preguntas: [
+          // Los hectolitros pueden tener decimales.
+          { id: "hl_pendientes_verter", titulo: "Cantidad de HL pendientes por verter", corto: "HL pendientes por verter", tipo: "numero", obligatoria: true, minimo: 0 },
+          { id: "isotanques_vacios", titulo: "Cantidad de isotanques vac\xEDos", corto: "Isotanques vac\xEDos", obligatoria: true, ...UNIDADES },
+          { id: "isotanques_llenos", titulo: "Cantidad de isotanques llenos", corto: "Isotanques llenos", obligatoria: true, ...UNIDADES },
+          { id: "necesidad_isotanques", titulo: "Necesidad de isotanques", obligatoria: true, ...UNIDADES }
+        ]
+      },
+      {
+        titulo: "Informaci\xF3n de cajas pl\xE1sticas",
+        descripcion: EN_UNIDADES,
+        sumable: true,
+        preguntas: [
+          { id: "cajas_330cc_x30", titulo: "Cantidad de cajas pl\xE1sticas 330cc x 30", corto: "330cc x 30", ...UNIDADES },
+          { id: "cajas_750cc_x16", titulo: "Cantidad de cajas pl\xE1sticas 750cc x 16", corto: "750cc x 16", ...UNIDADES },
+          { id: "cajas_1000cc_x13", titulo: "Cantidad de cajas pl\xE1sticas 1000cc x 13", corto: "1000cc x 13", ...UNIDADES },
+          { id: "cajas_250cc_x38", titulo: "Cantidad de cajas pl\xE1sticas 250cc x 38", corto: "250cc x 38", ...UNIDADES },
+          { id: "cajas_225cc_x38", titulo: "Cantidad de cajas pl\xE1sticas 225cc x 38", corto: "225cc x 38", ...UNIDADES }
+        ]
+      }
+    ]
+  }
+];
+var MAX_RESPUESTAS_LISTADO = 5e3;
+var LIMITE_TEXTO = 500;
+var LIMITE_PARRAFO = 4e3;
+var buscarFormulario = (id) => FORMULARIOS.find((f) => f.id === id);
+var preguntasDe = (formulario) => formulario.secciones.flatMap((s) => s.preguntas);
+var invalida = (p) => new Error(`La respuesta de "${p.titulo}" no es v\xE1lida.`);
+function normalizarValor(p, valor) {
+  if (valor === void 0 || valor === null || typeof valor === "string" && !valor.trim()) {
+    if (p.obligatoria) throw new Error(`Responde "${p.titulo}".`);
+    return null;
+  }
+  switch (p.tipo) {
+    case "texto":
+    case "parrafo": {
+      if (typeof valor !== "string") throw invalida(p);
+      if (valor.trim().length > (p.tipo === "texto" ? LIMITE_TEXTO : LIMITE_PARRAFO)) throw new Error(`La respuesta de "${p.titulo}" es demasiado larga.`);
+      return valor.trim();
+    }
+    case "numero": {
+      const numero = typeof valor === "number" ? valor : typeof valor === "string" && /^-?\d+([.,]\d+)?$/.test(valor.trim()) ? Number(valor.trim().replace(",", ".")) : NaN;
+      if (!Number.isFinite(numero) || Math.abs(numero) > 1e12) throw new Error(`"${p.titulo}": el valor debe ser un n\xFAmero.`);
+      if (p.entero && !Number.isInteger(numero)) throw new Error(`"${p.titulo}": escribe un n\xFAmero entero.`);
+      if (p.minimo !== void 0 && numero < p.minimo) throw new Error(`"${p.titulo}": el valor debe ser ${p.minimo} o m\xE1s.`);
+      return numero;
+    }
+    case "fecha": {
+      if (typeof valor !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) throw invalida(p);
+      const fecha = /* @__PURE__ */ new Date(`${valor}T00:00:00Z`);
+      if (Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== valor) throw invalida(p);
+      return valor;
+    }
+    case "lista":
+    case "opcion":
+      if (typeof valor !== "string" || !p.opciones?.includes(valor)) throw invalida(p);
+      return valor;
+  }
+}
+function normalizarRespuestas(formulario, datos) {
+  if (!datos || typeof datos !== "object" || Array.isArray(datos)) throw new Error("Las respuestas no son v\xE1lidas.");
+  const entrada = datos;
+  return Object.fromEntries(preguntasDe(formulario).map((p) => [p.id, normalizarValor(p, entrada[p.id])]));
+}
+
+// src/server/formularios.ts
+var TABLA_FALTANTE = "Falta crear la tabla de respuestas. Ejecuta supabase/formularios_schema.sql en Supabase.";
+function rutasFormularios(pool, sesion) {
+  const router = express3.Router();
+  router.use((req, res, next) => {
+    if (!sesion(req)) {
+      res.status(401).json({ error: "Inicia sesi\xF3n para abrir los formularios." });
+      return;
+    }
+    if (req.method !== "GET" && req.get("sec-fetch-site") === "cross-site") {
+      res.status(403).json({ error: "Abre la aplicaci\xF3n para guardar datos." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+  router.get("/respuestas", async (req, res) => {
+    const formulario = buscarFormulario(req.query.formulario);
+    if (!formulario) {
+      res.status(404).json({ error: "El formulario no existe." });
+      return;
+    }
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para consultar las respuestas." });
+      return;
+    }
+    try {
+      const { rows } = await pool.query(
+        `select id, usuario_nombre, creado_en, respuestas from public.formularios_respuestas
+         where formulario = $1 order by creado_en desc, id desc limit ${MAX_RESPUESTAS_LISTADO + 1}`,
+        [formulario.id]
+      );
+      res.json({ respuestas: rows.slice(0, MAX_RESPUESTAS_LISTADO), truncado: rows.length > MAX_RESPUESTAS_LISTADO });
+    } catch (error) {
+      if (error.code === "42P01") {
+        res.status(503).json({ error: TABLA_FALTANTE });
+        return;
+      }
+      console.error("Consulta de formularios:", error.message);
+      res.status(503).json({ error: "No se pudieron consultar las respuestas. Reintenta en un momento." });
+    }
+  });
+  router.post("/respuestas", async (req, res) => {
+    const formulario = buscarFormulario(req.body?.formulario);
+    if (!formulario) {
+      res.status(404).json({ error: "El formulario no existe." });
+      return;
+    }
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    let respuestas;
+    try {
+      respuestas = normalizarRespuestas(formulario, req.body?.respuestas);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    const usuario = sesion(req);
+    try {
+      const { rows } = await pool.query(
+        `insert into public.formularios_respuestas (formulario, respuestas, usuario_id, usuario_nombre)
+         values ($1, $2, $3, $4) returning id, usuario_nombre, creado_en, respuestas`,
+        [formulario.id, JSON.stringify(respuestas), usuario.sub, usuario.nombre]
+      );
+      res.status(201).json({ respuesta: rows[0] });
+    } catch (error) {
+      if (error.code === "42P01") {
+        res.status(503).json({ error: TABLA_FALTANTE });
+        return;
+      }
+      console.error("Guardado de formularios:", error.message);
+      res.status(503).json({ error: "No se pudo guardar la respuesta. Reintenta en un momento." });
+    }
+  });
+  return router;
+}
+
 // server.ts
 var { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
 var variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
@@ -459,10 +654,10 @@ var clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
 var COOKIE = "sesion";
 var DURACION_SESION = 8 * 60 * 60 * 1e3;
 var isProd = process.env.NODE_ENV === "production";
-var app = express3();
-app.use("/api/excel", express3.json({ limit: "2mb" }));
-app.use("/api/preventas", express3.json({ limit: "20mb" }));
-app.use(express3.json());
+var app = express4();
+app.use("/api/excel", express4.json({ limit: "2mb" }));
+app.use("/api/preventas", express4.json({ limit: "20mb" }));
+app.use(express4.json());
 app.use(cookieParser());
 app.use("/api", (_req, res, next) => {
   if (variablesFaltantes.length) {
@@ -493,7 +688,7 @@ app.get("/", (req, res) => {
   }
   res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
 });
-app.use(express3.static(path.join(import.meta.dirname, "public")));
+app.use(express4.static(path.join(import.meta.dirname, "public")));
 var limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,
   limit: 10,
@@ -554,6 +749,7 @@ app.get("/api/me", (req, res) => {
 });
 var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
 app.use("/api/preventas", rutasPreventas(dbFrescura, leerSesion));
+app.use("/api/formularios", rutasFormularios(dbFrescura, leerSesion));
 app.get("/api/frescura/indice.json", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -755,6 +951,7 @@ var paginaProtegida = (archivo) => (req, res) => {
 app.get("/panel", paginaProtegida("panel.html"));
 app.get("/modulos", paginaProtegida("modulos.html"));
 app.get("/preventas", paginaProtegida("preventas.html"));
+app.get("/formularios", paginaProtegida("formularios.html"));
 var server_default = app;
 if (!process.env.VERCEL) app.listen(Number(PORT), (err) => {
   if (err) {

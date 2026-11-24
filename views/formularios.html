@@ -23,7 +23,7 @@
 <div id="fmResCuerpo" hidden>
 <div id="fmResTabs" class="fm-pasos fm-res-tabs" role="tablist" aria-label="Partes del inventario"></div>
 <div id="fmResPanel" role="tabpanel"></div>
-<section class="fm-res-detalle" aria-labelledby="fmTablaCdTitulo">
+<section id="fmResDetalle" class="fm-res-detalle" aria-labelledby="fmTablaCdTitulo">
 <h3 id="fmTablaCdTitulo" class="fm-res-titulo"><span class="fm-parte-de">Detalle</span>Inventario actual por CD</h3>
 <p class="fm-seccion-desc">Último reporte de cada centro de distribución, con todas las cantidades y el total regional.</p>
 <div class="fm-tabla-caja" role="region" tabindex="0" aria-labelledby="fmTablaCdTitulo"><table id="fmTablaCd" class="fm-tabla"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
@@ -42,6 +42,27 @@
 </div>
 </section>
 </main>
+<dialog id="fmGuardado" class="fm-modal" aria-labelledby="fmGuardadoTitulo" aria-describedby="fmGuardadoTexto">
+<svg class="fm-modal-chulo" viewBox="0 0 96 96" aria-hidden="true"><circle class="fm-chulo-fondo" cx="48" cy="48" r="40"/><circle class="fm-chulo-aro" cx="48" cy="48" r="40"/><path class="fm-chulo-trazo" d="M30 49.5 43 62l24-27"/></svg>
+<h3 id="fmGuardadoTitulo">Guardado</h3>
+<p id="fmGuardadoTexto"></p>
+<div class="fm-modal-acciones"><button type="button" id="fmGuardadoResumen" class="pv-btn fm-btn-sec">Ver resumen</button><button type="button" id="fmGuardadoCerrar" class="pv-btn pv-btn-primary" autofocus>Aceptar</button></div>
+</dialog>
+<dialog id="fmEditar" class="fm-lienzo fm-dialogo" aria-labelledby="fmEditarTitulo" aria-describedby="fmEditarDetalle">
+<form id="fmEditarForm" novalidate>
+<div class="fm-form-head fm-dialogo-cabeza"><span class="fm-head-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/></svg></span><div class="fm-head-texto"><h2 id="fmEditarTitulo">Editar reporte</h2><p id="fmEditarDetalle"></p></div><button type="button" id="fmEditarCerrar" class="fm-dialogo-cerrar" aria-label="Cerrar sin guardar"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<div id="fmEditarCampos" class="fm-dialogo-cuerpo"></div>
+<p id="fmEditarEstado" class="fm-estado" role="status" aria-live="polite"></p>
+<div class="fm-dialogo-acciones"><button type="button" id="fmEditarCancelar" class="pv-btn fm-btn-sec">Cancelar</button><button type="submit" id="fmEditarGuardar" class="pv-btn pv-btn-primary"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Guardar cambios</button></div>
+</form>
+</dialog>
+<dialog id="fmEliminar" class="fm-modal fm-modal-peligro" aria-labelledby="fmEliminarTitulo" aria-describedby="fmEliminarTexto">
+<span class="fm-modal-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.2 7l.9 12.5h9.8L17.8 7M10 11v5M14 11v5"/></svg></span>
+<h3 id="fmEliminarTitulo">¿Eliminar este reporte?</h3>
+<p id="fmEliminarTexto"></p>
+<p id="fmEliminarEstado" class="fm-modal-error" role="alert"></p>
+<div class="fm-modal-acciones"><button type="button" id="fmEliminarCancelar" class="pv-btn fm-btn-sec" autofocus>Cancelar</button><button type="button" id="fmEliminarConfirmar" class="pv-btn pv-btn-primary">Sí, eliminar</button></div>
+</dialog>
 <div id="fmTooltip" class="fm-tooltip" role="tooltip" hidden></div>
 <footer>BAVARIA · TORRE CONTROL · REGIONAL NORTE</footer>
 </body></html>
