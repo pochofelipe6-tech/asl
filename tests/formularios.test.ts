@@ -55,6 +55,11 @@ test('el resumen toma el último reporte de cada CD sin sumar reportes repetidos
   const alCorte = ultimoPorCd(registros, new Date('2026-11-21T00:00:00Z'));
   assert.equal(alCorte.get('Galapa')?.id, '2');
   assert.equal(alCorte.has('Monteria'), false);
+  // Con fecha de inicio solo cuentan los reportes de ese día: el de Galapa del 20 queda por fuera el 22.
+  const delDia22 = ultimoPorCd(registros, new Date('2026-11-23T00:00:00Z'), new Date('2026-11-22T00:00:00Z'));
+  assert.deepEqual([...delDia22.keys()], ['Galapa']);
+  assert.equal(delDia22.get('Galapa')?.id, '3');
+  assert.equal(ultimoPorCd(registros, new Date('2026-11-21T00:00:00Z'), new Date('2026-11-20T00:00:00Z')).get('Galapa')?.id, '2');
 });
 
 test('cada parte con varias cantidades tiene nombres cortos para los encabezados', () => {

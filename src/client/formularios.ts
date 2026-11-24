@@ -9,7 +9,7 @@ interface Registro { id: string; usuario_nombre: string; creado_en: string; resp
 
 const formulario = FORMULARIOS[0];
 const preguntas = preguntasDe(formulario);
-const POR_PAGINA = 15;
+const POR_PAGINA = 10;
 
 const form = porId<HTMLFormElement>('fmForm');
 const secciones = porId('fmSecciones');
@@ -21,7 +21,6 @@ const resumen = porId('fmResumen');
 const estadoTabla = porId('fmTablaEstado');
 const estadoResumen = porId('fmResumenEstado');
 const buscar = porId<HTMLInputElement>('fmBuscar');
-const tabla = porId<HTMLTableElement>('fmTabla');
 const tablaCd = porId<HTMLTableElement>('fmTablaCd');
 const anterior = porId<HTMLButtonElement>('fmAnterior');
 const siguiente = porId<HTMLButtonElement>('fmSiguiente');
@@ -62,8 +61,6 @@ const cifraCorta = (n: number) => n.toLocaleString('es-CO', { maximumFractionDig
 const numero = (r: Registro | undefined, id: string) => { const v = r?.respuestas[id]; return typeof v === 'number' ? v : 0; };
 const suma = (r: Registro | undefined, ids: readonly string[]) => ids.reduce((total, id) => total + numero(r, id), 0);
 const nombreCorto = (p: Pregunta) => p.corto ?? p.titulo;
-/** Primera pregunta de cada parte: ahí empieza un grupo de columnas en las tablas. */
-const inicioDeParte = new Set(formulario.secciones.map(s => s.preguntas[0].id));
 
 /** Momento de un reporte en palabras: "Hoy, 2:20 p. m.", "Ayer, 2:20 p. m." o "20/11/26, 2:20 p. m.". */
 function cuando(iso: string): string {
@@ -706,58 +703,413 @@ function notaFaltan(singular: string, plural: string): HTMLElement | null {
   return nota;
 }
 
-function grupo(titulo: string, contenido: HTMLElement): HTMLElement {
-  const caja = crear('div', 'fm-res-grupo');
-  caja.append(crear('h4', 'fm-res-sub', titulo), contenido);
+// ---------- Parte 1 · Centro De Distribución: anillo de cobertura, mosaico semáforo y línea de tiempo del día ----------
+
+/** Estado de un CD el día que se mira: reportó ese día o no (los reportes de otros días no cuentan). */
+type EstadoCd = 'hoy' | 'sin';
+interface InfoCd { cd: string; estado: EstadoCd; registro?: Registro }
+/** Último reporte del día de un CD y su lugar en la línea de tiempo, en minutos desde la medianoche. */
+interface MarcaDia { cd: string; registro: Registro; minuto: number }
+
+const RELOJ = '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3.2 2"/>';
+const TRAZOS_CD = {
+  hoy: TRAZOS.conReporte,
+  sin: TRAZOS.sinReporte,
+  reloj: RELOJ,
+  usuario: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20.5v-1a7 7 0 0 1 14 0v1"/>',
+  mosaico: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  linea: '<path d="M3 13h18"/><circle cx="8" cy="13" r="2"/><circle cx="16" cy="13" r="2"/><path d="M8 11V5.5M16 15v3.5"/>',
+} as const;
+const MINUTOS_DIA = 1440;
+const formatoDiaCorto = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short' });
+
+/** Día que se está mirando: el del corte elegido o, si no hay corte, hoy. */
+function diaDelResumen(): { inicio: Date; esHoy: boolean } {
+  const hasta = fechaCorte();
+  const base = hasta ? new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() - 1) : new Date();
+  return { inicio: new Date(base.getFullYear(), base.getMonth(), base.getDate()), esHoy: !hasta };
+}
+
+/** Tiempo desde un reporte en palabras cortas: "hace 20 min", "hace 2 h", "hace 3 días". */
+function haceCuanto(iso: string): string {
+  const minutos = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000));
+  if (minutos < 1) return 'hace un momento';
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
+}
+
+/** "Apartado", "Apartado y Caucasia", "Apartado, Caucasia y Corozal" o "Apartado, Caucasia, Corozal y 4 más". */
+function listaNombres(nombres: string[]): string {
+  if (nombres.length <= 1) return nombres.join('');
+  if (nombres.length <= 3) return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
+  return `${nombres.slice(0, 3).join(', ')} y ${nombres.length - 3} más`;
+}
+
+/** " a. m." o " p. m." al final de una hora ya formateada. */
+const sufijoHora = (texto: string) => /\s*[ap]\.\s?m\.$/i.exec(texto)?.[0] ?? '';
+const sinSufijo = (texto: string) => texto.slice(0, texto.length - sufijoHora(texto).length);
+
+/** Rango de horas compacto: "8:58 – 10:43 a. m." u "11:50 a. m. – 12:10 p. m.". */
+function rangoHoras(desde: Date, hasta: Date): string {
+  const a = formatoHora.format(desde);
+  const b = formatoHora.format(hasta);
+  if (a === b) return a;
+  return sufijoHora(a) && sufijoHora(a) === sufijoHora(b) ? `${sinSufijo(a)} – ${b}` : `${a} – ${b}`;
+}
+
+/** Textos de cada estado; si se mira un día anterior, "hoy" pasa a ser ese día. */
+function textosEstado(esHoy: boolean, inicio: Date): Record<EstadoCd, { uno: string; varios: string }> {
+  const dia = formatoDiaCorto.format(inicio);
+  return {
+    hoy: esHoy ? { uno: 'Reportó hoy', varios: 'Reportaron hoy' } : { uno: `Reportó el ${dia}`, varios: `Reportaron el ${dia}` },
+    sin: { uno: 'Sin reporte', varios: 'Sin reporte' },
+  };
+}
+type TextosEstado = ReturnType<typeof textosEstado>;
+
+const momento = (d: InfoCd) => (d.registro ? Date.parse(d.registro.creado_en) : 0);
+const horaDe = (r: Registro) => formatoHora.format(new Date(r.creado_en));
+
+/** Parte 1: cobertura arriba, el mosaico de los 16 CD en el medio y, abajo, a qué hora reportó cada uno. */
+function contenidoCd(): HTMLElement {
+  const { inicio, esHoy } = diaDelResumen();
+  const textos = textosEstado(esHoy, inicio);
+  const info: InfoCd[] = CDS_REGIONAL_NORTE.map(cd => {
+    const registro = ultimos.get(cd);
+    // "ultimos" ya trae solo los reportes del día, así que tener registro es haber reportado ese día.
+    const estado: EstadoCd = registro ? 'hoy' : 'sin';
+    return { cd, estado, registro };
+  });
+  const raiz = crear('div', 'fm-mo');
+  // Un CD señalado en el mosaico se resalta también en la línea de tiempo, y al revés.
+  const resaltar = (cd: string | null) => raiz.querySelectorAll<HTMLElement>('[data-cd]').forEach(el => el.classList.toggle('resaltado', el.dataset.cd === cd));
+
+  const cabeza = crear('div', 'fm-mo-cabeza');
+  const titulos = crear('div');
+  const h3 = crear('h3', 'fm-res-titulo');
+  h3.append(crear('span', 'fm-parte-de', `Parte 1 de ${PARTES.length}`), formulario.secciones[0]?.titulo ?? 'Centro De Distribución');
+  titulos.append(h3, crear('p', undefined, `Qué CD ya reportaron su inventario${esHoy ? ' hoy' : ` el ${formatoDiaCorto.format(inicio)}`} y a qué hora lo hicieron.`));
+  cabeza.append(titulos, botonFecha('fm-hl-fecha', esHoy ? 'Hoy' : formatoDia.format(inicio)));
+
+  raiz.append(cabeza, coberturaCd(info, textos, esHoy), mosaicoCd(info, textos, resaltar), lineaDeTiempo(info, inicio, esHoy, resaltar));
+  return raiz;
+}
+
+/** Anillo de cobertura (un segmento por CD) y los tres indicadores de estado, con la bodega como acento. */
+function coberturaCd(info: InfoCd[], textos: TextosEstado, esHoy: boolean): HTMLElement {
+  const caja = crear('section', 'fm-mo-top');
+  caja.setAttribute('aria-label', 'Cobertura de reportes');
+  const de = (estado: EstadoCd) => info.filter(d => d.estado === estado);
+  const hoy = de('hoy');
+  const sin = de('sin');
+  const conReporte = hoy.length;
+
+  // Segmentos en orden: primero los que reportaron y al final los que faltan.
+  const NS = 'http://www.w3.org/2000/svg';
+  const anillo = crear('div', 'fm-mo-anillo');
+  anillo.setAttribute('role', 'img');
+  anillo.setAttribute('aria-label', `Cobertura: ${conReporte} de ${TOTAL_CDS} CD con reporte (${porcentaje(conReporte, TOTAL_CDS)}). `
+    + `${textos.hoy.varios}: ${hoy.length}. Sin reporte: ${sin.length}.`);
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 140 140');
+  svg.setAttribute('aria-hidden', 'true');
+  const radio = 60;
+  const vuelta = 2 * Math.PI * radio;
+  const tramo = vuelta / TOTAL_CDS;
+  [...hoy, ...sin].forEach((d, i) => {
+    const segmento = document.createElementNS(NS, 'circle');
+    Object.entries({ cx: '70', cy: '70', r: String(radio), class: `fm-mo-seg fm-e-${d.estado}` }).forEach(([k, v]) => segmento.setAttribute(k, v));
+    segmento.setAttribute('stroke-dasharray', `${tramo - 3} ${vuelta}`);
+    segmento.setAttribute('stroke-dashoffset', String(-i * tramo));
+    svg.append(segmento);
+  });
+  const centro = crear('span', 'fm-mo-anillo-centro');
+  centro.append(crear('strong', undefined, porcentaje(conReporte, TOTAL_CDS)), crear('small', undefined, `${conReporte} de ${TOTAL_CDS} CD`));
+  anillo.append(svg, centro);
+
+  const texto = crear('div', 'fm-mo-cob-texto');
+  texto.append(crear('span', 'fm-mo-sobre', 'Cobertura de la regional'),
+    crear('strong', undefined, sin.length ? `Faltan ${sin.length} CD por reportar` : 'Todos los CD tienen reporte'));
+  const reciente = [...hoy].sort((a, b) => momento(b) - momento(a))[0];
+  if (reciente?.registro) {
+    const ultimo = crear('small');
+    ultimo.append('Último reporte', crear('b', undefined, `${reciente.cd} · ${cuando(reciente.registro.creado_en)}`));
+    texto.append(ultimo);
+  }
+  const cobertura = crear('div', 'fm-mo-cobertura');
+  cobertura.append(anillo, texto);
+
+  const lista = crear('ul', 'fm-mo-indicadores');
+  const indicador = (estado: EstadoCd, cantidad: number, titulo: string, detalle: string) => {
+    const li = crear('li', `fm-mo-ind fm-e-${estado}`);
+    const circulo = crear('span', 'fm-mo-ind-icono');
+    circulo.append(icono(TRAZOS_CD[estado], 'fm-ico'));
+    li.append(circulo, crear('b', undefined, String(cantidad)), crear('span', 'fm-mo-ind-titulo', titulo), crear('small', undefined, detalle));
+    return li;
+  };
+  const ultimoHoy = [...hoy].sort((a, b) => momento(b) - momento(a))[0];
+  lista.append(
+    indicador('hoy', hoy.length, textos.hoy.varios, ultimoHoy?.registro ? `Último: ${ultimoHoy.cd}, ${horaDe(ultimoHoy.registro)}` : esHoy ? 'Ningún CD ha reportado hoy' : 'Ningún CD reportó ese día'),
+    indicador('sin', sin.length, textos.sin.varios, sin.length ? listaNombres(sin.map(d => d.cd)) : 'Todos los CD reportaron'),
+  );
+  caja.append(cobertura, lista, ilustracion('cd', caja));
   return caja;
 }
 
-/** Parte 1: cuántos CD han reportado, cuándo lo hizo cada uno y cuáles faltan. */
-function contenidoCd(): HTMLElement {
-  const caja = crear('div', 'fm-res-cobertura');
-  const conReporte = cdsConReporte();
-  const sinReporte = CDS_REGIONAL_NORTE.filter(cd => !ultimos.has(cd));
+/** Mosaico de 16 baldosas en orden alfabético. Una sola parada de tabulación: las flechas recorren los CD. */
+function mosaicoCd(info: InfoCd[], textos: TextosEstado, resaltar: (cd: string | null) => void): HTMLElement {
+  const tarjeta = crear('section', 'fm-tb-card fm-mo-tarjeta');
+  const cabeza = crear('div', 'fm-tb-card-cabeza');
+  const titulos = crear('div', 'fm-mo-titulos');
+  const h4 = crear('h4', undefined, `Estado de los ${TOTAL_CDS} CD`);
+  h4.id = `fmMosaico-${++consecutivo}`;
+  titulos.append(h4, crear('p', undefined, 'En orden alfabético. Pasa el mouse sobre un CD, o usa las flechas, para ver quién reportó y a qué hora.'));
+  cabeza.append(cuadroIcono(TRAZOS_CD.mosaico), titulos);
+  tarjeta.setAttribute('aria-labelledby', h4.id);
 
-  const arriba = crear('div', 'fm-res-cob-top');
-  const cobertura = crear('p', 'fm-res-cob-cifra');
-  cobertura.append(crear('strong', 'fm-res-heroe', String(ultimos.size)), crear('span', undefined, `de ${TOTAL_CDS} CD con reporte`));
-  const avance = crear('div', 'fm-res-cob-avance');
-  const medidor = crear('div', 'fm-res-medidor');
-  medidor.setAttribute('role', 'meter');
-  medidor.setAttribute('aria-label', 'CD con reporte');
-  medidor.setAttribute('aria-valuemin', '0');
-  medidor.setAttribute('aria-valuemax', String(TOTAL_CDS));
-  medidor.setAttribute('aria-valuenow', String(ultimos.size));
-  for (let i = 0; i < TOTAL_CDS; i++) medidor.append(crear('i', i < ultimos.size ? 'lleno' : undefined));
-  const pie = crear('p', 'fm-res-cob-pie');
-  pie.append(crear('b', undefined, `${porcentaje(ultimos.size, TOTAL_CDS)} de la regional`));
-  const reciente = conReporte.map(cd => ({ cd, r: ultimos.get(cd)! })).sort((a, b) => Date.parse(b.r.creado_en) - Date.parse(a.r.creado_en)).at(0);
-  if (reciente) pie.append(crear('span', undefined, `Último reporte: ${cuando(reciente.r.creado_en)} · ${reciente.cd}`));
-  avance.append(medidor, pie);
-  arriba.append(cobertura, avance);
-  caja.append(arriba);
+  const lista = crear('ul', 'fm-mo-mosaico');
+  lista.tabIndex = 0;
+  lista.setAttribute('role', 'listbox');
+  lista.setAttribute('aria-label', `Estado de los ${TOTAL_CDS} CD. Usa las flechas para recorrerlos.`);
+  let activa = -1;
+  const baldosas = info.map((d, i) => {
+    const li = crear('li', `fm-mo-baldosa fm-e-${d.estado}`);
+    li.id = `fm-baldosa-${++consecutivo}`;
+    li.dataset.cd = d.cd;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    const circulo = crear('span', 'fm-mo-icono');
+    circulo.append(icono(TRAZOS_CD[d.estado], 'fm-ico'));
+    const estado = textos[d.estado].uno;
+    // Detalle que aparece al pasar el mouse o con el foco: quién reportó y la hora exacta.
+    const detalle = crear('span', 'fm-mo-detalle');
+    detalle.setAttribute('aria-hidden', 'true');
+    if (d.registro) {
+      const quien = crear('span');
+      quien.append(icono(TRAZOS_CD.usuario, 'fm-ico'), crear('span', undefined, d.registro.usuario_nombre));
+      const hora = crear('span');
+      hora.append(icono(TRAZOS_CD.reloj, 'fm-ico'), crear('span', undefined, cuando(d.registro.creado_en)));
+      detalle.append(quien, hora);
+      li.setAttribute('aria-label', `${d.cd}: ${estado.toLowerCase()}, ${haceCuanto(d.registro.creado_en)}. Registrado por ${d.registro.usuario_nombre}, ${cuando(d.registro.creado_en)}.`);
+    } else {
+      detalle.append(crear('span', undefined, 'Aún no ha enviado ningún reporte'));
+      li.setAttribute('aria-label', `${d.cd}: sin reporte.`);
+    }
+    li.append(circulo, crear('strong', 'fm-mo-nombre', d.cd), crear('span', 'fm-mo-estado', estado));
+    if (d.registro) li.append(crear('span', 'fm-mo-hace', haceCuanto(d.registro.creado_en)));
+    li.append(detalle);
+    li.addEventListener('pointerenter', () => resaltar(d.cd));
+    li.addEventListener('pointerleave', () => resaltar(document.activeElement === lista && activa >= 0 ? info[activa].cd : null));
+    // Al hacer clic, el foco llega a la lista: que quede activo el CD tocado y no el primero.
+    li.addEventListener('pointerdown', () => { activa = i; });
+    return li;
+  });
+  lista.append(...baldosas);
 
-  const lista = crear('ul', 'fm-res-cds');
-  lista.append(...conReporte.map(cd => {
-    const r = ultimos.get(cd)!;
-    const item = crear('li', 'fm-res-cd');
-    const fecha = crear('span', 'fm-res-cd-cuando');
-    fecha.append(icono(TRAZOS.conReporte, 'fm-ico'), cuando(r.creado_en));
-    item.append(crear('strong', undefined, cd), fecha, crear('span', 'fm-res-cd-quien', r.usuario_nombre));
-    return item;
-  }));
-  caja.append(grupo(`Con reporte (${conReporte.length})`, lista));
+  const activar = (i: number) => {
+    activa = Math.max(0, Math.min(i, baldosas.length - 1));
+    baldosas.forEach((b, j) => { b.classList.toggle('activa', j === activa); b.setAttribute('aria-selected', String(j === activa)); });
+    lista.setAttribute('aria-activedescendant', baldosas[activa].id);
+    resaltar(info[activa].cd);
+  };
+  lista.addEventListener('focus', () => activar(Math.max(activa, 0)));
+  lista.addEventListener('blur', () => {
+    baldosas.forEach(b => { b.classList.remove('activa'); b.setAttribute('aria-selected', 'false'); });
+    lista.removeAttribute('aria-activedescendant');
+    resaltar(null);
+  });
+  lista.addEventListener('keydown', evento => {
+    // Arriba y abajo saltan una fila completa del mosaico, cualquiera que sea el número de columnas.
+    const columnas = getComputedStyle(lista).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+    const teclas: Partial<Record<string, number>> = { ArrowRight: activa + 1, ArrowLeft: activa - 1, ArrowDown: activa + columnas, ArrowUp: activa - columnas, Home: 0, End: baldosas.length - 1 };
+    const destino = teclas[evento.key];
+    if (destino !== undefined) { evento.preventDefault(); activar(destino); }
+  });
+  tarjeta.append(cabeza, lista);
+  return tarjeta;
+}
 
-  if (sinReporte.length) {
-    const chips = crear('ul', 'fm-res-chips');
-    chips.append(...sinReporte.map(cd => {
-      const chip = crear('li', 'fm-res-chip');
-      chip.append(icono(TRAZOS.sinReporte, 'fm-ico'), cd);
-      return chip;
-    }));
-    caja.append(grupo(`Sin reporte (${sinReporte.length})`, chips));
+/**
+ * Eje de 0 a 24 h con una marca por cada CD que reportó ese día, en la hora de su último reporte.
+ * Las etiquetas van arriba y abajo del eje, alternando; las que no caben se agrupan con su vecina
+ * ("8:58 – 10:43 a. m. · 16 CD"). La distribución se recalcula con el ancho disponible.
+ */
+function lineaDeTiempo(info: InfoCd[], inicio: Date, esHoy: boolean, resaltar: (cd: string | null) => void): HTMLElement {
+  const tarjeta = crear('section', 'fm-tb-card fm-lt');
+  const cabeza = crear('div', 'fm-tb-card-cabeza');
+  const titulos = crear('div', 'fm-mo-titulos');
+  const h4 = crear('h4', undefined, esHoy ? 'Línea de tiempo de hoy' : `Línea de tiempo del ${formatoDiaCorto.format(inicio)}`);
+  h4.id = `fmLinea-${++consecutivo}`;
+  titulos.append(h4, crear('p', undefined, `Hora en que cada CD envió su último reporte ${esHoy ? 'de hoy' : 'de ese día'}. Los reportes cercanos se agrupan.`));
+  cabeza.append(cuadroIcono(TRAZOS_CD.linea), titulos);
+  tarjeta.setAttribute('aria-labelledby', h4.id);
+
+  const minutoDe = (r: Registro) => { const f = new Date(r.creado_en); return f.getHours() * 60 + f.getMinutes(); };
+  const marcas: MarcaDia[] = info.flatMap(d => (d.estado === 'hoy' && d.registro ? [{ cd: d.cd, registro: d.registro, minuto: minutoDe(d.registro) }] : []))
+    .sort((a, b) => a.minuto - b.minuto || a.cd.localeCompare(b.cd));
+  if (marcas.length) {
+    const primero = marcas[0];
+    const ultimo = marcas[marcas.length - 1];
+    cabeza.append(crear('span', 'fm-lt-rango', marcas.length === 1
+      ? `1 CD · ${horaDe(primero.registro)}` : `${marcas.length} CD · primero ${horaDe(primero.registro)}, último ${horaDe(ultimo.registro)}`));
   }
-  return caja;
+
+  const zona = crear('div', 'fm-lt-zona');
+  const ahora = new Date();
+  const minutoAhora = esHoy ? ahora.getHours() * 60 + ahora.getMinutes() : null;
+  const porcentajeDia = (minuto: number) => `${(minuto / MINUTOS_DIA) * 100}%`;
+  const fondo = crear('div', 'fm-lt-fondo');
+  fondo.setAttribute('aria-hidden', 'true');
+  // Una línea cada 3 horas, con su hora al pie.
+  const horas = Array.from({ length: 9 }, (_, k) => {
+    const minuto = k * 180;
+    const linea = crear('i', 'fm-lt-rejilla');
+    linea.style.left = porcentajeDia(minuto);
+    const etiqueta = crear('span', `fm-lt-hora-eje${k === 0 ? ' inicio' : k === 8 ? ' fin' : ''}`, `${k * 3} h`);
+    etiqueta.style.left = porcentajeDia(minuto);
+    fondo.append(linea, etiqueta);
+    return { minuto, etiqueta };
+  });
+  const recorrido = crear('i', 'fm-lt-eje-pasado');
+  recorrido.style.width = porcentajeDia(minutoAhora ?? MINUTOS_DIA);
+  fondo.append(crear('i', 'fm-lt-eje'), recorrido);
+  // Lo que falta del día va rayado; "Ahora" marca hasta dónde puede haber reportes. Cerca de los bordes, la píldora no se sale.
+  const pildora = minutoAhora === null ? null
+    : crear('span', `fm-lt-ahora-pildora${minutoAhora < 90 ? ' inicio' : minutoAhora > MINUTOS_DIA - 90 ? ' fin' : ''}`, `Ahora · ${formatoHora.format(ahora)}`);
+  if (pildora && minutoAhora !== null) {
+    const futuro = crear('i', 'fm-lt-futuro');
+    futuro.style.left = porcentajeDia(minutoAhora);
+    const linea = crear('i', 'fm-lt-ahora');
+    linea.style.left = porcentajeDia(minutoAhora);
+    pildora.style.left = porcentajeDia(minutoAhora);
+    fondo.append(futuro, linea, pildora);
+  }
+  const capa = crear('ol', 'fm-lt-capa');
+  capa.setAttribute('aria-label', 'Reportes del día en orden de hora');
+  zona.append(fondo, capa);
+  if (!marcas.length) zona.append(crear('p', 'fm-lt-vacio', esHoy ? 'Ningún CD ha reportado hoy todavía.' : 'Ningún CD reportó ese día.'));
+
+  const etiquetaGrupo = (grupo: MarcaDia[]) => {
+    const tarjetaGrupo = crear('div', 'fm-lt-tarjeta');
+    const hora = crear('span', 'fm-lt-tarjeta-hora');
+    hora.append(icono(TRAZOS_CD.reloj, 'fm-ico'), rangoHoras(new Date(grupo[0].registro.creado_en), new Date(grupo[grupo.length - 1].registro.creado_en)));
+    if (grupo.length > 1) hora.append(crear('b', 'fm-lt-cuenta', `${grupo.length} CD`));
+    // Hasta 4 nombres por columna: un grupo grande se reparte en varias columnas en vez de crecer hacia arriba.
+    // Si el grupo junta horas distintas, cada CD lleva la suya (sin "a. m." si el encabezado ya lo dice).
+    const nombres = crear('ul', 'fm-lt-nombres');
+    nombres.style.setProperty('--filas', String(Math.ceil(grupo.length / Math.ceil(grupo.length / 4))));
+    const textosHora = grupo.map(m => horaDe(m.registro));
+    const variasHoras = new Set(textosHora).size > 1;
+    const mismaMitad = new Set(textosHora.map(sufijoHora)).size === 1;
+    nombres.append(...grupo.map((m, j) => {
+      const li = crear('li');
+      li.append(crear('span', undefined, m.cd));
+      if (variasHoras) li.append(crear('small', undefined, mismaMitad ? sinSufijo(textosHora[j]) : textosHora[j]));
+      li.dataset.cd = m.cd;
+      li.addEventListener('pointerenter', () => resaltar(m.cd));
+      li.addEventListener('pointerleave', () => resaltar(null));
+      return li;
+    }));
+    tarjetaGrupo.append(hora, nombres);
+    return tarjetaGrupo;
+  };
+
+  const SEPARACION = 10;
+  const GUIA = 22;
+  const distribuir = (ancho: number) => {
+    const xDe = (minuto: number) => (minuto / MINUTOS_DIA) * ancho;
+    const centroDe = (g: MarcaDia[]) => (xDe(g[0].minuto) + xDe(g[g.length - 1].minuto)) / 2;
+    // Primero se juntan los reportes con 10 minutos o menos de diferencia.
+    const grupos: MarcaDia[][] = [];
+    for (const m of marcas) {
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && m.minuto - ultimo[ultimo.length - 1].minuto <= 10) ultimo.push(m); else grupos.push([m]);
+    }
+    let tarjetas: HTMLElement[] = [];
+    let lados: ('arriba' | 'abajo')[] = [];
+    let izquierdas: number[] = [];
+    // Cada etiqueta va arriba si cabe, si no abajo; si tampoco cabe, se une con la anterior y se vuelve a medir.
+    for (;;) {
+      tarjetas = grupos.map(etiquetaGrupo);
+      capa.replaceChildren(...tarjetas.map(t => { const li = crear('li', 'fm-lt-grupo'); li.append(t); return li; }));
+      const anchos = tarjetas.map(t => t.offsetWidth);
+      lados = [];
+      izquierdas = [];
+      let finArriba = -Infinity;
+      let finAbajo = -Infinity;
+      let choque = -1;
+      for (let i = 0; i < grupos.length; i++) {
+        const izquierda = Math.max(0, Math.min(centroDe(grupos[i]) - anchos[i] / 2, ancho - anchos[i]));
+        if (izquierda >= finArriba + SEPARACION) { lados.push('arriba'); finArriba = izquierda + anchos[i]; }
+        else if (izquierda >= finAbajo + SEPARACION) { lados.push('abajo'); finAbajo = izquierda + anchos[i]; }
+        else { choque = i; break; }
+        izquierdas.push(izquierda);
+      }
+      if (choque < 0) break;
+      grupos.splice(choque - 1, 2, [...grupos[choque - 1], ...grupos[choque]]);
+    }
+    const altos = tarjetas.map(t => t.offsetHeight);
+    const altoLado = (lado: 'arriba' | 'abajo') => Math.max(0, ...altos.filter((_, i) => lados[i] === lado));
+    const arriba = altoLado('arriba');
+    const abajo = altoLado('abajo');
+    const ejeY = 8 + (arriba ? arriba + GUIA : marcas.length ? 24 : 56);
+    zona.style.setProperty('--eje', `${ejeY}px`);
+    zona.style.height = `${ejeY + (abajo ? GUIA + abajo : 12) + 36}px`;
+    tarjetas.forEach((t, i) => {
+      const grupo = grupos[i];
+      t.classList.add(lados[i]);
+      t.style.left = `${izquierdas[i]}px`;
+      t.style.top = `${lados[i] === 'arriba' ? ejeY - GUIA - altos[i] : ejeY + GUIA}px`;
+      const guia = crear('i', `fm-lt-guia ${lados[i]}`);
+      guia.style.left = `${centroDe(grupo)}px`;
+      const piezas: HTMLElement[] = [guia];
+      if (grupo[grupo.length - 1].minuto > grupo[0].minuto) {
+        const banda = crear('i', 'fm-lt-banda');
+        banda.style.left = `${xDe(grupo[0].minuto)}px`;
+        banda.style.width = `${xDe(grupo[grupo.length - 1].minuto) - xDe(grupo[0].minuto)}px`;
+        piezas.push(banda);
+      }
+      for (const m of grupo) {
+        const punto = crear('i', 'fm-lt-punto');
+        punto.dataset.cd = m.cd;
+        punto.style.left = `${xDe(m.minuto)}px`;
+        piezas.push(punto);
+      }
+      piezas.forEach(p => p.setAttribute('aria-hidden', 'true'));
+      t.parentElement?.append(...piezas);
+    });
+    // Las horas del eje que quedarían debajo de la píldora "Ahora" se esconden.
+    if (pildora) {
+      const caja = pildora.getBoundingClientRect();
+      const origen = zona.getBoundingClientRect().left;
+      const desde = caja.left - origen - 24;
+      const hasta = caja.right - origen + 24;
+      horas.forEach(h => { const x = xDe(h.minuto); h.etiqueta.hidden = x > desde && x < hasta; });
+    }
+  };
+  // Solo importa el ancho; se distribuye en el siguiente cuadro, y otra vez cuando terminan de cargar las fuentes.
+  let anchoVisto = 0;
+  const observador = new ResizeObserver(([entrada]) => {
+    if (!zona.isConnected) { observador.disconnect(); return; }
+    const ancho = Math.round(entrada.contentRect.width);
+    if (!ancho || ancho === anchoVisto) return;
+    anchoVisto = ancho;
+    requestAnimationFrame(() => distribuir(ancho));
+  });
+  observador.observe(zona);
+  void document.fonts.ready.then(() => { if (zona.isConnected && anchoVisto) distribuir(anchoVisto); });
+
+  tarjeta.append(cabeza, zona);
+  const sin = info.filter(d => d.estado === 'sin').length;
+  if (sin) {
+    const nota = crear('p', 'fm-lt-nota');
+    nota.append(icono(TRAZOS.sinReporte, 'fm-ico'), `No aparecen en la línea: ${sin === 1 ? '1 CD sin reporte' : `${sin} CD sin reporte`}.`);
+    tarjeta.append(nota);
+  }
+  return tarjeta;
 }
 
 // ---------- Tablero de una categoría (Estibas, Cajas plásticas): encabezado con foto, cifras, gráfico, detalle e indicadores ----------
@@ -826,18 +1178,17 @@ const TRAZOS_TABLERO = {
 const porcentajeCorto = (parte: number, total: number) => `${(total > 0 ? (parte / total) * 100 : 0).toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`;
 
 /**
- * Variación frente al cierre del día anterior al corte, en porcentaje. Solo compara los CD que ya tenían
- * reporte ese día: si se sumaran los CD que reportaron por primera vez hoy, el aumento sería engañoso.
+ * Variación frente al día anterior, en porcentaje. Solo compara los CD que reportaron ambos días:
+ * si se sumaran los CD que solo reportaron uno de los dos, la variación sería engañosa.
  * Es null cuando no hay con qué comparar (no se inventa una cifra).
  */
 function variacionDiaAnterior(idsSerie: readonly string[]): number | null {
   if (!registros) return null;
-  const hasta = fechaCorte();
-  const base = hasta ?? (() => { const hoy = new Date(); return new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1); })();
-  const inicioDelDia = new Date(base.getFullYear(), base.getMonth(), base.getDate() - 1);
+  const { inicio } = diaDelResumen();
+  const inicioDiaAnterior = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() - 1);
   let antes = 0;
   let ahora = 0;
-  for (const [cd, previo] of ultimoPorCd(registros, inicioDelDia)) {
+  for (const [cd, previo] of ultimoPorCd(registros, inicio, inicioDiaAnterior)) {
     const actual = ultimos.get(cd);
     if (!actual) continue;
     antes += suma(previo, idsSerie);
@@ -952,7 +1303,7 @@ function tablero(cfg: ConfigTablero, indice: number, clave: ClaveParte): HTMLEle
   const kpis = crear('div', 'fm-tb-kpis');
   const rojo = crear('div', 'fm-tb-kpi fm-tb-rojo');
   const delta = crear('span', 'fm-tb-delta');
-  delta.append(crear('b', undefined, textoVariacion ?? 'Sin dato'), crear('small', undefined, textoVariacion ? 'vs. cierre del día anterior' : 'no hay corte anterior para comparar'));
+  delta.append(crear('b', undefined, textoVariacion ?? 'Sin dato'), crear('small', undefined, textoVariacion ? 'vs. el día anterior' : 'no hay reportes del día anterior para comparar'));
   rojo.append(cuadroIcono(parte.icono, 'fm-tb-cuadro fm-tb-cuadro-claro'), crear('span', 'fm-tb-etiqueta', cfg.etiquetaTotal),
     crear('strong', 'fm-tb-grande', cifra(total)), crear('span', 'fm-tb-unidad', 'unidades'), delta);
 
@@ -1147,7 +1498,7 @@ function tablero(cfg: ConfigTablero, indice: number, clave: ClaveParte): HTMLEle
   };
   listaInd.append(
     indicador(TRAZOS_TABLERO.trofeo, 'oro', `CD con más ${cfg.unidad}`, lider ? `${lider.cd} (${cifra(lider.total)})` : '—'),
-    indicador(TRAZOS_TABLERO.tendencia, 'verde', 'Variación vs. día anterior', textoVariacion ?? 'Sin corte anterior'),
+    indicador(TRAZOS_TABLERO.tendencia, 'verde', 'Variación vs. día anterior', textoVariacion ?? 'Sin reportes del día anterior'),
     indicador(TRAZOS_TABLERO.torta, 'azul', participacion.etiqueta, participacion.valor),
     indicador(TRAZOS_TABLERO.alerta, 'ambar', 'CD en atención', `${cuantosAtencion} de ${filas.length}`),
   );
@@ -1227,7 +1578,7 @@ function tableroHl(): HTMLElement {
   };
   const variacion = variacionDiaAnterior(idsHl);
   cuadros.append(
-    cuadro('morado', TRAZOS_TABLERO.columnas, variacion === null ? 'Sin dato' : textoCambio(variacion), 'HL por verter vs. día anterior', variacion === null ? 'No hay corte anterior para comparar' : undefined),
+    cuadro('morado', TRAZOS_TABLERO.columnas, variacion === null ? 'Sin dato' : textoCambio(variacion), 'HL por verter vs. día anterior', variacion === null ? 'No hay reportes del día anterior para comparar' : undefined),
     cuadro('azul', TRAZOS_TABLERO.isotanque, cifra(necesidad), 'Necesidad de isotanques', `Más: ${cdConMas(['necesidad_isotanques'])}`),
     cuadro('verde', TRAZOS_TABLERO.bien, porcentaje(ultimos.size, TOTAL_CDS), 'Reporte de CD', `${ultimos.size} de ${TOTAL_CDS} CD reportaron`),
     cuadro('ambar', TRAZOS_TABLERO.promedio, cifraCorta(ultimos.size ? totalHl / ultimos.size : 0), 'HL por verter en promedio por CD', `Más: ${cdConMas(idsHl)}`),
@@ -1247,15 +1598,8 @@ function pintarPanel() {
   const configuracion = TABLEROS[pestana];
   if (configuracion) { resPanel.replaceChildren(tablero(configuracion, i, pestana)); return; }
   if (pestana === 'hl') { resPanel.replaceChildren(tableroHl()); return; }
-  // Centro De Distribución: mismo encabezado y mismo panel que esa parte en el formulario.
-  const parte = PARTES[i];
-  const titulo = crear('h3', 'fm-res-titulo');
-  titulo.append(crear('span', 'fm-parte-de', `Parte ${i + 1} de ${PARTES.length}`), formulario.secciones[i]?.titulo ?? '');
-  const panel = crear('div', 'fm-panel-parte fm-res-caja');
-  const circulo = crear('span', 'fm-parte-icono');
-  circulo.append(icono(parte.icono, 'fm-parte-svg'));
-  panel.append(circulo, contenidoCd(), ilustracion(parte.clave, panel));
-  resPanel.replaceChildren(titulo, panel);
+  // Centro De Distribución: cobertura, mosaico de los CD y línea de tiempo del día.
+  resPanel.replaceChildren(contenidoCd());
 }
 
 // Tabla por CD clasificada con las mismas partes del formulario (sin la del CD, que es la fila).
@@ -1324,11 +1668,13 @@ function pintarTablaCd() {
 }
 
 /** Sin reportes no hay nada que resumir: se explica por qué y se ofrece el siguiente paso. */
-function pintarVacio(conFechaAnterior: boolean) {
-  porId('fmResVacioTitulo').textContent = conFechaAnterior ? 'Ningún CD tenía reportes en esa fecha' : 'Aún no hay reportes';
+function pintarVacio(conFechaAnterior: boolean, hayRegistros: boolean) {
+  porId('fmResVacioTitulo').textContent = conFechaAnterior ? 'Ningún CD reportó ese día' : hayRegistros ? 'Ningún CD ha reportado hoy' : 'Aún no hay reportes';
   porId('fmResVacioTexto').textContent = conFechaAnterior
-    ? 'Elige una fecha más reciente o vuelve al inventario de hoy.'
-    : 'Cuando los centros de distribución llenen el formulario, aquí verás su inventario.';
+    ? 'Elige otra fecha o vuelve al inventario de hoy.'
+    : hayRegistros
+      ? 'El resumen solo muestra los reportes del día. Los de días anteriores siguen en la pestaña Respuestas.'
+      : 'Cuando los centros de distribución llenen el formulario, aquí verás su inventario.';
   resVacioAccion.textContent = conFechaAnterior ? 'Ver inventario de hoy' : 'Llenar formulario';
   resVacioAccion.dataset.accion = conFechaAnterior ? 'hoy' : 'llenar';
 }
@@ -1341,13 +1687,15 @@ resVacioAccion.addEventListener('click', () => {
 function pintarResumen() {
   if (!registros) return;
   const hasta = fechaCorte();
-  ultimos = ultimoPorCd(registros, hasta);
+  // Solo cuentan los reportes del día que se mira (hoy, o el día elegido en "Inventario al"):
+  // un CD que reportó ayer y no hoy queda sin reporte.
+  ultimos = ultimoPorCd(registros, hasta, diaDelResumen().inicio);
   ocultarTooltip();
   const hayReportes = ultimos.size > 0;
   resCuerpo.hidden = !hayReportes;
   resVacio.hidden = hayReportes;
   if (hayReportes) { pintarPestanas(); pintarPanel(); pintarTablaCd(); }
-  else pintarVacio(!!hasta);
+  else pintarVacio(!!hasta, registros.length > 0);
   const masAntigua = registros.at(-1);
   mostrarEstado(estadoResumen, hayReportes && truncado && hasta && masAntigua && hasta.getTime() <= Date.parse(masAntigua.creado_en)
     ? 'Solo se cargaron las respuestas más recientes; para esta fecha el resumen puede estar incompleto.' : '');
@@ -1358,91 +1706,398 @@ corte.value = hoyIso();
 corte.addEventListener('change', pintarResumen);
 porId('fmActualizarResumen').addEventListener('click', () => { void cargarRespuestas(); });
 
-// ---------- Tabla de respuestas, clasificada por las partes del formulario ----------
+// ---------- Respuestas: línea de registros agrupada por día, con el detalle de cada reporte desplegable ----------
 
-const claseRespuesta = (p: Pregunta) =>
-  [p.tipo === 'numero' ? 'num' : p.id === 'cd' ? 'cd' : '', inicioDeParte.has(p.id) ? 'inicio' : ''].filter(Boolean).join(' ') || undefined;
-const columnasRespuestas: { clase?: string; valor: (r: Registro) => string }[] = [
-  { clase: 'fija', valor: r => formatoFecha.format(new Date(r.creado_en)) },
-  { valor: r => r.usuario_nombre },
-  ...preguntas.map(p => ({ clase: claseRespuesta(p), valor: (r: Registro) => textoRespuesta(r.respuestas[p.id]) })),
-];
-const sinTildes = (texto: string) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-const textoBusqueda = new WeakMap<Registro, string>();
+const listaRespuestas = porId('fmLista');
+const barraFiltros = porId('rsBarra');
+const filtroCd = porId<HTMLSelectElement>('rsCd');
+const piePaginas = porId('rsPie');
+const mostrando = porId('rsMostrando');
+const paginasRespuestas = porId('rsPaginas');
+const anuncio = porId('rsAnuncio');
+const botonesRango = [...document.querySelectorAll<HTMLButtonElement>('#rsRangos [data-rango]')];
+const campoFecha = porId<HTMLInputElement>('rsFecha');
+const pildoraFecha = porId('rsFechaPildora');
+const quitarFecha = porId<HTMLButtonElement>('rsFechaQuitar');
 
-function filtrados(): Registro[] {
-  const consulta = sinTildes(buscar.value.trim());
-  if (!registros || !consulta) return registros ?? [];
-  return registros.filter(r => {
-    let texto = textoBusqueda.get(r);
-    if (texto === undefined) { texto = sinTildes(columnasRespuestas.map(c => c.valor(r)).join(' ')); textoBusqueda.set(r, texto); }
-    return texto.includes(consulta);
-  });
-}
-
-function armarEncabezado() {
-  const grupos = crear('tr');
-  const detalle = crear('tr');
-  const fija = (texto: string, clase?: string) => Object.assign(crear('th', clase, texto), { scope: 'col', rowSpan: 2 });
-  grupos.append(fija('Fecha de registro', 'fija'), fija('Registrado por'));
-  formulario.secciones.forEach((seccion, i) => {
-    // Una parte de una sola pregunta (el CD) no necesita grupo: ocupa las dos filas del encabezado.
-    if (seccion.preguntas.length === 1) { const p = seccion.preguntas[0]; grupos.append(fija(nombreCorto(p), claseRespuesta(p))); return; }
-    grupos.append(encabezadoGrupo(seccion.titulo, PARTES[i]?.icono ?? '', seccion.preguntas.length));
-    detalle.append(...seccion.preguntas.map(p => Object.assign(crear('th', claseRespuesta(p), nombreCorto(p)), { scope: 'col', title: p.titulo })));
-  });
-  grupos.append(fija('Acciones', 'acciones'));
-  tabla.tHead!.replaceChildren(grupos, detalle);
-}
+type Rango = 'hoy' | 'ayer' | 'semana' | 'todo';
+/** Píldora elegida. Empieza en "Todo" para no esconder nada al abrir la pestaña. Con una fecha puesta, manda la fecha. */
+let rango: Rango = 'todo';
+/** Reporte con el detalle abierto: solo uno a la vez. */
+let abierta: string | null = null;
 
 const TRAZOS_ACCION = {
   editar: '<path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/>',
   eliminar: '<path d="M4 7h16M9.5 7V4.5h5V7M6.2 7l.9 12.5h9.8L17.8 7M10 11v5M14 11v5"/>',
 } as const;
+const TRAZOS_RS = {
+  bodega: '<path d="M2.5 9.5 12 4l9.5 5.5"/><path d="M4.5 8.5V20h15V8.5"/><path d="M8.5 20v-7h7v7M8.5 15.5h7M8.5 18h7"/>',
+  abajo: '<path d="m6 9 6 6 6-6"/>',
+} as const;
 /** CD, fecha y autor de un reporte, para títulos y mensajes. */
 const cdDe = (r: Registro) => textoRespuesta(r.respuestas.cd) || 'sin CD';
 const describir = (r: Registro) => `${cdDe(r)} · ${formatoFecha.format(new Date(r.creado_en))} · ${r.usuario_nombre}`;
 
-/** Botones Editar y Eliminar de una fila (cualquier usuario puede usarlos). */
-function celdaAcciones(r: Registro): HTMLTableCellElement {
-  const celda = crear('td', 'acciones');
-  const boton = (clase: 'editar' | 'eliminar', texto: string, accion: () => void) => {
+// Días: "Hoy", "Ayer" y, para los demás, la fecha en palabras.
+const inicioDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+/** Días entre hoy y el día de un reporte: 0 hoy, 1 ayer… */
+const diasAtras = (iso: string) => Math.round((inicioDia(new Date()) - inicioDia(new Date(iso))) / 86400000);
+const claveDia = (iso: string) => String(inicioDia(new Date(iso)));
+const EN_RANGO: Record<Rango, (dias: number) => boolean> = { hoy: d => d === 0, ayer: d => d === 1, semana: d => d >= 0 && d < 7, todo: () => true };
+const NOMBRE_RANGO: Record<Rango, string> = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Últimos 7 días', todo: 'Todo' };
+const formatoDiaMes = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long' });
+const formatoDiaMesAnio = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatoSemana = new Intl.DateTimeFormat('es-CO', { weekday: 'long' });
+const formatoFechaLarga = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** Día puesto en el calendario del filtro, a la medianoche local; null si no hay una fecha completa. */
+function diaElegido(): Date | null {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(campoFecha.value);
+  return partes ? new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3])) : null;
+}
+/** "hoy", "ayer", "20 de noviembre" o, si es de otro año, "20 de noviembre de 2025". */
+function diaEnPalabras(dia: Date): string {
+  const dias = diasAtras(dia.toISOString());
+  if (dias === 0 || dias === 1) return dias ? 'ayer' : 'hoy';
+  return (dia.getFullYear() === new Date().getFullYear() ? formatoDiaMes : formatoDiaMesAnio).format(dia);
+}
+
+/** Encabezado de un día: "Hoy · martes, 24 de noviembre" o "20 de noviembre · jueves". */
+function tituloDia(iso: string): { nombre: string; detalle: string } {
+  const fecha = new Date(iso);
+  const dias = diasAtras(iso);
+  if (dias === 0 || dias === 1) return { nombre: dias ? 'Ayer' : 'Hoy', detalle: `${formatoSemana.format(fecha)}, ${formatoDiaMes.format(fecha)}` };
+  const nombre = (fecha.getFullYear() === new Date().getFullYear() ? formatoDiaMes : formatoDiaMesAnio).format(fecha);
+  return { nombre, detalle: formatoSemana.format(fecha) };
+}
+
+// Las tres cifras de cada fila y los tres bloques del detalle, en el orden del formulario.
+const idsDe = (i: number) => formulario.secciones[i].preguntas.map(p => p.id);
+const CIFRAS = [
+  { etiqueta: 'Estibas totales', icono: PARTES[1].icono, ids: idsDe(1) },
+  { etiqueta: 'HL por verter', icono: PARTES[2].icono, ids: ['hl_pendientes_verter'] },
+  { etiqueta: 'Cajas totales', icono: PARTES[3].icono, ids: idsDe(3) },
+];
+const BLOQUES = [
+  { nombre: 'Estibas', icono: PARTES[1].icono, seccion: formulario.secciones[1] },
+  { nombre: 'HL bloqueados', icono: PARTES[2].icono, seccion: formulario.secciones[2] },
+  { nombre: 'Cajas plásticas', icono: PARTES[3].icono, seccion: formulario.secciones[3] },
+];
+/** Suma de unas preguntas como texto, o null si nadie llenó ninguna (las cajas son opcionales). */
+const totalTexto = (r: Registro, ids: readonly string[]) => ids.some(id => typeof r.respuestas[id] === 'number') ? cifra(suma(r, ids)) : null;
+
+const sinTildes = (texto: string) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+const textoBusqueda = new WeakMap<Registro, string>();
+
+function coincide(r: Registro, consulta: string): boolean {
+  if (!consulta) return true;
+  let texto = textoBusqueda.get(r);
+  if (texto === undefined) {
+    texto = sinTildes([formatoFecha.format(new Date(r.creado_en)), r.usuario_nombre, ...preguntas.map(p => textoRespuesta(r.respuestas[p.id]))].join(' '));
+    textoBusqueda.set(r, texto);
+  }
+  return texto.includes(consulta);
+}
+
+/** Respuestas que pasan la búsqueda y el CD elegido; el rango de fechas va aparte porque las píldoras cuentan cada uno. */
+function sinRango(): Registro[] {
+  const consulta = sinTildes(buscar.value.trim());
+  const cd = filtroCd.value;
+  return (registros ?? []).filter(r => (!cd || cdDe(r) === cd) && coincide(r, consulta));
+}
+const delRango = (lista: Registro[], clave: Rango) => clave === 'todo' ? lista : lista.filter(r => EN_RANGO[clave](diasAtras(r.creado_en)));
+/** Respuestas de un solo día, en hora local. */
+const delDia = (lista: Registro[], dia: Date) => lista.filter(r => claveDia(r.creado_en) === String(dia.getTime()));
+/** Con una fecha puesta se ve solo ese día; si no, el rango de la píldora elegida. */
+const conFechas = (lista: Registro[]) => { const dia = diaElegido(); return dia ? delDia(lista, dia) : delRango(lista, rango); };
+
+/** Opciones del desplegable: los CD que tienen respuestas, en orden alfabético. Conserva la elección si el CD sigue ahí. */
+function pintarOpcionesCd() {
+  const elegido = filtroCd.value;
+  const nombres = [...new Set((registros ?? []).map(cdDe))].sort((a, b) => a.localeCompare(b, 'es'));
+  filtroCd.replaceChildren(...['', ...nombres].map(nombre => Object.assign(crear('option', undefined, nombre || 'Todos los CD'), { value: nombre })));
+  filtroCd.value = nombres.includes(elegido) ? elegido : '';
+}
+
+/** Cifra de la fila con su ícono; si la parte quedó vacía muestra una raya (y "sin dato" para lectores de pantalla). */
+function cifraFila(r: Registro, c: (typeof CIFRAS)[number]): HTMLLIElement {
+  const item = crear('li', 'rs-cifra');
+  const valor = totalTexto(r, c.ids);
+  const textos = crear('span', 'rs-cifra-texto');
+  const numero = crear('b', valor ? undefined : 'vacia', valor ?? '—');
+  if (!valor) { numero.setAttribute('aria-hidden', 'true'); textos.append(crear('span', 'rs-oculto', 'Sin dato')); }
+  textos.append(numero, crear('small', undefined, c.etiqueta));
+  item.append(cuadroIcono(c.icono, 'rs-cifra-icono'), textos);
+  return item;
+}
+
+/** Detalle completo de un reporte: Estibas, HL bloqueados y Cajas plásticas con todos sus valores. */
+function detalleRespuesta(r: Registro, id: string): HTMLElement {
+  const detalle = crear('div', 'rs-detalle');
+  detalle.id = id;
+  detalle.hidden = true;
+  detalle.setAttribute('role', 'region');
+  detalle.setAttribute('aria-label', `Detalle del reporte de ${cdDe(r)}`);
+  const bloques = crear('div', 'rs-bloques');
+  bloques.append(...BLOQUES.map(b => {
+    const bloque = crear('section', 'rs-bloque');
+    const cabeza = crear('div', 'rs-bloque-cabeza');
+    cabeza.append(cuadroIcono(b.icono, 'rs-bloque-icono'), crear('h4', undefined, b.nombre));
+    const ids = b.seccion.preguntas.map(p => p.id);
+    const total = b.seccion.sumable ? suma(r, ids) : 0;
+    if (b.seccion.sumable) {
+      const pildora = crear('span', 'rs-bloque-total', 'Total ');
+      pildora.append(crear('b', undefined, totalTexto(r, ids) ?? '—'));
+      cabeza.append(pildora);
+    }
+    const valores = crear('dl', 'rs-valores');
+    valores.append(...b.seccion.preguntas.map((p, i) => {
+      const valor = r.respuestas[p.id];
+      const texto = textoRespuesta(valor);
+      const fila = crear('div', 'rs-valor');
+      const nombre = crear('dt', undefined, nombreCorto(p));
+      nombre.title = p.titulo;
+      fila.append(nombre, crear('dd', texto ? undefined : 'vacia', texto || 'Sin dato'));
+      // En las partes que se suman, una barrita con la parte de cada valor en el total (color de su serie, como en el Resumen).
+      if (total > 0) {
+        fila.classList.add('con-barra');
+        fila.style.setProperty('--p', String(typeof valor === 'number' ? valor / total : 0));
+        fila.style.setProperty('--c', `var(--serie-${i + 1})`);
+      }
+      return fila;
+    }));
+    bloque.append(cabeza, valores);
+    return bloque;
+  }));
+  const fecha = new Date(r.creado_en);
+  const pie = crear('p', 'rs-detalle-pie');
+  pie.append(icono(TRAZOS_TABLERO.calendario, 'fm-ico'), `Registrado el ${formatoFechaLarga.format(fecha)} a las ${formatoHora.format(fecha)} por `, crear('b', undefined, r.usuario_nombre));
+  detalle.append(bloques, pie);
+  return detalle;
+}
+
+/** Botón de la fila que abrió Editar o Eliminar: al cerrar la ventana el foco vuelve a esa fila (la lista se repinta). */
+let origen: { id: string; accion: 'editar' | 'eliminar' } | null = null;
+
+/** Fila-tarjeta: CD, hora y autor, tres cifras resumen, acciones y el detalle (oculto hasta desplegarlo). */
+function filaRespuesta(r: Registro): HTMLLIElement {
+  const fila = crear('li', 'rs-fila');
+  fila.dataset.id = r.id;
+  const cabeza = crear('div', 'rs-fila-cabeza');
+
+  const cd = crear('div', 'rs-cd');
+  cd.append(cuadroIcono(TRAZOS_RS.bodega, 'rs-circulo'), crear('strong', 'rs-cd-nombre', cdDe(r)));
+
+  const momentoFila = crear('div', 'rs-cuando');
+  const hora = crear('span', 'rs-hora');
+  const tiempo = crear('time', undefined, formatoHora.format(new Date(r.creado_en)));
+  tiempo.dateTime = r.creado_en;
+  hora.append(icono(RELOJ, 'fm-ico'), tiempo, crear('span', 'rs-hace', haceCuanto(r.creado_en)));
+  const quien = crear('span', 'rs-quien');
+  quien.append(icono(TRAZOS_CD.usuario, 'fm-ico'), crear('span', undefined, r.usuario_nombre));
+  momentoFila.append(hora, quien);
+
+  const cifras = crear('ul', 'rs-cifras');
+  cifras.setAttribute('aria-label', 'Resumen del reporte');
+  cifras.append(...CIFRAS.map(c => cifraFila(r, c)));
+
+  const acciones = crear('div', 'rs-acciones');
+  const accion = (clase: 'editar' | 'eliminar', texto: string, hacer: () => void) => {
     const b = crear('button', `fm-accion ${clase}`);
     b.type = 'button';
+    b.dataset.accion = clase;
     b.setAttribute('aria-label', `${texto} el reporte de ${describir(r)}`);
     b.append(icono(TRAZOS_ACCION[clase], 'fm-ico'), texto);
-    b.addEventListener('click', accion);
+    b.addEventListener('click', () => { origen = { id: r.id, accion: clase }; hacer(); });
     return b;
   };
-  celda.append(boton('editar', 'Editar', () => abrirEdicion(r)), boton('eliminar', 'Eliminar', () => abrirEliminacion(r)));
-  return celda;
+  const idDetalle = `rs-detalle-${r.id}`;
+  const desplegar = crear('button', 'rs-desplegar');
+  desplegar.type = 'button';
+  desplegar.title = 'Ver detalle';
+  desplegar.setAttribute('aria-label', `Detalle del reporte de ${describir(r)}`);
+  desplegar.setAttribute('aria-controls', idDetalle);
+  desplegar.setAttribute('aria-expanded', 'false');
+  desplegar.append(icono(TRAZOS_RS.abajo, 'fm-ico'));
+  desplegar.addEventListener('click', () => alternarDetalle(r.id));
+  acciones.append(accion('editar', 'Editar', () => abrirEdicion(r)), accion('eliminar', 'Eliminar', () => abrirEliminacion(r)), desplegar);
+
+  cabeza.append(cd, momentoFila, cifras, acciones);
+  // Con el mouse, un clic en cualquier parte libre de la fila también despliega (el teclado usa el botón).
+  cabeza.addEventListener('click', evento => {
+    if ((evento.target as Element).closest('button') || getSelection()?.toString()) return;
+    alternarDetalle(r.id);
+  });
+  fila.append(cabeza, detalleRespuesta(r, idDetalle));
+  return fila;
+}
+
+/** Abre el detalle de un reporte (y cierra el que estaba abierto) o lo cierra si ya estaba abierto. */
+function alternarDetalle(id: string) {
+  abierta = abierta === id ? null : id;
+  marcarAbierta();
+  const detalle = listaRespuestas.querySelector<HTMLElement>('.rs-fila.abierta .rs-detalle');
+  detalle?.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+
+function marcarAbierta() {
+  for (const fila of listaRespuestas.querySelectorAll<HTMLElement>('.rs-fila')) {
+    const esta = fila.dataset.id === abierta;
+    fila.classList.toggle('abierta', esta);
+    fila.querySelector('.rs-desplegar')?.setAttribute('aria-expanded', String(esta));
+    const detalle = fila.querySelector<HTMLElement>('.rs-detalle');
+    if (detalle) detalle.hidden = !esta;
+  }
+}
+
+let consecutivoDia = 0;
+/** Un día de la lista: encabezado con el nombre del día y cuántas respuestas tiene, y sus filas.
+ *  Si el día sigue en otra página, la cuenta lo dice ("10 de 11 respuestas"). */
+function grupoDia(registrosDia: Registro[], totalDia: number): HTMLElement {
+  const { nombre, detalle } = tituloDia(registrosDia[0].creado_en);
+  const grupo = crear('section', 'rs-dia');
+  const titulo = crear('h3', 'rs-dia-titulo');
+  titulo.id = `rs-dia-${++consecutivoDia}`;
+  titulo.append(crear('span', 'rs-dia-nombre', nombre), crear('span', 'rs-dia-detalle', detalle));
+  grupo.setAttribute('aria-labelledby', titulo.id);
+  const cabeza = crear('div', 'rs-dia-cabeza');
+  const linea = crear('span', 'rs-dia-linea');
+  linea.setAttribute('aria-hidden', 'true');
+  const enPagina = registrosDia.length < totalDia ? `${registrosDia.length.toLocaleString('es-CO')} de ` : '';
+  cabeza.append(titulo, linea, crear('span', 'rs-dia-cuenta', `${enPagina}${totalDia.toLocaleString('es-CO')} ${totalDia === 1 ? 'respuesta' : 'respuestas'}`));
+  const filas = crear('ol', 'rs-filas');
+  filas.append(...registrosDia.map(filaRespuesta));
+  grupo.append(cabeza, filas);
+  return grupo;
+}
+
+function quitarFiltros() {
+  buscar.value = '';
+  filtroCd.value = '';
+  campoFecha.value = '';
+  rango = 'todo';
+  pagina = 0;
+  pintarTabla();
+  buscar.focus();
+}
+
+/** Sin respuestas: aún no hay ninguna, el día elegido no tiene, o los filtros las esconden todas (y se dice cuáles están puestos). */
+function panelVacio(hayRegistros: boolean): HTMLElement {
+  const panel = crear('div', 'rs-vacio');
+  const texto = crear('div', 'rs-vacio-texto');
+  const consulta = buscar.value.trim();
+  const dia = diaElegido();
+  let titulo = 'Aún no hay respuestas';
+  let detalle = 'Cuando los centros de distribución llenen el formulario, sus reportes aparecerán aquí, agrupados por día.';
+  let trazos: string = TRAZOS_RS.bodega;
+  if (hayRegistros && dia) {
+    const otros = [consulta && `la búsqueda «${consulta}»`, filtroCd.value && `el CD ${filtroCd.value}`].filter(Boolean);
+    const cuandoDia = diaEnPalabras(dia);
+    titulo = `No hay respuestas ${cuandoDia === 'hoy' || cuandoDia === 'ayer' ? 'de' : 'del'} ${cuandoDia}`;
+    detalle = otros.length
+      ? `Con ${otros.join(' y ')} no hay ningún reporte ese día. Elige otra fecha o mira todas las respuestas.`
+      : 'Ese día ningún centro de distribución llenó el formulario. Elige otra fecha o mira todas las respuestas.';
+    trazos = TRAZOS_TABLERO.calendario;
+  } else if (hayRegistros) {
+    const filtros = [consulta && `«${consulta}»`, rango !== 'todo' && NOMBRE_RANGO[rango], filtroCd.value].filter(Boolean).join(' · ');
+    titulo = 'Ninguna respuesta coincide';
+    detalle = `Filtros puestos: ${filtros}. Prueba con otra búsqueda, otro rango de fechas u otro CD.`;
+    trazos = TRAZOS_TABLERO.buscar;
+  }
+  texto.append(crear('h3', undefined, titulo), crear('p', undefined, detalle));
+  const boton = crear('button', hayRegistros ? 'pv-btn fm-btn-sec' : 'pv-btn pv-btn-primary', !hayRegistros ? 'Llenar formulario' : dia ? 'Ver todas las respuestas' : 'Quitar filtros');
+  boton.type = 'button';
+  boton.addEventListener('click', hayRegistros ? quitarFiltros : () => document.querySelector<HTMLButtonElement>('button[data-view="llenar"]')?.click());
+  texto.append(boton);
+  panel.append(cuadroIcono(trazos, 'rs-circulo rs-vacio-icono'), texto);
+  return panel;
 }
 
 function pintarTabla() {
   if (!registros) return;
-  const lista = filtrados();
+  pintarOpcionesCd();
+  campoFecha.max = hoyIso();
+  const dia = diaElegido();
+  const base = sinRango();
+  const lista = conFechas(base);
+  // Con una fecha puesta ninguna píldora queda activa: la fecha resaltada es el filtro.
+  for (const boton of botonesRango) {
+    const clave = boton.dataset.rango as Rango;
+    boton.setAttribute('aria-pressed', String(!dia && clave === rango));
+    boton.querySelector('.rs-rango-cuenta')!.textContent = delRango(base, clave).length.toLocaleString('es-CO');
+  }
+  pildoraFecha.classList.toggle('activa', !!dia);
+  quitarFecha.hidden = !dia;
   const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
   pagina = Math.min(pagina, paginas - 1);
-  const visibles = lista.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
-  tabla.tBodies[0].replaceChildren(...visibles.map(r => {
-    const fila = crear('tr');
-    fila.append(...columnasRespuestas.map(c => celdaValor(c.clase, c.valor(r))), celdaAcciones(r));
-    return fila;
-  }));
+  const desde = pagina * POR_PAGINA;
+  const visibles = lista.slice(desde, desde + POR_PAGINA);
+  // Se agrupan por día; cada encabezado cuenta todas las respuestas de ese día, aunque sigan en la página siguiente.
+  const porDia = new Map<string, number>();
+  for (const r of lista) porDia.set(claveDia(r.creado_en), (porDia.get(claveDia(r.creado_en)) ?? 0) + 1);
+  const dias: Registro[][] = [];
+  for (const r of visibles) {
+    const ultimo = dias.at(-1);
+    if (ultimo && claveDia(ultimo[0].creado_en) === claveDia(r.creado_en)) ultimo.push(r); else dias.push([r]);
+  }
+  listaRespuestas.replaceChildren(...(lista.length
+    ? dias.map(d => grupoDia(d, porDia.get(claveDia(d[0].creado_en)) ?? d.length))
+    : [panelVacio(registros.length > 0)]));
+  marcarAbierta();
+
   const total = registros.length;
+  const cuenta = (n: number) => n.toLocaleString('es-CO');
   resumen.textContent = total === 0 ? 'Aún no hay respuestas registradas.'
-    : `${lista.length === total ? total.toLocaleString('es-CO') : `${lista.length.toLocaleString('es-CO')} de ${total.toLocaleString('es-CO')}`} ${total === 1 ? 'respuesta' : 'respuestas'}, de la más reciente a la más antigua.`
+    : `${lista.length === total ? cuenta(total) : `${cuenta(lista.length)} de ${cuenta(total)}`} ${total === 1 ? 'respuesta' : 'respuestas'}, de la más reciente a la más antigua.`
       + (truncado ? ' Se muestran solo las más recientes.' : '');
-  mostrarEstado(estadoTabla, total && !lista.length ? 'Ninguna respuesta coincide con la búsqueda.' : '');
+  mostrarEstado(estadoTabla, '');
+  // Sin ninguna respuesta no hay nada que buscar ni filtrar: queda solo el aviso.
+  barraFiltros.hidden = total === 0;
+  anuncio.textContent = total && !lista.length ? 'Ninguna respuesta coincide con los filtros.' : `${cuenta(lista.length)} ${lista.length === 1 ? 'respuesta' : 'respuestas'}.`;
+  piePaginas.hidden = !lista.length;
+  mostrando.textContent = `Mostrando ${cuenta(desde + 1)}–${cuenta(desde + visibles.length)} de ${cuenta(lista.length)}`;
+  paginasRespuestas.hidden = paginas <= 1;
   textoPagina.textContent = `Página ${pagina + 1} de ${paginas}`;
   anterior.disabled = pagina === 0;
   siguiente.disabled = pagina >= paginas - 1;
 }
 
-buscar.addEventListener('input', () => { pagina = 0; pintarTabla(); });
-anterior.addEventListener('click', () => { pagina -= 1; pintarTabla(); });
-siguiente.addEventListener('click', () => { pagina += 1; pintarTabla(); });
+/** Las flechas están debajo de la lista: al cambiar de página se vuelve al primer día de la página nueva. */
+function cambiarPagina(paso: number) {
+  pagina += paso;
+  pintarTabla();
+  if (listaRespuestas.getBoundingClientRect().top < 0) listaRespuestas.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+
+const alFiltrar = () => { pagina = 0; pintarTabla(); };
+buscar.addEventListener('input', alFiltrar);
+filtroCd.addEventListener('change', alFiltrar);
+campoFecha.max = hoyIso();
+// Tocar una píldora borra la fecha elegida; elegir una fecha deja las píldoras sin marcar.
+for (const boton of botonesRango) boton.addEventListener('click', () => { campoFecha.value = ''; rango = boton.dataset.rango as Rango; alFiltrar(); });
+campoFecha.addEventListener('input', () => {
+  // El calendario ya no deja pasar de hoy, pero una fecha escrita a mano sí podría.
+  if (campoFecha.value > campoFecha.max) campoFecha.value = campoFecha.max;
+  if (diaElegido()) rango = 'todo';
+  alFiltrar();
+});
+quitarFecha.addEventListener('click', () => { campoFecha.value = ''; alFiltrar(); campoFecha.focus(); });
+anterior.addEventListener('click', () => cambiarPagina(-1));
+siguiente.addEventListener('click', () => cambiarPagina(1));
 porId('fmActualizar').addEventListener('click', () => { void cargarRespuestas(); });
+
+// Al cerrarse Editar, Eliminar o "Guardado" (sin otra ventana abierta), el foco vuelve al botón de la fila que se usó;
+// si el reporte se eliminó, a la primera fila. La ventana nativa no puede hacerlo porque la lista ya se repintó.
+for (const id of ['fmEditar', 'fmEliminar', 'fmGuardado']) {
+  porId<HTMLDialogElement>(id).addEventListener('close', () => {
+    if (!origen || document.querySelector('dialog[open]')) return;
+    const { id: idFila, accion } = origen;
+    origen = null;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    const fila = [...listaRespuestas.querySelectorAll<HTMLElement>('.rs-fila')].find(f => f.dataset.id === idFila);
+    (fila?.querySelector<HTMLElement>(`[data-accion="${accion}"]`) ?? listaRespuestas.querySelector<HTMLElement>('.rs-desplegar') ?? buscar).focus();
+  });
+}
 
 // ---------- Editar y eliminar una respuesta ----------
 
@@ -1662,5 +2317,4 @@ for (const boton of document.querySelectorAll<HTMLButtonElement>('button[data-vi
 armarFormulario();
 armarFormularioEdicion();
 armarPestanas();
-armarEncabezado();
 armarEncabezadoCd();

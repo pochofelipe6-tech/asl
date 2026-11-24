@@ -148,16 +148,18 @@ export function normalizarRespuestas(formulario: Formulario, datos: unknown): Re
 }
 
 /**
- * Último reporte de cada CD hasta una fecha (exclusiva). Cada respuesta es un conteo de
- * inventario, así que los reportes de un mismo CD no se suman: manda el más reciente.
+ * Último reporte de cada CD hasta una fecha (exclusiva) y, si se indica, desde otra (inclusiva). Cada respuesta
+ * es un conteo de inventario, así que los reportes de un mismo CD no se suman: manda el más reciente.
  */
-export function ultimoPorCd<T extends { creado_en: string; respuestas: Record<string, unknown> }>(registros: readonly T[], hasta?: Date): Map<string, T> {
+export function ultimoPorCd<T extends { creado_en: string; respuestas: Record<string, unknown> }>(registros: readonly T[], hasta?: Date, desde?: Date): Map<string, T> {
   const limite = hasta?.getTime() ?? Infinity;
+  // Con "desde", solo cuentan los reportes de ese periodo (el resumen mira un solo día).
+  const inicio = desde?.getTime() ?? -Infinity;
   const ultimos = new Map<string, T>();
   for (const registro of registros) {
     const cd = registro.respuestas.cd;
     const fecha = Date.parse(registro.creado_en);
-    if (typeof cd !== 'string' || !(fecha < limite)) continue;
+    if (typeof cd !== 'string' || !(fecha < limite) || !(fecha >= inicio)) continue;
     const actual = ultimos.get(cd);
     if (!actual || fecha > Date.parse(actual.creado_en)) ultimos.set(cd, registro);
   }
