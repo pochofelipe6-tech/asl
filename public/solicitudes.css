@@ -1,0 +1,481 @@
+/* Solicitudes de material · boceto C «Tablero con historial». Usa el lenguaje de Control de inventarios
+   (formularios.css: fm-*, rs-*, fm-tb-*) y aquí solo lo propio, acotado a .so-page. */
+.so-page{--so-barra:#ff2b55;--so-barra-pista:#ff2b5526}
+html[data-tema="claro"] .so-page{--so-barra:#e8002e;--so-barra-pista:#e8002e1c}
+.so-page :is(.fm-pregunta,.rs-buscar) input:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+
+/* ---------- Nueva solicitud: formulario (izquierda) e historial del centro (derecha) ---------- */
+.so-dos-columnas{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(0,1fr);align-items:stretch;gap:20px}
+.so-page .fm-form{max-width:none;margin:0}
+
+/* Tarjeta oscura: lo es también en el tema claro, como la portada. Repite los colores oscuros de formularios.css. */
+.so-page .fm-form.so-oscura{--fm-texto:#f4f6fa;--fm-suave:#a9b2c2;--fm-tenue:#7a8396;--fm-rojo:#ff2b55;--fm-rojo-texto:#ff6f8a;--fm-borde:#2a2e38;--fm-campo:#0b0d12;--fm-campo-borde:#3a3f4b;--fm-velo:#ffffff08;--fm-velo-2:#ffffff0f;
+  padding:28px 34px 30px;border-color:#ff2b5547;color:var(--fm-texto);
+  background:radial-gradient(ellipse 55% 42% at 100% 0,#e8002e45,transparent 70%),radial-gradient(ellipse 45% 35% at 0 100%,#e8002e1f,transparent 70%),linear-gradient(160deg,#1a1c24,#0b0d12 58%);
+  box-shadow:0 34px 70px -36px #e8002ea6,inset 0 1px 0 #ffffff12}
+html[data-tema="claro"] .so-page .fm-form.so-oscura{box-shadow:0 30px 60px -28px #1c2331b3,0 18px 40px -30px #e8002e99}
+.so-oscura .fm-pregunta input::placeholder{color:#7f889a}
+.so-oscura .fm-pregunta input{transition:border-color .15s ease,box-shadow .15s ease}
+.so-oscura .fm-pregunta input:hover{border-color:#5a6070}
+.so-oscura .fm-pregunta input:focus{border-color:#ff5a78;box-shadow:0 0 0 4px #ff2b5524}
+.so-page .so-oscura .fm-acciones .fm-btn-sec{border-color:#3d424e;background:#0d0f14;color:#f4f6fa}
+.so-page .so-oscura .fm-estado[data-tipo="error"]{background:linear-gradient(90deg,#e8002e33,#e8002e14)}
+.so-page .so-oscura .fm-estado[data-tipo="ok"]{background:linear-gradient(90deg,#16a34a33,#16a34a12)}
+.so-oscura .fm-acciones{margin-top:24px;padding-top:20px;border-top:1px solid #ffffff14}
+#soLimpiar{margin-right:auto}
+
+.so-bloque{margin-top:24px}
+.so-bloque .fm-parte-de{margin-bottom:14px}
+.so-fila-campos{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start;gap:16px 18px}
+.so-descripcion{grid-column:1/-1}
+.so-descripcion[hidden]{display:none}
+
+/* Campo con ícono rojo a la izquierda. */
+.so-entrada{position:relative;display:block}
+.so-entrada>.fm-ico{position:absolute;top:50%;left:16px;width:19px;height:19px;color:var(--fm-rojo-texto);transform:translateY(-50%);pointer-events:none}
+.so-page .so-oscura .fm-pregunta input{min-height:52px;border-radius:14px;font-size:16px;font-weight:600}
+.so-page .so-oscura .so-entrada input{padding-left:46px}
+
+/* Ficha del solicitante: punteada mientras no hay centro; roja y destacada apenas se reconoce. */
+.so-ficha{display:flex;align-items:center;gap:14px;min-height:74px;margin-top:4px;padding:12px 16px;border:1.5px dashed var(--fm-campo-borde);border-radius:18px;color:var(--fm-suave);font-size:14px;line-height:1.4}
+.so-ficha-circulo{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:50%;background:var(--fm-velo-2);color:var(--fm-suave)}
+.so-ficha-circulo .fm-ico{width:23px;height:23px}
+.so-ficha[data-tipo="ok"]{border:1px solid #ff6b88;background:radial-gradient(ellipse 55% 130% at 100% 0,#ff5a7870,transparent 60%),linear-gradient(120deg,#e8002e,#9e001f);color:#fff;box-shadow:0 18px 36px -18px #e8002ecc,inset 0 1px 1px #ffffff40;animation:so-ficha-entra .35s cubic-bezier(.34,1.4,.64,1) both}
+.so-ficha[data-tipo="ok"] .so-ficha-circulo{background:#ffffff2b;box-shadow:inset 0 0 0 1px #ffffff52;color:#fff}
+.so-ficha-texto{display:flex;flex:1;flex-direction:column;gap:2px;min-width:0}
+.so-ficha-texto small{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.so-ficha-texto strong{overflow:hidden;font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
+.so-ficha-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.so-ficha-chip{padding:5px 12px;border:1px solid #ffffff66;border-radius:999px;background:#0b0d1440;font-size:13px;font-weight:800;white-space:nowrap}
+@keyframes so-ficha-entra{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+
+/* Línea debajo del código: descripción del material. */
+.so-info{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;min-height:20px;margin:0;color:var(--fm-suave);font-size:13px;line-height:1.35}
+.so-info[data-tipo="ok"]{color:var(--fm-texto);font-weight:600}
+.so-info .fm-ico{width:15px;height:15px;color:var(--fm-rojo-texto)}
+
+/* Aviso amable de pedido repetido (no bloquea). */
+.so-repetido{display:flex;align-items:flex-start;gap:12px;margin-top:20px;padding:13px 16px;border:1px solid #fbbf2470;border-radius:14px;background:linear-gradient(90deg,#f59e0b2e,#f59e0b0d);color:#fde68a;font-size:14px;line-height:1.45}
+.so-repetido[hidden]{display:none}
+.so-repetido .fm-ico{width:20px;height:20px;margin-top:1px;color:#fbbf24}
+.so-repetido strong{color:#fff3c4}
+
+/* Historial del centro. */
+.so-page .so-historial{display:flex;flex-direction:column;margin:0;padding:24px 26px 26px}
+.so-hist-cabeza{display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--fm-borde)}
+.so-hist-titulos{flex:1;min-width:0}
+.so-hist-cabeza h2{margin:0;font-size:18px;font-weight:800}
+.so-hist-cabeza p{margin:3px 0 0;color:var(--fm-suave);font-size:13.5px}
+.so-hist-pildora{flex:none;padding:7px 14px;border-radius:999px;background:linear-gradient(120deg,#e8002e,#b50028);box-shadow:0 8px 18px -10px #e8002e;color:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+.so-hist-pildora[hidden]{display:none}
+.so-hist-cuerpo{display:flex;flex:1;flex-direction:column;gap:14px;padding-top:18px}
+.so-hist-datos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.so-hist-dato{display:flex;flex-direction:column;gap:3px;min-width:0;padding:12px 14px;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-fila-alt)}
+.so-hist-dato small{color:var(--fm-suave);font-size:12px;font-weight:700;line-height:1.3}
+.so-hist-dato strong{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.so-hist-dato span{color:var(--fm-suave);font-size:12px}
+.so-hist-dato:first-child{border-color:#ff5a78;background:radial-gradient(ellipse 70% 90% at 100% 0,#ff4d7359,transparent 60%),linear-gradient(135deg,#e8002e,#99001f);color:#fff}
+.so-hist-dato:first-child :is(small,span){color:#fff}
+.so-hist-fila-titulo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;margin-top:4px}
+.so-hist-fila-titulo .so-hist-subtitulo{margin:0}
+.so-hist-subtitulo{margin:4px 0 0;color:var(--fm-suave);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.so-historial .so-tabla-caja{margin-top:0}
+.so-hist-tabla{table-layout:fixed}
+.so-hist-tabla th:nth-child(1){width:104px}
+.so-hist-tabla th:nth-child(2){width:72px}
+.so-hist-tabla th:nth-child(4){width:84px}
+.fm-tb-tabla.so-hist-tabla td.so-desc{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fm-tb-tabla.so-hist-tabla tr.so-hist-nueva td{border-bottom:1px dashed #ff2b5580;background:#e8002e0d;font-style:italic}
+.so-pildora-nueva{display:inline-block;padding:2px 8px;border:1px dashed var(--fm-rojo);border-radius:999px;color:var(--fm-rojo-texto);font-size:10.5px;font-weight:800;font-style:normal}
+.fm-tb-tabla.so-hist-tabla tr.so-hist-repetida td{background:#f59e0b24}
+.so-pildora-repetida{display:inline-block;margin-right:7px;font-style:normal;padding:1px 7px;border-radius:999px;background:#f59e0b2e;color:#fbbf24;font-size:10.5px;font-weight:800}
+html[data-tema="claro"] .so-pildora-repetida{background:#fef3c7;color:#92400e}
+html[data-tema="claro"] .fm-tb-tabla.so-hist-tabla tr.so-hist-repetida td{background:#fffbeb}
+.so-hist-ver{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 4px;border:0;border-radius:8px;background:none;color:var(--fm-rojo-texto);font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.so-hist-ver .fm-ico{width:15px;height:15px;stroke-width:2.2;transition:transform .15s ease}
+.so-hist-ver:hover{text-decoration:underline}
+.so-hist-ver:hover .fm-ico{transform:translateX(3px)}
+.so-hist-ver:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+/* Materiales que más pide el centro: botones que llenan el código. */
+.so-hist-frecuentes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.so-hist-material{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:40px;padding:6px 8px 6px 12px;border:1px solid var(--fm-borde);border-radius:12px;background:var(--fm-pildora);color:var(--fm-texto);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.so-hist-material b{color:var(--fm-rojo-texto);font-size:13px}
+.so-hist-material span{overflow:hidden;color:var(--fm-suave);text-overflow:ellipsis;white-space:nowrap}
+.so-hist-material em{padding:3px 8px;border-radius:999px;background:var(--fm-velo-2);color:var(--fm-suave);font-size:11px;font-style:normal;font-weight:800;white-space:nowrap}
+.so-hist-material:hover{border-color:#ff2b5588;transform:translateY(-1px)}
+.so-hist-material:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-hist-nota{margin:0;padding:14px 16px;border:1px dashed var(--fm-campo-borde);border-radius:14px;color:var(--fm-suave);font-size:13.5px;line-height:1.45}
+
+/* Sin centro: invitación a elegir uno, con los centros que pidieron hace poco. */
+.so-hist-invita{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:28px 18px;border:1.5px dashed var(--fm-campo-borde);border-radius:18px;background:radial-gradient(ellipse 60% 50% at 50% 0,#e8002e12,transparent 70%);text-align:center}
+.so-hist-invita-circulo{display:grid;place-items:center;width:76px;height:76px;margin-bottom:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff5a78,#e0002d 55%,#a10022);box-shadow:0 0 0 7px #e8002e1c,0 12px 30px -6px #e8002eaa,inset 0 1px 2px #ffffff66;color:#fff}
+.so-hist-invita-circulo .fm-ico{width:34px;height:34px;stroke-width:1.7}
+.so-hist-invita h3{margin:0;font-size:19px;font-weight:800}
+.so-hist-invita p{max-width:380px;margin:0;color:var(--fm-suave);font-size:14px;line-height:1.5}
+.so-hist-recientes-titulo{margin-top:14px;color:var(--fm-suave);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.so-hist-recientes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:440px}
+.so-hist-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid var(--fm-borde);border-radius:999px;background:var(--fm-pildora);color:var(--fm-texto);font:inherit;font-size:13px;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.so-hist-chip b{color:var(--fm-rojo-texto)}
+.so-hist-chip:hover{border-color:#ff2b5588;transform:translateY(-1px)}
+.so-hist-chip:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+
+/* ---------- Solicitudes: tablero ---------- */
+/* La sección lleva .fm-lienzo solo por sus colores; no se dibuja como tarjeta. */
+.so-page .so-tablero.fm-lienzo{display:flex;flex-direction:column;gap:16px;margin:20px 0 0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+.so-page .so-tablero[hidden]{display:none}
+.so-tablero :is(.fm-tb-card,.fm-tb-kpi:not(.fm-tb-rojo,.fm-tb-azul)){box-shadow:0 18px 40px -32px #0f172a66}
+
+/* Indicadores. */
+.so-page .so-kpis{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr)}
+.so-page .so-kpis .fm-tb-kpi{min-height:150px}
+.so-page .so-kpis .fm-tb-delta[hidden]{display:none}
+.so-kpi-centros,.so-kpi-ultimo{display:flex;flex-direction:column;gap:12px}
+.so-kpi-centros-cuerpo{display:flex;align-items:center;gap:16px}
+.so-anillo{flex:none;width:72px;height:72px}
+.so-anillo svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
+.so-anillo circle{fill:none;stroke-width:10}
+.so-anillo-pista{stroke:var(--so-barra-pista)}
+.so-anillo-arco{stroke:var(--so-barra);transition:stroke-dasharray .5s ease}
+.so-kpi-centros-texto{display:flex;flex-direction:column;gap:6px;min-width:0}
+.so-kpi-cifra{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.so-kpi-centros-texto small{color:var(--fm-suave);font-size:16px;font-weight:700}
+.so-kpi-nota{color:var(--fm-suave);font-size:12.5px;line-height:1.35}
+.so-kpi-ultimo-cuerpo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.so-kpi-ultimo .so-kpi-cifra{font-size:28px}
+.so-hace{padding:4px 10px;border-radius:999px;background:#e8002e1a;color:var(--fm-rojo-texto);font-size:12.5px;font-weight:800}
+.so-hace[hidden]{display:none}
+.so-kpi-quien{font-size:14px;font-weight:700}
+
+/* Gráfico y top 5. */
+.so-tb-medio{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);align-items:stretch;gap:16px}
+.so-card-cabeza{display:flex;align-items:center;gap:12px}
+.so-card-cabeza h3{margin:0;font-size:16px;font-weight:800}
+.so-card-cabeza p{margin:2px 0 0;color:var(--fm-suave);font-size:12.5px}
+.so-barras{min-height:60px;margin-top:14px}
+.so-barras-svg{display:block;overflow:visible}
+.so-barras-eje{stroke:var(--fm-eje);stroke-width:1}
+.so-barra-zona{fill:transparent}
+.so-barra:hover .so-barra-zona{fill:var(--fm-velo-2)}
+.so-barra-trazo{fill:var(--so-barra)}
+.so-barra-nombre{fill:var(--fm-texto);font-size:12.5px}
+.so-barra-codigo{font-weight:800}
+.so-barra-cd{fill:var(--fm-suave);font-weight:500}
+.so-barra-valor{fill:var(--fm-texto);font-size:12.5px;font-weight:800}
+.so-barra-und{fill:var(--fm-suave);font-size:11.5px;font-weight:600}
+.so-grafico-vacio,.so-top-vacio{margin:0;padding:22px 16px;border:1px dashed var(--fm-campo-borde);border-radius:14px;color:var(--fm-suave);font-size:13.5px;text-align:center}
+.so-top{display:flex;flex-direction:column;margin:12px 0 0;padding:0;list-style:none}
+.so-top-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid var(--fm-borde)}
+.so-top-item:first-child{border-top:0}
+.so-top-pos{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--fm-circulo);box-shadow:inset 0 1px 0 #ffffff14;color:#fff;font-size:14px;font-weight:800}
+.so-top-item:first-child .so-top-pos{background:radial-gradient(circle at 35% 30%,#ff5a78,#e0002d 55%,#a10022);box-shadow:0 6px 14px -6px #e8002ecc}
+.so-top-texto{display:flex;flex-direction:column;gap:3px;min-width:0}
+.so-top-texto b{font-size:13.5px}
+.so-top-texto small{overflow:hidden;color:var(--fm-suave);font-size:11.5px;text-overflow:ellipsis;white-space:nowrap}
+.so-top-barra{position:relative;display:block;height:5px;margin-top:3px;overflow:hidden;border-radius:999px;background:var(--so-barra-pista)}
+.so-top-barra::before{content:'';position:absolute;inset:0 auto 0 0;width:calc(var(--p,0) * 100%);border-radius:inherit;background:var(--so-barra)}
+.so-top-cifras{display:flex;flex-direction:column;align-items:flex-end;gap:2px;white-space:nowrap}
+.so-top-cifras b{font-size:13px}
+.so-top-cifras small{color:var(--fm-suave);font-size:11.5px}
+
+/* Tabla: mismas columnas del Excel de solicitudes; sin barra vertical, con páginas y flechas. */
+.so-tabla-caja{max-height:none;overflow-x:auto;overflow-y:hidden}
+#soTablaCaja{margin-top:14px}
+.so-tabla-caja[hidden]{display:none}
+.fm-tb-tabla.so-tabla tbody td:not(.total){color:var(--fm-texto)}
+.so-tabla .so-solicitante{font-weight:700}
+.so-tabla .so-cantidad{font-weight:800}
+.so-tabla .so-desc{min-width:240px}
+.so-col-acciones{width:1%}
+.so-acciones{text-align:right;white-space:nowrap}
+.so-accion{display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid var(--fm-campo-borde);border-radius:50%;background:var(--fm-campo);color:var(--fm-suave);vertical-align:middle;cursor:pointer;transition:border-color .15s ease,color .15s ease,background .15s ease}
+.so-accion+.so-accion{margin-left:6px}
+.so-accion .fm-ico{width:14px;height:14px}
+.so-accion:hover{border-color:#ff2b5588;color:var(--fm-texto)}
+.so-accion.eliminar:hover{border-color:var(--fm-rojo);background:#e8002e1f;color:var(--fm-rojo-texto)}
+.so-accion:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-paginas{justify-content:flex-end;margin-top:14px}
+.so-vacio{display:flex;flex-direction:column;align-items:center;gap:14px;margin:14px 0 0;padding:28px 20px;border:1px dashed var(--fm-campo-borde);border-radius:14px;color:var(--fm-suave);font-size:14.5px;text-align:center}
+.so-vacio p{margin:0}
+.so-vacio[hidden],.so-vacio .pv-btn[hidden]{display:none}
+.so-cargando :is(#soTablaCaja,.so-kpis,.so-tb-medio){opacity:.55;transition:opacity .2s ease}
+
+/* Ventana de edición: los mismos tres campos. */
+.fm-lienzo.so-dialogo{width:min(860px,calc(100vw - 32px))}
+.so-dialogo .so-campos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;min-width:0;padding:18px 0 6px}
+.so-editar-centro{grid-column:1/-1}
+
+@media(max-width:1250px){
+  .so-page .so-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1100px){
+  .so-dos-columnas,.so-tb-medio{grid-template-columns:minmax(0,1fr)}
+  .so-tb-filtros{width:100%}
+  .so-page .so-tb-filtros .rs-buscar{flex:1 1 250px;max-width:none}
+}
+@media(max-width:700px){
+  .so-page .fm-form.so-oscura{padding:22px 18px 24px}
+  .so-fila-campos,.so-hist-datos,.so-hist-frecuentes,.so-page .so-kpis,.so-dialogo .so-campos{grid-template-columns:minmax(0,1fr)}
+  .so-ficha{flex-wrap:wrap}
+  .so-ficha-chips{justify-content:flex-start}
+  .so-page .so-historial{padding:20px 18px}
+  .so-page .so-tb-filtros :is(.rs-buscar,.rs-cd-filtro){flex:1 1 100%}
+  .so-page .so-tb-filtros .rs-cd-filtro select{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.so-ficha[data-tipo="ok"],.so-anillo-arco,.so-hist-chip,.so-hist-material,.so-hist-ver .fm-ico{animation:none;transition:none}}
+
+/* Artículos en la tabla: tarjeta a lo ancho debajo del formulario y del historial; aquí se guarda todo junto. */
+.so-page .fm-lienzo.so-articulos{max-width:none;margin-top:20px;padding:22px 30px 24px}
+.so-acciones-agregar{justify-content:flex-end}
+.so-articulos-acciones{margin-top:20px}
+.so-articulos-acciones #soLimpiar{margin-right:auto}
+/* Artículos en la tabla: lo que se va agregando antes de guardar. */
+.so-articulos-cabeza{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
+.so-articulos-titulo{display:flex;align-items:center;gap:10px;margin:0;font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.so-articulos-titulo .fm-ico{width:22px;height:22px;color:var(--fm-rojo-texto)}
+.so-articulos-linea{flex:1 1 60px;height:1px;background:linear-gradient(90deg,#ff2b5599,#ff2b5524)}
+.so-boton-tabla{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 15px;border:1px solid #ff2b5566;border-radius:999px;background:var(--fm-campo);color:var(--fm-rojo-texto);font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.so-boton-tabla[hidden]{display:none}
+.so-boton-tabla .fm-ico{width:16px;height:16px}
+.so-boton-tabla:hover{border-color:var(--fm-rojo);background:#e8002e12}
+.so-boton-tabla:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-quitar{border-color:var(--fm-campo-borde);color:var(--fm-texto)}
+.so-articulos-caja{margin-top:14px}
+.so-tabla-articulos thead th{height:44px;font-size:13px}
+.so-tabla-articulos :is(th,td){padding-left:16px;padding-right:16px}
+.so-col-sel{width:1%}
+.so-sel{text-align:center}
+.so-sel input{width:17px;height:17px;margin:0;accent-color:#d1002f;cursor:pointer;vertical-align:middle}
+.so-sel input:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-tabla .so-nro{font-weight:800}
+.fm-tb-tabla.so-tabla tr.so-elegida td{background:#e8002e14}
+.so-articulos-vacio{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 16px 20px;text-align:center}
+.so-articulos-vacio[hidden]{display:none}
+.so-articulos-vacio strong{color:var(--fm-suave);font-size:15px;font-weight:700}
+.so-articulos-vacio span{color:var(--fm-suave);font-size:13px}
+.so-caja-vacia{width:58px;height:48px;margin-bottom:4px;stroke-linejoin:round}
+.so-caja-tapa{fill:#dfe3ea;stroke:#a9b1bf;stroke-width:1.2}
+.so-caja-frente{fill:#b9c0cc;stroke:#a9b1bf;stroke-width:1.2}
+.so-caja-lado{fill:#cdd3dc;stroke:#a9b1bf;stroke-width:1.2}
+.so-caja-chispas{fill:none;stroke:#ff4d6d;stroke-width:1.8;stroke-linecap:round}
+
+/* Al seleccionar un campo, su título se pone rojo (formulario y ventana de edición). */
+.so-page .fm-pregunta .fm-enunciado{transition:color .15s ease}
+.so-page .fm-pregunta:focus-within .fm-enunciado{color:var(--fm-rojo-texto)}
+@media(prefers-reduced-motion:reduce){.so-page .fm-pregunta .fm-enunciado,.so-boton-tabla{transition:none}}
+
+/* ---------- Pestaña Solicitudes: diseño de la imagen del usuario (tarjetas, gráfico por unidades, tabla con íconos) ---------- */
+.so-page .so-kpis .fm-tb-rojo .fm-tb-cuadro{width:72px;height:72px;border-radius:18px;background:#ffffff26}
+.so-page .so-kpis .fm-tb-rojo .fm-tb-cuadro .fm-ico{width:34px;height:34px;stroke-width:1.7}
+.so-page .so-kpis .fm-tb-delta b{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:0;background:#ffffff2e;font-size:16px}
+.so-page .so-kpis .fm-tb-delta b .fm-ico{width:17px;height:17px;stroke-width:2.2}
+.so-page .so-kpis .fm-tb-delta[data-tendencia="baja"] b .fm-ico{transform:scaleY(-1)}
+.so-page .so-kpis .fm-tb-delta[data-tendencia="igual"] b .fm-ico{display:none}
+.so-page .so-kpis .so-kpi-azul{grid-template-columns:auto minmax(0,1fr) auto}
+.so-kpi-azul-icono{display:grid;place-items:center;width:64px;height:64px;border-radius:18px;background:#ffffff1f;box-shadow:inset 0 0 0 1px #ffffff2e;color:#fff}
+.so-kpi-azul-icono .fm-ico{width:32px;height:32px;stroke-width:1.6}
+
+/* Mes del tablero, en la cabecera del gráfico. */
+.so-mes-pildora{position:relative;display:inline-flex;align-items:center;margin-left:auto}
+.so-page .so-mes-pildora select{min-height:38px;padding:0 36px 0 16px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font:inherit;font-size:13.5px;font-weight:700;appearance:none;cursor:pointer}
+.so-mes-pildora select:hover{border-color:#ff2b5588}
+.so-mes-pildora select:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-mes-pildora .fm-ico{position:absolute;right:13px;width:15px;height:15px;pointer-events:none}
+.so-barras-guia{stroke:var(--fm-velo-2);stroke-width:1}
+.so-barras-marca{fill:var(--fm-suave);font-size:12px;font-weight:600}
+.so-page .so-barra-valor{fill:var(--fm-texto);font-size:12.5px;font-weight:600}
+
+/* Detalle: buscador y menú de filtros a la derecha del título. */
+.so-cuadro-rojo{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#ff3a61,#c8002c);box-shadow:0 8px 18px -8px #e8002ecc;color:#fff}
+.so-cuadro-rojo .fm-ico{width:22px;height:22px;stroke-width:2.2}
+.so-detalle-herramientas{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:auto}
+.so-buscar-tabla{position:relative;display:flex;align-items:center}
+.so-buscar-tabla .fm-ico{position:absolute;left:14px;color:var(--fm-suave);pointer-events:none}
+.so-page .so-buscar-tabla input{width:230px;min-height:40px;padding:0 14px 0 40px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font-size:13.5px}
+.so-filtros{position:relative}
+.so-filtros-boton{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font-size:13.5px;font-weight:700;list-style:none;cursor:pointer;user-select:none}
+.so-filtros-boton::-webkit-details-marker{display:none}
+.so-filtros-boton:hover{border-color:#ff2b5588}
+.so-filtros-boton:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-filtros-flecha{transition:transform .15s ease}
+.so-filtros[open] .so-filtros-flecha{transform:rotate(180deg)}
+.so-filtros-cuenta{display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--fm-rojo);color:#fff;font-size:11.5px}
+.so-filtros-cuenta[hidden]{display:none}
+.so-filtros-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:5;display:flex;flex-direction:column;gap:8px;width:320px;padding:16px;border:1px solid var(--fm-borde);border-radius:16px;background:var(--fm-fila);box-shadow:0 22px 50px -20px #0f172a73}
+.so-filtros-campo{font-size:13px;font-weight:800}
+.so-page .so-filtros-panel select{width:100%;min-height:40px;padding:0 12px;border:1px solid var(--fm-campo-borde);border-radius:10px;background:var(--fm-campo);color:var(--fm-texto);font-size:13.5px}
+.so-filtros-nota{margin:0;color:var(--fm-suave);font-size:12px;line-height:1.4}
+.so-filtros-acciones{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+.so-filtros-acciones .so-boton-tabla{padding:0 12px;white-space:nowrap}
+
+/* Tabla: íconos en el encabezado, circulito del solicitante, separadores en cantidad y acciones. */
+
+/* Pie: registros a la izquierda; páginas con número a la derecha (la actual, en rojo). */
+.so-pie-tabla{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;color:var(--fm-suave);font-size:13px;font-weight:600}
+.so-paginas{display:flex;align-items:center;gap:8px}
+.so-paginas[hidden]{display:none}
+.so-pag-numeros{display:flex;align-items:center;gap:6px}
+.so-pag{display:grid;place-items:center;min-width:36px;height:36px;padding:0 8px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
+.so-pag:hover:not(:disabled){border-color:#ff2b5588}
+.so-pag[aria-current="page"]{border-color:transparent;background:linear-gradient(145deg,#ff3a61,#c8002c);box-shadow:0 8px 16px -8px #e8002ecc;color:#fff}
+.so-pag:disabled{opacity:.45;cursor:default}
+.so-pag:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-pag .fm-ico{width:16px;height:16px}
+.so-pag-salto{padding:0 2px;color:var(--fm-suave)}
+
+/* Ventana Ver. */
+.so-ver-marco{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.so-ver-datos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin:16px 0 6px}
+.so-ver-dato{padding:12px 14px;border:1px solid var(--fm-borde);border-radius:12px;background:var(--fm-velo)}
+.so-ver-dato.ancho{grid-column:1/-1}
+.so-ver-dato dt{color:var(--fm-suave);font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.so-ver-dato dd{margin:4px 0 0;font-size:15px;font-weight:700}
+@media(max-width:700px){.so-ver-datos{grid-template-columns:1fr}.so-detalle .so-card-cabeza{flex-wrap:wrap}.so-detalle-herramientas{width:100%;margin-left:0}.so-page .so-buscar-tabla input{width:100%}.so-buscar-tabla{flex:1}}
+@media(prefers-reduced-motion:reduce){.so-filtros-flecha{transition:none}}
+
+/* Tarjeta "Centros que pidieron": es un botón que abre la lista de los 15 centros. */
+.so-page .so-kpi-clic{width:100%;color:var(--fm-texto);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.so-page .so-kpi-clic:hover{border-color:#ff2b5588;box-shadow:0 22px 44px -28px #e8002e99;transform:translateY(-2px)}
+.so-page .so-kpi-clic:focus-visible{outline:3px solid #ffba48;outline-offset:3px}
+.so-kpi-ver{display:inline-flex;align-items:center;align-self:flex-end;gap:3px;margin-top:auto;color:var(--fm-rojo-texto);font-size:12.5px;font-weight:800}
+.so-kpi-ver .fm-ico{width:14px;height:14px;stroke-width:2.4}
+
+/* Ventana de centros: primero los que pidieron (verde), luego los que no (gris punteado, etiqueta roja). */
+.fm-lienzo.so-centros-dialogo{width:min(1000px,calc(100vw - 32px))}
+.so-centros-grupo{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:13.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.so-centros-grupo:first-child{margin-top:16px}
+.so-centros-grupo::before{content:'';flex:none;width:10px;height:10px;border-radius:50%}
+.so-centros-grupo.si::before{background:#16a34a;box-shadow:0 0 0 4px #16a34a26}
+.so-centros-grupo.no::before{background:var(--fm-rojo);box-shadow:0 0 0 4px #e8002e1f}
+.so-centros-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.so-centro{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 14px;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-fila)}
+.so-centro.pidio{border-color:#16a34a73;background:linear-gradient(160deg,#16a34a1f,transparent 65%),var(--fm-fila);box-shadow:inset 4px 0 0 #16a34a}
+.so-centro.sin{border-style:dashed;border-color:var(--fm-campo-borde);background:var(--fm-velo)}
+.so-centro-marca{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%}
+.so-centro.pidio .so-centro-marca{background:#16a34a;color:#fff}
+.so-centro.sin .so-centro-marca{background:#e8002e1f;color:var(--fm-rojo-texto)}
+.so-centro-marca .fm-ico{width:14px;height:14px;stroke-width:2.8}
+.so-centro-cabeza{display:flex;align-items:baseline;gap:8px;padding-right:30px}
+.so-centro-cabeza b{font-size:17px;font-weight:800}
+.so-centro-cd{overflow:hidden;color:var(--fm-suave);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.so-centro-quien{font-size:13px;font-weight:600}
+.so-centro-estado{font-size:12.5px;font-weight:800}
+.so-centro.pidio .so-centro-estado{color:#15803d}
+html:not([data-tema="claro"]) .so-centro.pidio .so-centro-estado{color:#4ade80}
+.so-centro.sin .so-centro-estado{align-self:flex-start;margin-top:2px;padding:2px 10px;border-radius:999px;background:#e8002e17;color:var(--fm-rojo-texto)}
+.so-centro.sin :is(.so-centro-cabeza b,.so-centro-quien){color:var(--fm-suave)}
+.so-centro-ultimo{color:var(--fm-suave);font-size:12px}
+.so-page .so-centro-ver{align-self:flex-start;min-height:30px;margin-top:4px;padding:0 12px;font-size:12px}
+.so-centros-vacio{grid-column:1/-1;padding:14px;border:1px dashed var(--fm-campo-borde);border-radius:12px;color:var(--fm-suave);font-size:13.5px;text-align:center}
+@media(prefers-reduced-motion:reduce){.so-page .so-kpi-clic{transition:none}.so-page .so-kpi-clic:hover{transform:none}}
+
+/* ---------- Animaciones de entrada (solo si la persona no pidió reducir el movimiento) ----------
+   Una pestaña oculta vuelve a animarse cada vez que se muestra: las animaciones arrancan al dejar de estar ocultas. */
+@media(prefers-reduced-motion:no-preference){
+  @keyframes so-subir{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes so-aparecer{from{opacity:0}to{opacity:1}}
+  @keyframes so-fila{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+  @keyframes so-crecer{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes so-pop{0%{opacity:0;transform:scale(.55)}70%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:none}}
+  @keyframes so-anillo-llenar{from{stroke-dasharray:0 100}}
+  @keyframes so-destello{0%{opacity:0;transform:translateY(-6px);background:#e8002e40}35%{opacity:1;transform:none}100%{background:transparent}}
+
+  /* Tarjetas, pasos del formulario y bloques: suben una tras otra. */
+  .so-page .so-anima{animation:so-subir .65s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 85ms + 80ms)}
+  /* Íconos de los indicadores y comparación con el mes anterior: aparecen con un pequeño rebote. */
+  .so-kpis :is(.fm-tb-cuadro,.so-kpi-azul-icono){animation:so-pop .55s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i,0) * 85ms + 260ms)}
+  .so-kpis .fm-tb-delta b,.so-kpis .fm-tb-pastilla,.so-kpis .so-hace{animation:so-pop .5s .75s cubic-bezier(.34,1.56,.64,1) both}
+  .so-kpis .so-anillo-arco{animation:so-anillo-llenar 1.1s .45s cubic-bezier(.16,1,.3,1) backwards}
+  /* Gráfico: guías y valores aparecen, cada barra crece desde la izquierda. */
+  .so-barras-guia,.so-barras-marca,.so-barras-eje{animation:so-aparecer .6s .35s ease both}
+  .so-barra-trazo{transform-box:fill-box;transform-origin:0 50%;animation:so-crecer .85s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 60ms + 400ms)}
+  .so-barra-nombre,.so-barra-valor{animation:so-aparecer .45s ease both;animation-delay:calc(var(--i,0) * 60ms + 450ms)}
+  /* Top 5: cada material sube y su barra se llena. */
+  .so-top-item{animation:so-subir .5s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 75ms + 500ms)}
+  .so-top-barra::before{transform-origin:0 50%;animation:so-crecer .9s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 75ms + 700ms)}
+  /* Tabla de solicitudes: filas escalonadas. */
+  .so-tabla-detalle tbody tr{animation:so-fila .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 35ms + 650ms)}
+  /* Al buscar, sin animar en cada letra. */
+  .so-quieto :is(.so-tabla-detalle tbody tr,.so-barra-trazo,.so-barra-nombre,.so-barra-valor,.so-barras-guia,.so-barras-marca,.so-barras-eje,.so-top-item,.so-top-barra::before){animation:none}
+  /* Artículo recién agregado: entra con un destello rojo. */
+  .so-tabla-articulos tr.so-recien td{animation:so-destello 1.1s ease both}
+  /* Ventanas: fichas de centros y datos de "Ver" en cascada. */
+  .so-centros-dialogo[open] .so-centro{animation:so-subir .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 35ms + 120ms)}
+  .so-ver[open] .so-ver-dato{animation:so-subir .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 50ms + 100ms)}
+}
+
+/* ---------- Tabla "Detalle de solicitudes": encabezado rojo con íconos, píldoras y separadores suaves ---------- */
+.so-page{--so-pildora:#fdecef;--so-pildora-texto:#3b0a14;--so-separador:#ecdfe3;--so-avatar:#e5e7eb;--so-avatar-icono:#9ca3af}
+html:not([data-tema="claro"]) .so-page{--so-pildora:#ff2b5524;--so-pildora-texto:#f4f6fa;--so-separador:#ffffff17;--so-avatar:#ffffff14;--so-avatar-icono:#a3adbe}
+.so-ico-lleno{fill:currentColor;stroke:none}
+#soTablaCaja{border-radius:16px;box-shadow:0 14px 34px -24px #0f172a59}
+.fm-tb-tabla.so-tabla-detalle :is(th,td){white-space:nowrap}
+.fm-tb-tabla.so-tabla-detalle thead th{height:54px;padding:0 16px;border-bottom:0;background:linear-gradient(#e0063a,#b0002a);font-size:14px;font-weight:800}
+.so-th{display:inline-flex;align-items:center;gap:9px}
+.so-th .fm-ico{width:19px;height:19px;stroke-width:2}
+.so-numeral{font-size:17px;line-height:1}
+.fm-tb-tabla.so-tabla-detalle tbody td{height:64px;padding:8px 16px;border-bottom:1px solid var(--so-separador);background:var(--fm-fila);color:var(--fm-texto);font-size:13.5px}
+.fm-tb-tabla.so-tabla-detalle tbody tr:nth-child(even) td{background:var(--fm-fila)}
+.fm-tb-tabla.so-tabla-detalle tbody tr:hover td{background:var(--fm-fila-hover)}
+.fm-tb-tabla.so-tabla-detalle tbody tr:last-child td{border-bottom:0}
+/* Línea vertical corta entre columnas. */
+.fm-tb-tabla.so-tabla-detalle tbody td+td{background-image:linear-gradient(var(--so-separador),var(--so-separador));background-position:0 50%;background-size:1px 58%;background-repeat:no-repeat}
+.so-quien{display:inline-flex;align-items:center;gap:12px}
+.so-quien b{font-size:14px;font-weight:800}
+.so-avatar{display:grid;place-items:center;flex:none;width:38px;height:38px;overflow:hidden;border-radius:50%;background:var(--so-avatar);color:var(--so-avatar-icono)}
+.so-avatar .fm-ico{width:24px;height:24px;margin-top:6px}
+.so-pildora{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:var(--so-pildora);color:var(--so-pildora-texto);font-size:13px;font-weight:700;line-height:1.1}
+.so-pildora .fm-ico{width:15px;height:15px}
+.so-p-centro .fm-ico{color:#9f1239}
+.so-p-material .fm-ico{color:#e11d48}
+html:not([data-tema="claro"]) .so-p-centro .fm-ico{color:#ff8fa3}
+html:not([data-tema="claro"]) .so-p-material .fm-ico{color:#ff5a78}
+.so-p-centro,.so-p-material,.so-p-cantidad{font-weight:800}
+.so-p-cantidad{min-width:38px;justify-content:center}
+.fm-tb-tabla.so-tabla-detalle td.so-c-cantidad{text-align:center}
+.so-fecha-celda{display:inline-flex;align-items:center;gap:8px;font-weight:500}
+.so-fecha-celda .fm-ico{width:16px;height:16px;color:var(--fm-suave)}
+.fm-tb-tabla.so-tabla-detalle td.so-c-desc{min-width:180px;max-width:260px;white-space:normal}
+.so-desc-texto{display:-webkit-box;overflow:hidden;font-size:12.5px;font-weight:600;line-height:1.35;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.fm-tb-tabla.so-tabla-detalle td.so-acciones{width:1%;padding-left:14px;text-align:right}
+.so-tabla-detalle .so-accion{width:34px;height:34px;color:var(--fm-suave)}
+.so-tabla-detalle .so-accion .fm-ico{width:16px;height:16px}
+.so-tabla-detalle .so-accion+.so-accion{margin-left:8px}
+.so-tabla-detalle .so-accion:hover{color:var(--fm-texto)}
+.so-tabla-detalle .so-accion.ver:hover{border-color:#3b82f6;color:#2563eb}
+
+/* ---------- Tarjetas de indicadores: ondas abajo, rejilla de puntos arriba a la derecha y divisor junto al ícono ---------- */
+.so-page{--so-puntos:#c3cbe0}
+html:not([data-tema="claro"]) .so-page{--so-puntos:#ffffff2e}
+.so-page .so-kpis{gap:18px}
+.so-page .so-kpis .fm-tb-kpi{min-height:172px;border-radius:22px}
+.so-page .so-kpis .fm-tb-kpi>*{position:relative;z-index:1}
+.so-page .so-kpis .fm-tb-kpi::before,.so-page .so-kpis .fm-tb-kpi::after{content:'';position:absolute;pointer-events:none}
+/* Rejilla de 3 × 3 puntos. */
+.so-page .so-kpis .fm-tb-kpi::after{top:16px;right:18px;width:36px;height:36px;background:radial-gradient(circle,var(--so-puntos) 2.3px,transparent 2.8px) 0 0/12px 12px}
+.so-page .so-kpis :is(.fm-tb-rojo,.fm-tb-azul)::after{--so-puntos:#ffffff47}
+/* Ondas. */
+.so-page .so-kpis .fm-tb-kpi::before{right:0;bottom:0;left:0;height:58%;background-repeat:no-repeat;background-size:100% 100%}
+.so-page .so-kpis .fm-tb-rojo::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120' preserveAspectRatio='none'%3E%3Cpath d='M0 62C90 22 170 104 262 64S362 24 400 44V120H0Z' fill='%23ffffff' fill-opacity='.10'/%3E%3Cpath d='M0 92C110 56 204 118 302 86S382 66 400 76V120H0Z' fill='%23ffffff' fill-opacity='.09'/%3E%3C/svg%3E")}
+.so-page .so-kpis .fm-tb-azul::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120' preserveAspectRatio='none'%3E%3Cpath d='M0 62C90 22 170 104 262 64S362 24 400 44V120H0Z' fill='%2360a5fa' fill-opacity='.16'/%3E%3Cpath d='M0 92C110 56 204 118 302 86S382 66 400 76V120H0Z' fill='%2360a5fa' fill-opacity='.12'/%3E%3C/svg%3E")}
+.so-page .so-kpis .so-kpi-centros::before{right:auto;width:62%;height:46%;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120' preserveAspectRatio='none'%3E%3Cpath d='M0 18C70 40 130 86 220 100S330 112 400 120H0Z' fill='%23ff2b55' fill-opacity='.10'/%3E%3Cpath d='M0 56C80 72 150 104 250 112S350 118 400 120H0Z' fill='%23ff2b55' fill-opacity='.07'/%3E%3C/svg%3E")}
+.so-page .so-kpis .so-kpi-ultimo::before{left:auto;width:66%;height:52%;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120' preserveAspectRatio='none'%3E%3Cpath d='M0 120C150 116 255 92 325 44S388 2 400 0V120Z' fill='%233b82f6' fill-opacity='.22'/%3E%3Cpath d='M90 120C210 114 300 96 352 62S394 26 400 22V120Z' fill='%233b82f6' fill-opacity='.14'/%3E%3C/svg%3E")}
+.so-page .so-kpis .fm-tb-rojo{box-shadow:0 24px 44px -20px #e8002eaa}
+.so-page .so-kpis .fm-tb-azul{box-shadow:0 24px 44px -20px #1e3a8aaa}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo){box-shadow:0 24px 46px -30px #0f172a80}
+/* Divisor vertical entre el ícono y el texto. */
+.so-kpi-divisor{align-self:stretch;width:1px;margin:6px 0;background:#ffffff4d}
+.so-page .so-kpis .fm-tb-rojo{grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:'icono divisor etiqueta etiqueta' 'icono divisor numero delta' 'icono divisor unidad delta';column-gap:18px}
+.so-page .so-kpis .fm-tb-rojo .so-kpi-divisor{grid-area:divisor}
+.so-page .so-kpis .so-kpi-azul{grid-template-columns:auto auto minmax(0,1fr) auto;column-gap:18px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-etiqueta{font-size:15px}
+/* Íconos de las tarjetas blancas: cuadro rojo (centros) y azul (último pedido). */
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-cuadro{width:52px;height:52px;border-radius:15px}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-cuadro .fm-ico{width:25px;height:25px;stroke-width:2.1}
+.so-page .so-kpis .so-kpi-centros .fm-tb-cuadro .fm-ico{stroke-width:2.8}
+.so-page .so-kpis .so-kpi-ultimo .fm-tb-cuadro{background:linear-gradient(145deg,#3b82f6,#1d4ed8);box-shadow:0 10px 20px -8px #1d4ed8cc,inset 0 1px 1px #ffffff55}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-etiqueta{gap:16px;font-size:16px}
+.so-page .so-kpis .so-anillo{width:84px;height:84px}
+.so-page .so-kpis .so-kpi-cifra{font-size:42px}
+.so-page .so-kpis .so-kpi-ultimo .so-kpi-cifra{font-size:30px}
+.so-page .so-kpis .so-kpi-azul .so-kpi-divisor{margin:16px 0}
+.so-page .so-kpis .fm-tb-rojo .fm-tb-grande{font-size:clamp(36px,13cqi,54px)}

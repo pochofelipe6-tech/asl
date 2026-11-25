@@ -3,7 +3,7 @@
 // server.ts
 import path from "node:path";
 import { readFile as readFile2 } from "node:fs/promises";
-import express4 from "express";
+import express5 from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
@@ -565,6 +565,7 @@ function normalizarRespuestas(formulario, datos) {
 
 // src/server/formularios.ts
 var TABLA_FALTANTE = "Falta crear la tabla de respuestas. Ejecuta supabase/formularios_schema.sql en Supabase.";
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function rutasFormularios(pool, sesion) {
   const router = express3.Router();
   router.use((req, res, next) => {
@@ -579,6 +580,14 @@ function rutasFormularios(pool, sesion) {
     res.setHeader("Cache-Control", "no-store");
     next();
   });
+  const fallo = (res, error, accion, mensaje) => {
+    if (error.code === "42P01") {
+      res.status(503).json({ error: TABLA_FALTANTE });
+      return;
+    }
+    console.error(`${accion} de formularios:`, error.message);
+    res.status(503).json({ error: mensaje });
+  };
   router.get("/respuestas", async (req, res) => {
     const formulario = buscarFormulario(req.query.formulario);
     if (!formulario) {
@@ -597,12 +606,7 @@ function rutasFormularios(pool, sesion) {
       );
       res.json({ respuestas: rows.slice(0, MAX_RESPUESTAS_LISTADO), truncado: rows.length > MAX_RESPUESTAS_LISTADO });
     } catch (error) {
-      if (error.code === "42P01") {
-        res.status(503).json({ error: TABLA_FALTANTE });
-        return;
-      }
-      console.error("Consulta de formularios:", error.message);
-      res.status(503).json({ error: "No se pudieron consultar las respuestas. Reintenta en un momento." });
+      fallo(res, error, "Consulta", "No se pudieron consultar las respuestas. Reintenta en un momento.");
     }
   });
   router.post("/respuestas", async (req, res) => {
@@ -631,12 +635,305 @@ function rutasFormularios(pool, sesion) {
       );
       res.status(201).json({ respuesta: rows[0] });
     } catch (error) {
-      if (error.code === "42P01") {
-        res.status(503).json({ error: TABLA_FALTANTE });
+      fallo(res, error, "Guardado", "No se pudo guardar la respuesta. Reintenta en un momento.");
+    }
+  });
+  async function buscarRespuesta(req, res, db) {
+    const id = req.params.id;
+    if (typeof id !== "string" || !UUID.test(id)) {
+      res.status(404).json({ error: "La respuesta no existe." });
+      return null;
+    }
+    const { rows } = await db.query("select id, formulario from public.formularios_respuestas where id = $1", [id]);
+    const fila = rows[0];
+    if (!fila) {
+      res.status(404).json({ error: "La respuesta ya no existe. Actualiza la tabla." });
+      return null;
+    }
+    return fila;
+  }
+  router.put("/respuestas/:id", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    try {
+      const fila = await buscarRespuesta(req, res, pool);
+      if (!fila) return;
+      const formulario = buscarFormulario(fila.formulario);
+      if (!formulario) {
+        res.status(404).json({ error: "El formulario no existe." });
         return;
       }
-      console.error("Guardado de formularios:", error.message);
-      res.status(503).json({ error: "No se pudo guardar la respuesta. Reintenta en un momento." });
+      let respuestas;
+      try {
+        respuestas = normalizarRespuestas(formulario, req.body?.respuestas);
+      } catch (error) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      const { rows } = await pool.query(
+        "update public.formularios_respuestas set respuestas = $2 where id = $1 returning id, usuario_nombre, creado_en, respuestas",
+        [fila.id, JSON.stringify(respuestas)]
+      );
+      res.json({ respuesta: rows[0] });
+    } catch (error) {
+      fallo(res, error, "Edici\xF3n", "No se pudo guardar el cambio. Reintenta en un momento.");
+    }
+  });
+  router.delete("/respuestas/:id", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para eliminar." });
+      return;
+    }
+    try {
+      const fila = await buscarRespuesta(req, res, pool);
+      if (!fila) return;
+      await pool.query("delete from public.formularios_respuestas where id = $1", [fila.id]);
+      res.status(204).end();
+    } catch (error) {
+      fallo(res, error, "Eliminaci\xF3n", "No se pudo eliminar la respuesta. Reintenta en un momento.");
+    }
+  });
+  return router;
+}
+
+// src/server/solicitudes.ts
+import express4 from "express";
+
+// src/shared/solicitudes.ts
+var ID_SOLICITUDES = "solicitudes-material";
+var MAX_SOLICITUDES_LISTADO = 5e3;
+var MAX_LOTE = 50;
+var CENTROS_DESTINO = [
+  { codigo: "AV10", cd: "Turbaco", solicitante: "Camilo Tatis" },
+  { codigo: "AV11", cd: "Santa Marta", solicitante: "Victor Villa" },
+  { codigo: "AV12", cd: "Valledupar", solicitante: "Eduardo Diaz" },
+  { codigo: "AV13", cd: "Corozal", solicitante: "Jes\xFAs Alfonso Iriarte" },
+  { codigo: "AV20", cd: "C\xFAcuta", solicitante: "Karen Paredes" },
+  { codigo: "AV29", cd: "San Andr\xE9s", solicitante: "Laura Mu\xF1oz" },
+  { codigo: "AV30", cd: "Riohacha", solicitante: "Jordin Virguez" },
+  { codigo: "AV32", cd: "Magangu\xE9", solicitante: "Jes\xFAs Alfonso Iriarte" },
+  { codigo: "AV36", cd: "Fonseca", solicitante: "Eduardo Diaz" },
+  { codigo: "AV38", cd: "Curuman\xED", solicitante: "Eduardo Diaz" },
+  { codigo: "AV39", cd: "Monter\xEDa", solicitante: "Jose Acosta" },
+  { codigo: "AV40", cd: "Caucasia", solicitante: "Jose Acosta" },
+  { codigo: "AV41", cd: "Apartad\xF3", solicitante: "Pedro Osorio" },
+  { codigo: "AV74", cd: "La Arenosa", solicitante: "Piedad Santiago" },
+  { codigo: "AV76", cd: "Galapa", solicitante: "Oscar Celis" }
+];
+var MATERIALES = {
+  "401235": "TERMO PACK LTA 330/355/473 CAL 2.0X53 cm - 26 TN",
+  "404234": "TERMO 24 PACK LATA 269 CAL 2,0 X 48cm - 95 TN",
+  "414100": "BANDEJA CTON LTA 269X24 GENERICA LINEA",
+  "407874": "BANDEJA CARTON KRAFT 24LTA 330/355 GENER",
+  "404431": "PAD CARTON X 24 LATA 330/355 GENERICO",
+  "404435": "PAD CARTON X 24 LATA 269",
+  "400090": "PLASTICO SUPER STRECH CALIBRE 0.8 MILS",
+  "400512": "PLASTICO STRECH CALIBRE 0.6 MILS",
+  "414562": "CAJA TERC KRAFT 4X6P AGUILA 330NR MANUAL",
+  "419470": "CAJA TERC KRAFT 4X6P CLUB COL 330NR MANU",
+  "421509": "CANASTILLA CLUB COL 330 R NEW VBI",
+  "414867": "CANASTILLA 6 BOTNR PONY EXP",
+  "409190": "BANDEJA CRTON PONY MLTA 330NRX24 TXT LEG",
+  "423932": "CANASTILLA 6 CLUB COL 330CC EXP USA",
+  "423933": "CAJA CARTON CLUB COL 330 X24 USA NVBI",
+  "421016": "CANASTILLA PONY MALTA 330cc X6P CH",
+  "414695": "CAJA CARTON AGUILA LIG 330NR X 24 MAN CI",
+  "423438": "CANASTILLA 6BOT 330NR CORONITA NL VALLE",
+  "424357": "CAJA CARTON 4X6U BTA 330 CORONA ATL",
+  "423431": "CANASTILLA 6BOT 210NR CORONITA NL VALLE",
+  "424356": "CAJA CARTON 4X6U BTA 210 CORONITA ATL",
+  "424453": "CAJA SIXPACK CORONA EXTRA LATA 269 ATL",
+  "420369": "CAJA 24 PACK CORONA LATA 269",
+  "424386": "CANASTILLA 6BOT 330ML MICHELOB ULTRA",
+  "424606": "CAJA CTON 4X6 BTA 330 MICHELOB ULTRA ATL",
+  "424608": "CAJA CTON 24 BTA 330 MICHELOB ULTRA ATL",
+  "424804": "CAJA CTON 4X6U BTA 210 MICHELOB ULTRA",
+  "424807": "CAJA CTON X24 LOOSP 210NR MICHELOB ULTRA",
+  "424805": "CANASTILLA 6BOT 210ML MICHELOB ULTRA",
+  "423430": "CANASTILLA 6BOT 210NR CORONITA WR NL TOC",
+  "423760": "CAJA CTON 4X6U BTA 210 CORONITA AHORRO",
+  "422776": "CANASTILLA WR 6BOT 330 CORONA CERO TOC",
+  "424601": "CANASTILLA WR 6P 330 CORONA CERO TOC CI",
+  "422750": "CAJA CTON 4X6U BTA 330 CORONA CERO TOC",
+  "423759": "CANASTILLA 6BOT 330 CORONA VALLE AHORRO",
+  "423437": "CANASTILLA 6BOT 330 CORONA VALLE AHORRO",
+  "423758": "CAJA CTON 4X6U BTA 330 CORONA TOC AHORRO",
+  "420367": "CAJA SIXPACK CORONA LATA 269",
+  "409750": "BANDEJA KRAFT BUD 269 LTA 2PX12U",
+  "424458": "CAJA CORONA CERO LTA 269 X6 ED FEP 26",
+  "423536": "CAJA CORONA CERO LTA 269 X6 ED FEP 26",
+  "424387": "CAJA CTON 4X6U BTA 330 MICHELOB ULTRA TO",
+  "424388": "CAJA CTON X24U BTA 330 MICHELOB ULTRA TO (LOOSEPACK)",
+  "404738": "SEPARADOR PET 106X128CM RECUBRIMIENTO"
+};
+var MAX_DESCRIPCION = 120;
+var MAX_CANTIDAD = 1e9;
+var limpiar = (v) => typeof v === "string" ? v.trim().replace(/\s+/g, " ") : typeof v === "number" ? String(v) : "";
+var sinTildes = (v) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+function buscarCentro(valor) {
+  const texto = limpiar(valor);
+  if (!texto) return void 0;
+  const codigo = /^[a-z]{2}\d{2}\b/i.exec(texto)?.[0].toUpperCase();
+  return CENTROS_DESTINO.find((c) => c.codigo === codigo) ?? CENTROS_DESTINO.find((c) => sinTildes(c.cd) === sinTildes(texto));
+}
+function codigoMaterial(valor) {
+  const texto = limpiar(valor).toUpperCase();
+  return /^[A-Z0-9-]{1,20}$/.test(texto) ? texto : "";
+}
+function leerCantidad(valor) {
+  if (typeof valor === "number") return Number.isInteger(valor) && valor > 0 && valor <= MAX_CANTIDAD ? valor : null;
+  const texto = limpiar(valor).replace(/\s/g, "");
+  const digitos = /^\d{1,3}(\.\d{3})+$/.test(texto) ? texto.replace(/\./g, "") : texto;
+  if (!/^\d{1,10}$/.test(digitos)) return null;
+  const cantidad = Number(digitos);
+  return cantidad > 0 && cantidad <= MAX_CANTIDAD ? cantidad : null;
+}
+function revisarSolicitud(datos) {
+  const d = datos && typeof datos === "object" && !Array.isArray(datos) ? datos : {};
+  const errores = {};
+  const centro = buscarCentro(d.centro);
+  const textoCentro = limpiar(d.centro);
+  if (!centro) errores.centro = textoCentro ? `El centro "${textoCentro.slice(0, 30)}" no tiene solicitante asignado. Elige uno de la lista.` : "Elige o escribe el c\xF3digo del centro.";
+  const material = codigoMaterial(d.material);
+  if (!material) errores.material = limpiar(d.material) ? "El c\xF3digo de material solo lleva letras y n\xFAmeros." : "Escribe el c\xF3digo del material.";
+  const descripcion = material && MATERIALES[material] || limpiar(d.descripcion).toUpperCase();
+  if (material && !descripcion) errores.descripcion = "Es un material nuevo: escribe su descripci\xF3n.";
+  else if (descripcion.length > MAX_DESCRIPCION) errores.descripcion = `La descripci\xF3n es muy larga (m\xE1ximo ${MAX_DESCRIPCION} caracteres).`;
+  const cantidad = leerCantidad(d.cantidad);
+  if (cantidad === null) errores.cantidad = limpiar(d.cantidad) ? "Escribe un n\xFAmero entero mayor que 0, sin comas." : "Escribe la cantidad.";
+  if (!centro || !material || cantidad === null || Object.keys(errores).length) return { solicitud: null, errores };
+  return { solicitud: { centro: centro.codigo, solicitante: centro.solicitante, material, descripcion, cantidad }, errores };
+}
+
+// src/server/solicitudes.ts
+var TABLA_FALTANTE2 = "Falta crear la tabla de respuestas. Ejecuta supabase/formularios_schema.sql en Supabase.";
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var COLUMNAS = "id, usuario_nombre, creado_en, respuestas";
+function rutasSolicitudes(pool, sesion) {
+  const router = express4.Router();
+  router.use((req, res, next) => {
+    if (!sesion(req)) {
+      res.status(401).json({ error: "Inicia sesi\xF3n para abrir las solicitudes." });
+      return;
+    }
+    if (req.method !== "GET" && req.get("sec-fetch-site") === "cross-site") {
+      res.status(403).json({ error: "Abre la aplicaci\xF3n para guardar datos." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+  const fallo = (res, error, accion, mensaje) => {
+    if (error.code === "42P01") {
+      res.status(503).json({ error: TABLA_FALTANTE2 });
+      return;
+    }
+    console.error(`${accion} de solicitudes:`, error.message);
+    res.status(503).json({ error: mensaje });
+  };
+  const leer = (req, res) => {
+    const { solicitud, errores } = revisarSolicitud(req.body?.solicitud);
+    if (!solicitud) {
+      res.status(400).json({ error: Object.values(errores)[0] ?? "La solicitud no es v\xE1lida." });
+      return null;
+    }
+    return solicitud;
+  };
+  const idValido = (req) => typeof req.params.id === "string" && UUID2.test(req.params.id);
+  router.get("/", async (_req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para consultar las solicitudes." });
+      return;
+    }
+    try {
+      const { rows } = await pool.query(
+        `select ${COLUMNAS} from public.formularios_respuestas
+         where formulario = $1 order by creado_en desc, id desc limit ${MAX_SOLICITUDES_LISTADO + 1}`,
+        [ID_SOLICITUDES]
+      );
+      res.json({ solicitudes: rows.slice(0, MAX_SOLICITUDES_LISTADO), truncado: rows.length > MAX_SOLICITUDES_LISTADO });
+    } catch (error) {
+      fallo(res, error, "Consulta", "No se pudieron consultar las solicitudes. Reintenta en un momento.");
+    }
+  });
+  router.post("/", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    const lista = req.body?.solicitudes;
+    if (!Array.isArray(lista) || !lista.length || lista.length > MAX_LOTE) {
+      res.status(400).json({ error: `Env\xEDa entre 1 y ${MAX_LOTE} art\xEDculos.` });
+      return;
+    }
+    const solicitudes = [];
+    for (const [i, datos] of lista.entries()) {
+      const { solicitud, errores } = revisarSolicitud(datos);
+      if (!solicitud) {
+        res.status(400).json({ error: `Art\xEDculo ${i + 1}: ${Object.values(errores)[0] ?? "no es v\xE1lido."}` });
+        return;
+      }
+      solicitudes.push(solicitud);
+    }
+    const usuario = sesion(req);
+    try {
+      const { rows } = await pool.query(
+        `insert into public.formularios_respuestas (formulario, respuestas, usuario_id, usuario_nombre)
+         select $1, x.valor, $3, $4 from jsonb_array_elements($2::jsonb) with ordinality as x(valor, n)
+         order by x.n returning ${COLUMNAS}`,
+        [ID_SOLICITUDES, JSON.stringify(solicitudes), usuario.sub, usuario.nombre]
+      );
+      res.status(201).json({ solicitudes: rows });
+    } catch (error) {
+      fallo(res, error, "Guardado", "No se pudo guardar la solicitud. Reintenta en un momento.");
+    }
+  });
+  router.put("/:id", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    if (!idValido(req)) {
+      res.status(404).json({ error: "La solicitud no existe." });
+      return;
+    }
+    const solicitud = leer(req, res);
+    if (!solicitud) return;
+    try {
+      const { rows } = await pool.query(
+        `update public.formularios_respuestas set respuestas = $3
+         where id = $1 and formulario = $2 returning ${COLUMNAS}`,
+        [req.params.id, ID_SOLICITUDES, JSON.stringify(solicitud)]
+      );
+      if (!rows[0]) {
+        res.status(404).json({ error: "La solicitud ya no existe. Actualiza la tabla." });
+        return;
+      }
+      res.json({ solicitud: rows[0] });
+    } catch (error) {
+      fallo(res, error, "Edici\xF3n", "No se pudo guardar el cambio. Reintenta en un momento.");
+    }
+  });
+  router.delete("/:id", async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para eliminar." });
+      return;
+    }
+    if (!idValido(req)) {
+      res.status(404).json({ error: "La solicitud no existe." });
+      return;
+    }
+    try {
+      const { rowCount } = await pool.query("delete from public.formularios_respuestas where id = $1 and formulario = $2", [req.params.id, ID_SOLICITUDES]);
+      if (!rowCount) {
+        res.status(404).json({ error: "La solicitud ya no existe. Actualiza la tabla." });
+        return;
+      }
+      res.status(204).end();
+    } catch (error) {
+      fallo(res, error, "Eliminaci\xF3n", "No se pudo eliminar la solicitud. Reintenta en un momento.");
     }
   });
   return router;
@@ -654,10 +951,10 @@ var clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
 var COOKIE = "sesion";
 var DURACION_SESION = 8 * 60 * 60 * 1e3;
 var isProd = process.env.NODE_ENV === "production";
-var app = express4();
-app.use("/api/excel", express4.json({ limit: "2mb" }));
-app.use("/api/preventas", express4.json({ limit: "20mb" }));
-app.use(express4.json());
+var app = express5();
+app.use("/api/excel", express5.json({ limit: "2mb" }));
+app.use("/api/preventas", express5.json({ limit: "20mb" }));
+app.use(express5.json());
 app.use(cookieParser());
 app.use("/api", (_req, res, next) => {
   if (variablesFaltantes.length) {
@@ -688,7 +985,7 @@ app.get("/", (req, res) => {
   }
   res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
 });
-app.use(express4.static(path.join(import.meta.dirname, "public")));
+app.use(express5.static(path.join(import.meta.dirname, "public")));
 var limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,
   limit: 10,
@@ -750,6 +1047,7 @@ app.get("/api/me", (req, res) => {
 var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
 app.use("/api/preventas", rutasPreventas(dbFrescura, leerSesion));
 app.use("/api/formularios", rutasFormularios(dbFrescura, leerSesion));
+app.use("/api/solicitudes", rutasSolicitudes(dbFrescura, leerSesion));
 app.get("/api/frescura/indice.json", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -952,6 +1250,7 @@ app.get("/panel", paginaProtegida("panel.html"));
 app.get("/modulos", paginaProtegida("modulos.html"));
 app.get("/preventas", paginaProtegida("preventas.html"));
 app.get("/formularios", paginaProtegida("formularios.html"));
+app.get("/solicitudes", paginaProtegida("solicitudes.html"));
 var server_default = app;
 if (!process.env.VERCEL) app.listen(Number(PORT), (err) => {
   if (err) {
