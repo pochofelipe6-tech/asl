@@ -104,3 +104,16 @@ test('base: calcula factores de una referencia nueva a partir de su presentació
   assert.equal(result.filas[0][17], .0033);
   assert.equal(result.filas[0][29], 'Cervezas');
 });
+
+test('acepta el archivo base sin la columna "Cant en planta" (formato del reporte KA)', () => {
+  // Igual al archivo base, pero sin la columna 8: el canal queda en la columna 14.
+  const sinPlanta = ['Cond de Exp','Centro','Material','Descripcion','UM','Status','Stock Disp','Cant en transito','Cant entrega Pendien','Total Disponible','Cant de pedidos','Cantidad en Pedidos','Disponible Final',null];
+  assert.equal(esBase(sinPlanta), true);
+  const conPlanta = [...header];
+  const fila = ['TODAS','AV11',2174,'Aguila Lta 330cc X 6','SXP','@08@',34824,0,12,34812,5,4672,30140,'KA'];
+  const sin = transformarBase([sinPlanta, fila], '2026-11-24');
+  const con = transformarBase([conPlanta, [...fila.slice(0, 7), null, ...fila.slice(7)]], '2026-11-24');
+  // Las dos formas dan la misma fila: stock, planta recalculada, tránsito, pendiente, totales y canal.
+  assert.deepEqual(sin.filas[0], con.filas[0]);
+  assert.deepEqual(sin.filas[0].slice(7, 16), [34824, 0, 0, 12, 34812, 5, 4672, 30140, 'KA']);
+});

@@ -6,11 +6,19 @@ import { categoriaPresentacion, conversionPresentacion } from './preventas-prese
 
 const encabezados = ['Cond de Exp', 'Centro', 'Material', 'Descripcion', 'UM', 'Status', 'Stock Disp', '', 'Cant en transito', 'Cant entrega Pendien', 'Total Disponible', 'Cant de pedidos', 'Cantidad en Pedidos', 'Disponible Final'];
 const texto = (v: unknown) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+const conPlanta = (cabecera: unknown[]) => encabezados.every((v, i) => i === 7 || texto(v) === texto(cabecera[i]));
+// Algunos reportes (por ejemplo, el de KA) no traen la columna 8, "Cant en planta": despu\u00e9s de
+// "Stock Disp" sigue directo "Cant en transito" y el canal queda en la columna 14.
+const encabezadosSinPlanta = encabezados.filter((_, i) => i !== 7);
+const sinPlanta = (cabecera: unknown[]) => encabezadosSinPlanta.every((v, i) => texto(v) === texto(cabecera[i]));
 export function esBase(cabecera: unknown[]) {
-  return encabezados.every((v, i) => i === 7 || texto(v) === texto(cabecera[i]));
+  return conPlanta(cabecera) || sinPlanta(cabecera);
 }
 export function transformarBase(rows: unknown[][], fecha: string, referencias: FilaPreventa[] = []) {
   if (!esBase(rows[0] ?? [])) throw new Error('El archivo no tiene las columnas del archivo base de Preventas.');
+  // Sin la columna de planta se agrega vac\u00eda, para que todas las dem\u00e1s queden en su lugar.
+  // M\u00e1s abajo se recalcula la planta con Total Disponible cuando las cifras del archivo cuadran.
+  if (!conPlanta(rows[0])) rows = rows.map(r => r ? [...r.slice(0, 7), null, ...r.slice(7)] : r);
   const dia = fechaExcel(fecha);
   if (!dia) throw new Error('Selecciona la fecha del corte antes de importar el archivo base.');
   const date = new Date(Date.UTC(1899, 11, 30) + dia * 86400000);
