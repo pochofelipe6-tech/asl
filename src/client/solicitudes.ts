@@ -24,6 +24,8 @@ const TRAZOS = {
   eliminar: '<path d="M4 7h16M9.5 7V4.5h5V7M6.2 7l.9 12.5h9.8L17.8 7M10 11v5M14 11v5"/>',
   chulo: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   menos: '<path d="M6.5 12h11"/>',
+  equis: '<path d="M8 8l8 8M16 8l-8 8"/>',
+  derecha: '<path d="m9 6 6 6-6 6"/>',
   personaLlena: '<circle cx="12" cy="7.5" r="4.2"/><path d="M3.8 21c0-4.6 3.7-7.6 8.2-7.6s8.2 3 8.2 7.6z"/>',
   pinLleno: '<path fill-rule="evenodd" d="M12 2.2a7.3 7.3 0 0 0-7.3 7.3c0 5.6 7.3 12.3 7.3 12.3s7.3-6.7 7.3-12.3A7.3 7.3 0 0 0 12 2.2zm0 10.1a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6z"/>',
   cuboLleno: '<path d="M12 2.3 20.3 7 12 11.6 3.7 7z"/><path d="M3 8.3v9.1l8.2 4.5v-9.1zM21 8.3l-8.2 4.5v9.1l8.2-4.5z"/>',
@@ -1050,27 +1052,42 @@ dialogoVer.addEventListener('close', () => { enVista = null; });
 
 const dialogoCentros = porId<HTMLDialogElement>('soCentrosDialogo');
 
-/** Ficha de un centro: verde si pidió (con sus cifras), gris punteada con "Sin pedido" si no. */
+/** Encuadres de la foto de bodega: cada ficha muestra una parte distinta. */
+const ENCUADRES = ['64%', '74%', '84%', '94%', '100%', '70%', '90%'];
+
+/**
+ * Ficha de un centro sobre la foto de la bodega: oscura con borde verde si pidió (con sus cifras y "Ver en la tabla");
+ * clara con "Sin pedido" si no.
+ */
 function fichaCentro(c: CentroDestino, lista: readonly Registro[], orden: number): HTMLLIElement {
   const pidio = lista.length > 0;
   const ficha = crear('li', `so-centro ${pidio ? 'pidio' : 'sin'}`);
   ficha.style.setProperty('--i', String(orden));
+  ficha.style.setProperty('--foto-x', ENCUADRES[orden % ENCUADRES.length]);
   const marca = crear('span', 'so-centro-marca');
   marca.append(icono(pidio ? TRAZOS.chulo : TRAZOS.menos));
+  const linea = (trazos: string, texto: string, clase = '') => {
+    const el = crear('span', `so-centro-linea${clase}`);
+    el.append(icono(trazos, 'fm-ico so-ico-lleno'), texto);
+    return el;
+  };
+  const estado = crear('span', 'so-centro-estado');
+  // Código y ciudad en la misma línea, para que la ficha sea baja y quepan los 15 centros.
   const cabeza = crear('span', 'so-centro-cabeza');
-  cabeza.append(crear('b', undefined, c.codigo), crear('span', 'so-centro-cd', c.cd));
-  ficha.append(marca, cabeza, crear('span', 'so-centro-quien', c.solicitante));
+  cabeza.append(crear('b', 'so-centro-codigo', c.codigo), linea(TRAZOS.pinLleno, c.cd));
+  ficha.append(marca, cabeza, linea(TRAZOS.personaLlena, c.solicitante));
   if (!pidio) {
-    ficha.append(crear('span', 'so-centro-estado', 'Sin pedido'));
+    estado.append(icono(TRAZOS.equis), 'Sin pedido');
+    ficha.append(estado);
     return ficha;
   }
-  ficha.append(
-    crear('span', 'so-centro-estado', `${plural(lista.length, 'solicitud', 'solicitudes')} · ${cifra(sumar(lista))} und`),
-    crear('span', 'so-centro-ultimo', `Último pedido: ${formatoFecha.format(new Date(lista[0].creado_en))}`),
-  );
-  const ver = crear('button', 'so-boton-tabla so-centro-ver', 'Ver en la tabla');
+  estado.append(icono(TRAZOS.chulo), `${plural(lista.length, 'solicitud', 'solicitudes')} · ${cifra(sumar(lista))} und`);
+  const ultimo = crear('span', 'so-centro-linea so-centro-ultimo');
+  ultimo.append(icono(TRAZOS.calendario), `Último pedido: ${formatoFecha.format(new Date(lista[0].creado_en))}`);
+  const ver = crear('button', 'so-centro-ver');
   ver.type = 'button';
   ver.setAttribute('aria-label', `Ver las solicitudes de ${c.codigo} ${c.cd} en la tabla`);
+  ver.append(icono(TRAZOS.ver), 'Ver en la tabla', icono(TRAZOS.derecha));
   ver.addEventListener('click', () => {
     dialogoCentros.close();
     buscar.value = '';
@@ -1078,7 +1095,7 @@ function fichaCentro(c: CentroDestino, lista: readonly Registro[], orden: number
     alFiltrar();
     porId('soDetalleTitulo').scrollIntoView({ block: 'start' });
   });
-  ficha.append(ver);
+  ficha.append(estado, ultimo, ver);
   return ficha;
 }
 

@@ -340,32 +340,6 @@ html[data-tema="claro"] .fm-tb-tabla.so-hist-tabla tr.so-hist-repetida td{backgr
 .so-kpi-ver .fm-ico{width:14px;height:14px;stroke-width:2.4}
 
 /* Ventana de centros: primero los que pidieron (verde), luego los que no (gris punteado, etiqueta roja). */
-.fm-lienzo.so-centros-dialogo{width:min(1000px,calc(100vw - 32px))}
-.so-centros-grupo{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:13.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.so-centros-grupo:first-child{margin-top:16px}
-.so-centros-grupo::before{content:'';flex:none;width:10px;height:10px;border-radius:50%}
-.so-centros-grupo.si::before{background:#16a34a;box-shadow:0 0 0 4px #16a34a26}
-.so-centros-grupo.no::before{background:var(--fm-rojo);box-shadow:0 0 0 4px #e8002e1f}
-.so-centros-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;margin:0;padding:0;list-style:none}
-.so-centro{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px 14px;border:1px solid var(--fm-borde);border-radius:14px;background:var(--fm-fila)}
-.so-centro.pidio{border-color:#16a34a73;background:linear-gradient(160deg,#16a34a1f,transparent 65%),var(--fm-fila);box-shadow:inset 4px 0 0 #16a34a}
-.so-centro.sin{border-style:dashed;border-color:var(--fm-campo-borde);background:var(--fm-velo)}
-.so-centro-marca{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%}
-.so-centro.pidio .so-centro-marca{background:#16a34a;color:#fff}
-.so-centro.sin .so-centro-marca{background:#e8002e1f;color:var(--fm-rojo-texto)}
-.so-centro-marca .fm-ico{width:14px;height:14px;stroke-width:2.8}
-.so-centro-cabeza{display:flex;align-items:baseline;gap:8px;padding-right:30px}
-.so-centro-cabeza b{font-size:17px;font-weight:800}
-.so-centro-cd{overflow:hidden;color:var(--fm-suave);font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
-.so-centro-quien{font-size:13px;font-weight:600}
-.so-centro-estado{font-size:12.5px;font-weight:800}
-.so-centro.pidio .so-centro-estado{color:#15803d}
-html:not([data-tema="claro"]) .so-centro.pidio .so-centro-estado{color:#4ade80}
-.so-centro.sin .so-centro-estado{align-self:flex-start;margin-top:2px;padding:2px 10px;border-radius:999px;background:#e8002e17;color:var(--fm-rojo-texto)}
-.so-centro.sin :is(.so-centro-cabeza b,.so-centro-quien){color:var(--fm-suave)}
-.so-centro-ultimo{color:var(--fm-suave);font-size:12px}
-.so-page .so-centro-ver{align-self:flex-start;min-height:30px;margin-top:4px;padding:0 12px;font-size:12px}
-.so-centros-vacio{grid-column:1/-1;padding:14px;border:1px dashed var(--fm-campo-borde);border-radius:12px;color:var(--fm-suave);font-size:13.5px;text-align:center}
 @media(prefers-reduced-motion:reduce){.so-page .so-kpi-clic{transition:none}.so-page .so-kpi-clic:hover{transform:none}}
 
 /* ---------- Animaciones de entrada (solo si la persona no pidió reducir el movimiento) ----------
@@ -479,3 +453,134 @@ html:not([data-tema="claro"]) .so-page{--so-puntos:#ffffff2e}
 .so-page .so-kpis .so-kpi-ultimo .so-kpi-cifra{font-size:30px}
 .so-page .so-kpis .so-kpi-azul .so-kpi-divisor{margin:16px 0}
 .so-page .so-kpis .fm-tb-rojo .fm-tb-grande{font-size:clamp(36px,13cqi,54px)}
+
+/* ---------- Ventana "Centros que pidieron": fichas sobre la foto de la bodega ---------- */
+.fm-lienzo.so-centros-dialogo{width:min(1180px,calc(100vw - 32px))}
+/* Mismo peso que la regla del tema claro de .fm-lienzo, para que el fondo decorativo no quede tapado. */
+.fm-lienzo.so-centros-dialogo,html[data-tema="claro"] .fm-lienzo.so-centros-dialogo{border-color:#f1cfd7;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 380 104' preserveAspectRatio='none'%3E%3Cpath d='M150 0h66L132 104H66z' fill='%23e8002e'/%3E%3Cpath d='M216 0h164v104H132z' fill='%231c2331'/%3E%3C/svg%3E") right top/360px 98px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 130' preserveAspectRatio='none'%3E%3Cpath d='M0 24C170 58 330 104 530 116S760 124 800 130H0Z' fill='%23e8002e'/%3E%3Cpath d='M0 70C160 94 310 120 480 126S700 130 800 130H0Z' fill='%231c2331'/%3E%3C/svg%3E") left bottom/62% 104px no-repeat,
+    radial-gradient(ellipse 60% 30% at 55% 100%,#ff2b5524,transparent 70%),
+    linear-gradient(180deg,#fffffff5 0%,#ffffffd6 48%,#ffffffc2 100%),url('/img/centro-logistico-norte.png') 88% 100%/auto 74% no-repeat,#fff}
+html:not([data-tema="claro"]) .fm-lienzo.so-centros-dialogo{border-color:#ff2b5533;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 380 104' preserveAspectRatio='none'%3E%3Cpath d='M150 0h66L132 104H66z' fill='%23e8002e'/%3E%3Cpath d='M216 0h164v104H132z' fill='%231c2331'/%3E%3C/svg%3E") right top/360px 98px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 130' preserveAspectRatio='none'%3E%3Cpath d='M0 24C170 58 330 104 530 116S760 124 800 130H0Z' fill='%23e8002e'/%3E%3Cpath d='M0 70C160 94 310 120 480 126S700 130 800 130H0Z' fill='%231c2331'/%3E%3C/svg%3E") left bottom/62% 104px no-repeat,
+    linear-gradient(180deg,#0c0e13f5 0%,#0c0e13de 48%,#0c0e13cc 100%),url('/img/centro-logistico-norte.png') 88% 100%/auto 74% no-repeat,#0c0e13}
+.so-centros-dialogo .fm-dialogo-cabeza{padding-right:120px}
+.so-centros-dialogo .fm-dialogo-cerrar{position:absolute;top:22px;right:26px;z-index:2;width:46px;height:46px;border:0;background:#fff;color:#0f172a;box-shadow:0 8px 20px -8px #0f172a99}
+.so-centros-dialogo .fm-dialogo-acciones{border-top:0}
+.so-centros-dialogo .fm-dialogo-cuerpo{padding-bottom:18px}
+.so-centros-sub{display:flex;align-items:center;gap:8px;margin:4px 0 0;color:var(--fm-suave);font-size:15px}
+.so-centros-sub .fm-ico{flex:none;width:18px;height:18px}
+.so-centros-grupo{display:inline-flex;align-items:center;gap:10px;margin:16px 0 12px;padding:8px 20px 8px 12px;border-radius:999px;background:var(--fm-fila);box-shadow:0 10px 22px -14px #0f172a80;font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.so-centros-grupo::before{content:'';flex:none;width:14px;height:14px;border-radius:50%}
+.so-centros-grupo.si::before{background:#16a34a;box-shadow:0 0 0 4px #16a34a2e}
+.so-centros-grupo.no::before{background:#e11d48;box-shadow:0 0 0 4px #e11d4826}
+.so-centros-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin:0;padding:0;list-style:none}
+/* Cada ficha: la foto en ::before y el velo en ::after; el contenido va encima. */
+.so-centro{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:16px 18px;overflow:hidden;border-radius:18px}
+.so-centro::before,.so-centro::after{content:'';position:absolute;inset:0}
+.so-centro::before{z-index:-2;background:url('/img/centro-logistico-norte.png') var(--foto-x,80%) 62%/auto 165% no-repeat}
+.so-centro::after{z-index:-1}
+.so-centro.pidio{min-height:214px;border:2px solid #22c55e;box-shadow:0 0 0 3px #22c55e2e,0 18px 34px -18px #16a34acc;color:#fff}
+.so-centro.pidio::after{background:linear-gradient(90deg,#071326f5 0%,#0a1b36e0 44%,#0a1b3670 74%,#0a1b3626)}
+.so-centro.sin{min-height:132px;border:1px solid var(--fm-borde);background:#fff;box-shadow:0 14px 30px -22px #0f172a80;color:var(--fm-texto)}
+.so-centro.sin::before{filter:grayscale(.55) saturate(.8) brightness(1.6);opacity:.9}
+.so-centro.sin::after{background:linear-gradient(90deg,#fffffffa 0%,#ffffffeb 46%,#ffffff8f 76%,#ffffff47)}
+html:not([data-tema="claro"]) .so-centro.sin{background:#14161d}
+html:not([data-tema="claro"]) .so-centro.sin::before{filter:grayscale(.6) brightness(.95)}
+html:not([data-tema="claro"]) .so-centro.sin::after{background:linear-gradient(90deg,#14161dfa 0%,#14161deb 46%,#14161d99 76%,#14161d52)}
+.so-centro-marca{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:34px;height:34px;border-radius:50%}
+.so-centro.pidio .so-centro-marca{background:#16a34a;color:#fff;box-shadow:0 0 0 3px #ffffffd9,0 6px 14px -4px #16a34acc}
+.so-centro.sin .so-centro-marca{background:#ffe4e9;color:#e11d48;box-shadow:0 0 0 3px #ffffffcc}
+.so-centro-marca .fm-ico{width:18px;height:18px;stroke-width:3}
+.so-centro-codigo{font-size:27px;font-weight:800;letter-spacing:-.01em;line-height:1.05}
+.so-centro.sin .so-centro-codigo{font-size:22px}
+.so-centro-linea{display:inline-flex;align-items:center;gap:7px;max-width:100%;font-size:14.5px;font-weight:600}
+.so-centro-linea .fm-ico{flex:none;width:16px;height:16px}
+.so-centro.sin .so-centro-linea{font-size:13px}
+.so-centro.sin .so-centro-linea .fm-ico{color:var(--fm-suave)}
+.so-centro-estado{display:inline-flex;align-items:center;gap:7px;margin-top:4px;padding:5px 13px 5px 6px;border-radius:999px;font-size:13.5px;font-weight:800}
+.so-centro-estado .fm-ico{flex:none;width:21px;height:21px;padding:3px;border-radius:50%;stroke-width:3}
+.so-centro.pidio .so-centro-estado{background:#15803d;color:#fff;box-shadow:0 6px 16px -6px #16a34a}
+.so-centro.pidio .so-centro-estado .fm-ico{background:#fff;color:#15803d}
+.so-centro.sin .so-centro-estado{background:#ffe4e9;color:#be123c}
+.so-centro.sin .so-centro-estado .fm-ico{background:#e11d48;color:#fff}
+.so-centro-ultimo{font-size:13px;opacity:.95}
+.so-centro-ultimo .fm-ico{width:15px;height:15px}
+.so-page .so-centro-ver{display:inline-flex;align-items:center;gap:8px;min-height:36px;margin-top:6px;padding:0 14px;border:0;border-radius:999px;background:#fff;box-shadow:0 8px 18px -8px #000000b3;color:#0f172a;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.so-centro-ver .fm-ico{width:17px;height:17px;stroke-width:2.2}
+.so-centro-ver:hover{background:#fdecef}
+.so-centro-ver:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-centros-vacio{grid-column:1/-1;padding:14px;border:1px dashed var(--fm-campo-borde);border-radius:12px;background:var(--fm-fila);color:var(--fm-suave);font-size:13.5px;text-align:center}
+.so-centros-dialogo #soCentrosListo{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:0 28px;font-size:16px}
+.so-centros-dialogo #soCentrosListo .pv-ico{width:20px;height:20px}
+
+/* Tarjetas de indicadores más compactas (pedido del usuario: "se ven muy grandes"). */
+.so-page .so-kpis{gap:14px}
+.so-page .so-kpis .fm-tb-kpi{min-height:124px;padding:14px 18px;border-radius:18px}
+.so-page .so-kpis .fm-tb-kpi::after{top:12px;right:14px;width:30px;height:30px;background-size:10px 10px}
+.so-page .so-kpis .fm-tb-etiqueta{font-size:13.5px}
+.so-page .so-kpis .fm-tb-unidad{font-size:12.5px}
+.so-page .so-kpis .fm-tb-rojo{column-gap:14px}
+.so-page .so-kpis .fm-tb-rojo .fm-tb-cuadro{width:52px;height:52px;border-radius:14px}
+.so-page .so-kpis .fm-tb-rojo .fm-tb-cuadro .fm-ico{width:26px;height:26px}
+.so-page .so-kpis .fm-tb-rojo .fm-tb-grande{margin-top:2px;font-size:clamp(28px,10cqi,38px)}
+.so-page .so-kpis .fm-tb-delta b{padding:4px 11px;font-size:13.5px}
+.so-page .so-kpis .fm-tb-delta small{font-size:11px}
+.so-page .so-kpis .so-kpi-azul{column-gap:14px}
+.so-kpi-azul-icono{width:48px;height:48px;border-radius:14px}
+.so-kpi-azul-icono .fm-ico{width:24px;height:24px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-etiqueta{font-size:13.5px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-medio{font-size:28px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-azul-izq{gap:5px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-azul-der{gap:4px;padding-left:14px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-azul-der strong{font-size:14px}
+.so-page .so-kpis .so-kpi-azul .fm-tb-pastilla{padding:3px 12px;font-size:14.5px}
+.so-page .so-kpis .so-kpi-azul .so-kpi-divisor{margin:10px 0}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo){gap:8px}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-cuadro{width:40px;height:40px;border-radius:12px}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-cuadro .fm-ico{width:20px;height:20px}
+.so-page .so-kpis :is(.so-kpi-centros,.so-kpi-ultimo) .fm-tb-etiqueta{gap:12px;font-size:14.5px}
+.so-page .so-kpis .so-anillo{width:58px;height:58px}
+.so-page .so-kpis .so-kpi-centros-cuerpo{gap:12px}
+.so-page .so-kpis .so-kpi-cifra{font-size:32px}
+.so-page .so-kpis .so-kpi-ultimo .so-kpi-cifra{font-size:22px}
+.so-page .so-kpis .so-kpi-nota{font-size:12px}
+.so-page .so-kpis .so-kpi-quien{font-size:13px}
+.so-page .so-kpis .so-kpi-ver{font-size:12px}
+
+/* Ventana de centros compacta: 5 fichas por fila y fichas bajas, para ver los 15 centros sin desplazarse. */
+.fm-lienzo.so-centros-dialogo{width:min(1240px,calc(100vw - 32px))}
+.so-centros-dialogo .fm-dialogo-cabeza{padding-top:18px;padding-bottom:14px}
+.so-centros-dialogo .fm-dialogo-cerrar{top:16px;width:40px;height:40px}
+.so-centros-dialogo .fm-dialogo-cuerpo{padding-bottom:6px}
+.so-centros-grupo{margin:10px 0 8px;padding:5px 14px 5px 10px;font-size:13px}
+.so-centros-grupo::before{width:11px;height:11px}
+.so-centros-lista{grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px}
+.so-centro{gap:3px;padding:10px 12px;border-radius:14px}
+.so-centro.pidio,.so-centro.sin{min-height:0}
+.so-centro-cabeza{display:flex;align-items:baseline;gap:8px;max-width:calc(100% - 30px);min-width:0}
+.so-centro-cabeza .so-centro-linea{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.so-centro-codigo,.so-centro.sin .so-centro-codigo{font-size:19px}
+.so-centro-linea,.so-centro.sin .so-centro-linea{gap:5px;font-size:12.5px}
+.so-centro-linea .fm-ico{width:13px;height:13px}
+.so-centro-marca{top:8px;right:8px;width:24px;height:24px}
+.so-centro-marca .fm-ico{width:14px;height:14px}
+.so-centro.pidio .so-centro-marca,.so-centro.sin .so-centro-marca{box-shadow:0 0 0 2px #ffffffd9}
+.so-centro-estado{margin-top:2px;padding:3px 10px 3px 4px;gap:5px;font-size:11.5px}
+.so-centro-estado .fm-ico{width:17px;height:17px;padding:2px}
+.so-centro-ultimo{font-size:11.5px}
+.so-centro-ultimo .fm-ico{width:12px;height:12px}
+.so-page .so-centro-ver{gap:5px;min-height:27px;margin-top:3px;padding:0 10px;font-size:11.5px}
+.so-centro-ver .fm-ico{width:14px;height:14px}
+.so-centros-dialogo .fm-dialogo-acciones{margin-top:4px;padding:8px 28px 14px}
+.so-centros-dialogo #soCentrosListo{min-height:42px;padding:0 22px;font-size:14.5px}
+/* Pantallas bajas (portátiles): un poco menos de aire para que no haga falta desplazarse. */
+@media(max-height:820px){
+  .so-centros-dialogo .fm-dialogo-cabeza{padding-top:12px;padding-bottom:10px}
+  .so-centros-dialogo .fm-dialogo-cerrar{top:12px}
+  .so-centros-grupo{margin:6px 0 6px}
+  .so-centro{gap:2px;padding:8px 11px}
+  .so-page .so-centro-ver{min-height:25px;margin-top:2px}
+  .so-centros-dialogo .fm-dialogo-acciones{padding:4px 28px 10px}
+  .so-centros-dialogo #soCentrosListo{min-height:38px}
+}
