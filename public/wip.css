@@ -1,0 +1,145 @@
+/* Seguimiento WIP: misma identidad que Seguimiento T1 (usa t1.css); aquí solo lo propio de WIP.
+   Series (validadas con el skill dataviz en claro y oscuro, todas contra todas):
+   Armado = naranja · Verificación = azul · Montacargas = aguamarina. Usabilidad WIP = ámbar (el de T1, de la marca).
+   Cargue de DTs: Finalizados = magenta · Total DTs = violeta.
+   Mapa de calor: casi todo está cerca de 100 %, así que la escala marca lo que falta: neutro (usabilidad completa)
+   → cálido intenso (la más baja). Una sola escala de un tono, monótona en luminosidad en los dos temas. */
+
+/* ---------- Variables: oscuro por defecto, claro con html[data-tema="claro"] ---------- */
+.wip-page{
+  --wip-ar:#e76624;--wip-ve:#338ced;--wip-mo:#00a888;--wip-fin:#e24d8b;--wip-tot:#9887ef;
+  --wip-mapa-0:#2b2d33;--wip-mapa-1:#9c4512;--wip-mapa-2:#ff8156;
+}
+html[data-tema="claro"] .wip-page{
+  --wip-ar:#f47230;--wip-ve:#257de0;--wip-mo:#00b894;--wip-fin:#ee7fac;--wip-tot:#6a4ce2;
+  --wip-mapa-0:#e9e7de;--wip-mapa-1:#f4a46c;--wip-mapa-2:#b8321c;
+}
+.wip-c-ar{--c:var(--wip-ar)}.wip-c-ve{--c:var(--wip-ve)}.wip-c-mo{--c:var(--wip-mo)}.wip-c-fin{--c:var(--wip-fin)}.wip-c-tot{--c:var(--wip-tot)}
+
+/* ---------- Portada: la línea de datos cargados puede ocupar dos renglones ---------- */
+.wip-hero-fuente{line-height:1.4}
+
+/* ---------- Nota discreta: CD que no están en la tabla de gerencias ---------- */
+.wip-nota-cd{display:flex;align-items:flex-start;gap:8px;margin:-4px 0 0;padding:0 6px;color:var(--t1-suave);font-size:12.5px;line-height:1.45}
+.wip-nota-cd .t1-ico{flex:none;width:16px;height:16px;margin-top:1px;color:var(--t1-icono)}
+
+/* ---------- Rejillas ---------- */
+.wip-graficos-a{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+
+/* ---------- "Tendencia": botones que muestran u ocultan cada línea (también son la leyenda) ---------- */
+.wip-tendencias{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:-2px 0 10px}
+.wip-tend-chips{display:flex;flex-wrap:wrap;gap:6px}
+.wip-tend{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 10px 0 12px;border:1px solid var(--t1-borde-campo);border-radius:999px;background:transparent;color:var(--t1-tenue);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.wip-tend:hover{border-color:var(--cc-amarillo)}
+.wip-tend:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.wip-tend-muestra{flex:none;width:16px;height:4px;border-radius:2px;background:var(--t1-borde-campo)}
+.wip-tend .t1-ico{width:15px;height:15px;stroke-width:2.4;visibility:hidden}
+.wip-tend[aria-pressed="true"]{border-color:var(--t1-tenue);background:var(--t1-card-2);color:var(--t1-texto)}
+.wip-tend[aria-pressed="true"] .wip-tend-muestra{background:var(--c)}
+.wip-tend[aria-pressed="true"] .t1-ico{visibility:visible}
+
+/* ---------- Tablas ---------- */
+.wip-tabla thead .t1-kpi-serie{display:inline-block;width:12px;height:3px;margin:0 6px 0 0;border-radius:2px;background:var(--c);vertical-align:middle;box-shadow:0 0 0 1px #11111426}
+.wip-tabla tfoot :is(th,td){border-top:2px solid var(--t1-borde-campo);background:var(--t1-card-2);font-weight:800}
+.wip-tabla tfoot th{text-transform:none}
+.wip-fila-elegida{background:var(--t1-elegida)}
+.wip-tabla tbody tr.wip-fila-elegida:hover{background:var(--t1-elegida)}
+.wip-fila-elegida th{box-shadow:inset 4px 0 0 var(--cc-amarillo);font-weight:800}
+/* Tabla por día: alto fijo con el encabezado y el total siempre a la vista. */
+.wip-tabla-alta{max-height:432px;overflow:auto}
+.wip-tabla-alta tfoot :is(th,td){position:sticky;bottom:0;z-index:1}
+
+/* ---------- Mapa de calor: desliza DENTRO de la tarjeta, la columna de CD queda fija ---------- */
+.wip-mapa-cabeza{flex-wrap:wrap}
+.wip-medida{margin-left:auto}
+.wip-medida .t1-chip{padding:0 12px;font-size:12.5px}
+.wip-mapa-scroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--t1-borde);border-radius:14px;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--t1-borde-campo) transparent}
+.wip-mapa-scroll:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.t1-mapa.wip-mapa{width:max(100%,calc(var(--t1-ancho-cd,120px) + var(--wip-dias,1) * 50px))}
+.wip-mapa .wip-mapa-fija{position:sticky;left:0;z-index:2;background:var(--t1-card);box-shadow:8px 0 10px -10px #000c}
+.wip-mapa td{font-size:11.5px}
+.wip-mapa td.wip-celda-vacia{background:repeating-linear-gradient(135deg,transparent 0 5px,var(--t1-borde) 5px 6.5px)}
+.wip-mapa td.wip-celda-sin-dato{background:var(--t1-pista);color:var(--t1-tenue)}
+.wip-mapa-ayuda{color:var(--t1-suave);font-size:12px;font-weight:600}
+.wip-mapa-desliza{margin-left:auto}
+
+/* ---------- Datos cargados (un solo archivo) ---------- */
+.wip-datos{grid-template-columns:minmax(0,1.3fr) minmax(260px,1fr)}
+
+/* ---------- Pantallas medianas y celular ---------- */
+@media(max-width:1100px){
+  .wip-graficos-a{grid-template-columns:1fr}
+  .wip-datos{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .wip-page .pv-tab:last-child:nth-child(odd){grid-column:1 / -1}
+  .wip-hero-fuente{border-radius:14px}
+  .wip-medida{width:100%;margin-left:0}
+  .wip-medida .t1-chips{justify-content:space-between}
+  .wip-medida .t1-chip{flex:1}
+  .wip-tabla{font-size:12.5px}
+  .wip-tabla th,.wip-tabla td{padding:7px 7px}
+  .wip-tabla thead th{font-size:11.5px}
+  .wip-tabla thead .t1-kpi-serie{display:none}
+  .wip-mapa-desliza{margin-left:0}
+}
+@media(forced-colors:active){.wip-tend-muestra{forced-color-adjust:none}}
+
+/* ---------- Tablero compacto, en la distribución del Power BI ----------
+   Fila A: tabla por CD | usabilidad por día + cargue de DTs (una sobre otra).
+   Fila B: tabla por día | % usabilidad WIP por CD.  Luego la matriz CD × día a lo ancho.
+   Fila D: gerencia | OL | semana. Proporciones tomadas del lienzo del Power BI (1278 : 1655 y 912 : 766 : 1243). */
+.wip-compacto{gap:14px}
+.wip-compacto .t1-pista{margin:0}
+.wip-compacto .t1-graficos{gap:14px}
+.wip-compacto .t1-card{padding:14px 16px 16px;border-radius:18px}
+.wip-compacto .t1-card-cabeza{margin-bottom:8px}
+.wip-compacto .t1-card-cabeza h3{font-size:14.5px}
+.wip-compacto .t1-card-cabeza p{font-size:12px}
+.wip-compacto .t1-circulo{width:34px;height:34px}
+.wip-compacto .t1-circulo .t1-ico{width:17px;height:17px}
+.wip-compacto .t1-ver-tabla{height:29px;padding:0 11px;font-size:12px}
+.wip-compacto .t1-grafico{min-height:150px}
+.wip-compacto .wip-tendencias{margin:-2px 0 4px}
+.wip-compacto .wip-tend{min-height:28px}
+.wip-fila-a,.wip-fila-b{grid-template-columns:minmax(0,1278fr) minmax(0,1655fr)}
+.wip-fila-d{grid-template-columns:minmax(0,912fr) minmax(0,766fr) minmax(0,1243fr)}
+.wip-pila{display:flex;flex-direction:column;gap:14px;min-width:0}
+.wip-pila>.t1-card{display:flex;flex:1;flex-direction:column}
+.wip-pila>.t1-card>.t1-grafico{flex:1}
+/* Tablas más apretadas, como las del Power BI. */
+.wip-compacto .wip-tabla{font-size:12.5px}
+.wip-compacto .wip-tabla th,.wip-compacto .wip-tabla td{padding:6px 10px}
+.wip-compacto .wip-tabla thead th{font-size:11.5px}
+/* Tabla por día: por páginas con flechas (sin barra de desplazamiento). */
+.wip-compacto .wip-tabla-caja{min-height:0}
+.wip-dia-paginas{margin-top:2px}
+
+@media(max-width:1100px){
+  .wip-fila-a,.wip-fila-b{grid-template-columns:1fr}
+  .wip-fila-d{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wip-fila-d>.t1-card:last-child{grid-column:1 / -1}
+}
+@media(max-width:700px){
+  .wip-fila-d{grid-template-columns:1fr}
+}
+
+/* ---------- Indicadores como los del Power BI ----------
+   Tarjeta blanca (también en modo oscuro, como en el Power BI), título en mayúsculas, ícono a la izquierda y la cifra
+   grande a la derecha: verde (#5FF74B) si llega a la meta del 99 %, rojo (#F6563A) si no. */
+.wip-indicadores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.wip-ind{position:relative;display:flex;align-items:center;gap:14px;min-width:0;min-height:96px;padding:12px 20px 12px 16px;border:1px solid #e6e7ea;border-radius:18px;background:#fff;box-shadow:0 10px 26px -18px #0006;color:#111;overflow:hidden}
+.wip-ind-img{flex:none;width:58px;height:58px;object-fit:contain}
+.wip-ind-img.wip-ind-logo{width:84px;height:56px}
+.wip-ind-texto{display:flex;flex:1;flex-direction:column;align-items:flex-end;min-width:0}
+.wip-ind-titulo{margin:0;color:#111;font-size:13px;font-weight:900;letter-spacing:.08em;text-align:right;text-transform:uppercase}
+.wip-ind-valor{display:block;margin-top:2px;color:#111;font-size:clamp(34px,2.6vw,46px);font-weight:900;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;text-align:right}
+.wip-ind-ok .wip-ind-valor{color:#5FF74B;text-shadow:0 1px 0 #2f8a2440}
+.wip-ind-bajo .wip-ind-valor{color:#F6563A}
+.wip-ind-valor.t1-sin-dato{color:#9aa0a6}
+html[data-tema="oscuro"] .wip-ind{border-color:#ffffff1f;box-shadow:0 14px 30px -18px #000}
+@media(max-width:1280px){.wip-indicadores{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){
+  .wip-indicadores{grid-template-columns:1fr}
+  .wip-ind{min-height:84px}
+}

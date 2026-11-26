@@ -1,0 +1,2 @@
+function n(e){let t=document.getElementById(e);if(!t)throw new Error(`Falta el elemento #${e} en la p\xE1gina`);return t}var o=n("ccMensaje"),l=0;for(let e of document.querySelectorAll(".cc-boton.pronto"))e.addEventListener("click",()=>{let t=e.dataset.falta;o.textContent=`${e.dataset.modulo??"Este m\xF3dulo"} est\xE1 en construcci\xF3n. ${t?`Falta ${t}.`:"Muy pronto estar\xE1 disponible."}`,o.classList.add("visible"),clearTimeout(l),l=window.setTimeout(()=>o.classList.remove("visible"),6e3)});
+//# sourceMappingURL=inicio.js.map

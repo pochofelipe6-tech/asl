@@ -1,0 +1,105 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OFE · Comando Central</title><script>try { document.documentElement.dataset.tema = localStorage.getItem('frescura-tema') || 'oscuro'; } catch (_) {}</script><link rel="stylesheet" href="/modulos.css"><link rel="stylesheet" href="/control-design.css"><link rel="stylesheet" href="/comando.css"><link rel="stylesheet" href="/preventas.css"><link rel="stylesheet" href="/formularios.css"><link rel="stylesheet" href="/t1.css"><link rel="stylesheet" href="/ofe.css"><script type="module" src="/js/modulos.js"></script><script type="module" src="/js/ofe.js"></script></head><body class="pv-page t1-page ofe-page">
+<header class="header pv-header"><a class="brand" href="/modulos"><img class="cc-logo" src="/img/comando/logo-comando.png" alt="Comando Central · Team WH North Regional"><span><strong>TORRE CONTROL</strong><small>Regional Norte</small></span></a>
+<div class="account"><a class="cc-boton-inicio" href="/modulos"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h4.5v-6h4v6h4.5V10"/></svg>Inicio</a><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span class="theme-bulb" aria-hidden="true"><svg viewBox="0 0 32 32"><g class="bulb-rays"><path d="M16 1v3M5.4 5.5l2.1 2.1M1.5 15h3M26.5 15h3M24.5 7.6l2.1-2.1"/></g><path class="bulb-glass" d="M10 20c0-1.8-2.4-3.1-2.4-6.7a8.4 8.4 0 0 1 16.8 0C24.4 16.9 22 18.2 22 20z"/><path class="bulb-base" d="M10.5 23h11M11.5 26h9M14 29h4"/><path class="bulb-filament" d="M13 20v-5l3 2 3-2v5"/></svg></span><span id="themeLabel">Modo claro</span></button><span class="pv-user"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5v-1a7 7 0 0 1 14 0v1"/></svg><span id="userName">Usuario</span></span><button class="logout" id="logout" type="button">Cerrar sesión</button></div></header><p id="sessionStatus" class="session-status" role="status"></p>
+<main class="preventa-app pv-anim t1-app ofe-app">
+<section class="pv-hero t1-hero" aria-labelledby="ofeTitulo"><span class="pv-eyebrow">Comando Central · Team WH North Regional</span><h1 id="ofeTitulo">OFE <span class="t1-hero-barra" aria-hidden="true">/</span> <em>North Regional</em></h1><p class="t1-hero-lineas">Uso de montacargas: Carga / Movimiento / Ralentí</p><div class="t1-hero-datos"><button type="button" id="ofeSubir" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><button type="button" id="ofeAbrirMontacargas" class="t1-boton-sec ofe-boton-hero" aria-haspopup="dialog" aria-controls="ofeMc"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v-6h6.5l2-5H14v11M14 14h3.5M17.5 3.5v15h4"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg>Montacargas</button><p id="ofeHeroDatos" class="t1-hero-fuente ofe-hero-fuente">Consultando los datos cargados…</p></div></section>
+
+<!-- Filtros (los segmentadores del Power BI): mandan sobre todo lo de abajo. Por defecto, el mes de la última fecha de Data FMS. -->
+<section id="ofeFiltros" class="t1-filtros t1-anima" style="--i:0" aria-labelledby="ofeFiltrosTitulo">
+<h2 id="ofeFiltrosTitulo" class="cc-oculto">Filtros</h2>
+<div class="t1-filtros-fila">
+<div class="t1-campo" role="group" aria-labelledby="ofeRangoEt"><span id="ofeRangoEt" class="t1-etiqueta"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Rango de fecha</span>
+<span class="t1-rango"><input id="ofeDesde" type="date" aria-label="Desde (primer día)"><span class="t1-rango-a" aria-hidden="true">a</span><input id="ofeHasta" type="date" aria-label="Hasta (último día)"></span></div>
+<label class="t1-campo" for="ofeMes"><span class="t1-etiqueta"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Mes</span><select id="ofeMes"><option value="">Rango libre</option></select></label>
+<div class="t1-campo t1-multi" id="ofeMultiCds"><span class="t1-etiqueta" id="ofeCdsEt"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>CD</span></div>
+<div class="t1-campo t1-multi" id="ofeMultiMaquinas"><span class="t1-etiqueta" id="ofeMaquinasEt"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v-6h6.5l2-5H14v11M14 14h3.5M17.5 3.5v15h4"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg>Máquina</span></div>
+<div class="t1-campo" role="group" aria-labelledby="ofeTurnosEt"><span id="ofeTurnosEt" class="t1-etiqueta"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Turno</span><div id="ofeTurnos" class="t1-chips"></div></div>
+<div class="t1-filtros-acciones"><button type="button" id="ofeLimpiar" class="t1-boton-sec"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4h-4"/></svg>Limpiar filtros</button></div>
+</div>
+<div class="t1-pie-filtros"><ul id="ofeActivos" class="t1-activos" aria-label="Filtros aplicados" hidden></ul><p id="ofeResumen" class="t1-resumen" role="status" aria-live="polite">Cargando los datos de Data FMS…</p><p id="ofeNotaLista" class="ofe-nota-lista" role="status" hidden></p></div>
+<div id="ofeProgreso" class="t1-progreso" role="status" aria-live="polite" hidden><span class="t1-progreso-barra" aria-hidden="true"><i></i></span><span id="ofeProgresoTexto"></span></div>
+</section>
+
+<!-- Aviso: montacargas de Data FMS cuyo chasis no está en la lista de montacargas (no tienen CD ni placa: no se cuentan). -->
+<div id="ofeAvisoSinCd" class="t1-aviso ofe-aviso" hidden><span class="t1-aviso-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.2v.1"/></svg></span><p id="ofeAvisoSinCdTexto"></p><div class="t1-aviso-acciones"><button type="button" id="ofeAvisoVer" class="t1-boton-sec" aria-expanded="false" aria-controls="ofeChasis">Ver chasis</button></div>
+<div id="ofeChasis" class="ofe-chasis" hidden><p class="ofe-chasis-titulo">Chasis que no están en la lista de montacargas</p><p class="ofe-chasis-ayuda">Primero los que tienen más registros en el rango elegido. Agrega cada uno con su CD y su placa para que sus registros cuenten.</p><ul id="ofeChasisLista" class="ofe-chasis-lista"></ul><div id="ofeChasisPaginas"></div></div></div>
+
+<section class="t1-kpis" aria-labelledby="ofeKpisTitulo">
+<h2 id="ofeKpisTitulo" class="cc-oculto">Totales del periodo</h2>
+<article class="t1-kpi t1-kpi-amarillo t1-anima" style="--i:1"><span class="t1-kpi-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4.2-5.2M6.3 10.4l1.1.9M12 7.8V9.2M17.7 10.4l-1.1.9"/><circle cx="12" cy="16.5" r="1.3"/></svg></span><div class="t1-kpi-texto"><p class="t1-kpi-etiqueta">OFE</p><strong id="ofeKpiOfe" class="t1-kpi-valor">—</strong><p class="t1-kpi-nota">(movimiento + carga) / 24 h</p></div></article>
+<article class="t1-kpi t1-anima" style="--i:2"><span class="t1-kpi-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/></svg></span><div class="t1-kpi-texto"><p class="t1-kpi-etiqueta"><i class="t1-kpi-serie ofe-c-ral" aria-hidden="true"></i>Horas ralentí</p><strong id="ofeKpiRalenti" class="t1-kpi-valor">—</strong><p id="ofeKpiRalentiNota" class="t1-kpi-nota">Encendido sin moverse ni cargar</p></div></article>
+<article class="t1-kpi t1-anima" style="--i:3"><span class="t1-kpi-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M7.2 6.8a7.5 7.5 0 1 0 9.6 0"/></svg></span><div class="t1-kpi-texto"><p class="t1-kpi-etiqueta"><i class="t1-kpi-serie ofe-c-enc" aria-hidden="true"></i>Tiempo encendido</p><strong id="ofeKpiEncendido" class="t1-kpi-valor">—</strong><p id="ofeKpiEncendidoNota" class="t1-kpi-nota">Carga + movimiento + ralentí</p></div></article>
+<article class="t1-kpi t1-anima" style="--i:4"><span class="t1-kpi-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3 17v-6h6.5l2-5H14v11M14 14h3.5M17.5 3.5v15h4"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg></span><div class="t1-kpi-texto"><p class="t1-kpi-etiqueta"><i class="t1-kpi-serie ofe-c-car" aria-hidden="true"></i><i class="t1-kpi-serie ofe-c-mov" aria-hidden="true"></i>Horas de carga + movimiento</p><strong id="ofeKpiUso" class="t1-kpi-valor">—</strong><p id="ofeKpiUsoNota" class="t1-kpi-nota">—</p></div></article>
+</section>
+
+<!-- Sin datos cargados: aparece en lugar del tablero. -->
+<section id="ofeVacio" class="t1-card t1-vacio" aria-labelledby="ofeVacioTitulo" hidden>
+<span class="t1-vacio-icono" aria-hidden="true"><svg viewBox="0 0 64 52"><path class="t1-vacio-lado" d="M32 24 50 15v19L32 45z"/><path class="t1-vacio-frente" d="M32 24 14 15v19l18 11z"/><path class="t1-vacio-tapa" d="M14 15 32 6l18 9-18 9z"/></svg></span>
+<h2 id="ofeVacioTitulo">Aún no hay datos de OFE</h2><p>Sube Data FMS.xlsx para ver el uso de los montacargas.</p>
+<div class="t1-vacio-acciones"><button type="button" id="ofeVacioSubir" class="t1-boton">Subir Excel</button></div>
+</section>
+
+<!-- Tablero en la distribución del Power BI (lienzo de 2970): turno | composición | ralentí por máquina;
+     % por día | % OFE por máquina; horas por CD | ralentí por gerencia. -->
+<div id="ofeTablero" class="t1-tablero ofe-compacto">
+<h2 class="cc-oculto">Uso de los montacargas: gráficos y tablas</h2>
+<p class="t1-pista">Toca un turno o la barra de una máquina para filtrar toda la página; vuelve a tocarla para quitar el filtro.</p>
+<div class="t1-graficos ofe-fila-1">
+<article class="t1-card t1-anima" style="--i:5" aria-labelledby="ofeGTurnoT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><h3 id="ofeGTurnoT">Seguimiento por turno (h)</h3><p id="ofeGTurnoS">Promedio de horas de cada montacargas por turno</p></div><button type="button" class="t1-ver-tabla" data-grafico="turno" aria-pressed="false">Ver tabla</button></div><div id="ofeGTurno" class="t1-grafico"></div></article>
+<article class="t1-card t1-anima" style="--i:6" aria-labelledby="ofeGComposicionT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.9A8.5 8.5 0 0 1 20.1 9H15z"/></svg></span><div><h3 id="ofeGComposicionT">Composición de horas</h3><p id="ofeGComposicionS"></p></div></div><div id="ofeGComposicion" class="t1-grafico ofe-dona-zona"></div></article>
+<article class="t1-card t1-anima" style="--i:7" aria-labelledby="ofeGMaqRalT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M4 6h11M4 12h16M4 18h8"/></svg></span><div><h3 id="ofeGMaqRalT">Tiempo ralentí por máquina (h)</h3><p id="ofeGMaqRalS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="maquinaRalenti" aria-pressed="false">Ver tabla</button></div><div id="ofeGMaqRal" class="t1-grafico"></div></article>
+</div>
+<div class="t1-graficos ofe-fila-2">
+<article class="t1-card t1-anima" style="--i:8" aria-labelledby="ofeGDiaT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3.5 17l5-5.5 4 3.5 7.5-8.5"/><path d="M3.5 20.5h17"/></svg></span><div><h3 id="ofeGDiaT">% Encendido, movimiento y carga por día</h3><p id="ofeGDiaS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="dia" aria-pressed="false">Ver tabla</button></div><div id="ofeGDia" class="t1-grafico"></div><p class="t1-nota ofe-nota-dia">Promedio de cada día sobre un turno de 8 h: % encendido = encendido / 8 · % movimiento = (movimiento + carga) / 8 · % carga = carga / 8. Puede pasar de 100 %. Con poco ralentí, % encendido queda casi encima de % movimiento.</p></article>
+<article class="t1-card t1-anima" style="--i:9" aria-labelledby="ofeGMaqOfeT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M4 6h11M4 12h16M4 18h8"/></svg></span><div><h3 id="ofeGMaqOfeT">% OFE por máquina</h3><p id="ofeGMaqOfeS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="maquinaOfe" aria-pressed="false">Ver tabla</button></div><div id="ofeGMaqOfe" class="t1-grafico"></div></article>
+</div>
+<div class="t1-graficos ofe-fila-3">
+<article class="t1-card t1-anima" style="--i:10" aria-labelledby="ofeTCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="ofeTCdT">Horas por CD</h3><p id="ofeTCdS"></p></div></div><div id="ofeTCd" class="ofe-tabla-cd"></div></article>
+<article class="t1-card t1-anima" style="--i:11" aria-labelledby="ofeGGerT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="ofeGGerT">Tiempo ralentí por gerencia (h)</h3><p id="ofeGGerS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="gerencia" aria-pressed="false">Ver tabla</button></div><div id="ofeGGer" class="t1-grafico"></div></article>
+</div>
+</div>
+
+<!-- Carga de datos: Data FMS.xlsx (hoja "Data FMS"). -->
+<section id="ofeDatos" class="t1-seccion" aria-labelledby="ofeDatosTitulo">
+<h2 id="ofeDatosTitulo" class="t1-seccion-titulo"><span>Datos cargados</span></h2>
+<div class="t1-card t1-datos ofe-datos t1-anima" style="--i:12">
+<div class="t1-archivo" id="ofeArchivo"><span class="t1-archivo-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 12.5l6 5M15 12.5l-6 5"/></svg></span><div><p class="t1-archivo-tipo">Data FMS · uso de montacargas</p><strong class="t1-archivo-nombre">Sin cargar</strong><p class="t1-archivo-detalle"></p><p class="t1-archivo-quien"></p></div></div>
+<div class="t1-datos-subir"><button type="button" id="ofeSubirAbajo" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><p>Acepta Data FMS.xlsx (hoja «Data FMS»). Cada archivo reemplaza los datos anteriores.</p></div>
+</div>
+</section>
+<input id="ofeArchivoEntrada" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+</main>
+<!-- Lista de montacargas: el CD y la placa de cada registro de Data FMS salen de aquí (por el chasis). Se agregan y corrigen sin salir de la página. -->
+<dialog id="ofeMc" class="fm-lienzo fm-dialogo ofe-dialogo" aria-labelledby="ofeMcTitulo" aria-describedby="ofeMcDetalle">
+<div class="ofe-dialogo-marco">
+<div class="fm-form-head fm-dialogo-cabeza"><span class="fm-head-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 17v-6h6.5l2-5H14v11M14 14h3.5M17.5 3.5v15h4"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/></svg></span><div class="fm-head-texto"><h2 id="ofeMcTitulo">Lista de montacargas</h2><p id="ofeMcDetalle">El CD y la máquina de cada registro de Data FMS salen de esta lista, por el número de chasis.</p></div><button type="button" id="ofeMcCerrarX" class="fm-dialogo-cerrar" aria-label="Cerrar la lista de montacargas"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<div class="fm-dialogo-cuerpo">
+<section id="ofeMcPasoLista" class="ofe-mc-paso" aria-label="Montacargas de la lista">
+<div class="ofe-mc-barra"><label class="t1-buscar ofe-mc-buscar"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8"/></svg><input id="ofeMcBuscar" type="search" placeholder="Buscar chasis, placa o CD" autocomplete="off" spellcheck="false" aria-label="Buscar montacargas por chasis, placa o CD"></label><p id="ofeMcCuenta" class="ofe-mc-cuenta"></p></div>
+<p id="ofeMcNota" class="ofe-nota-lista" hidden></p>
+<div class="t1-tabla-caja ofe-mc-caja"><table class="t1-tabla ofe-mc-tabla"><caption class="cc-oculto">Montacargas de la lista: chasis, CD, placa, origen y acciones</caption><thead><tr><th scope="col">Chasis</th><th scope="col">CD</th><th scope="col">Placa</th><th scope="col">Origen</th><th scope="col" class="ofe-mc-th-acciones">Acciones</th></tr></thead><tbody id="ofeMcFilas"></tbody></table></div>
+<div id="ofeMcPaginas"></div>
+</section>
+<form id="ofeMcForm" class="ofe-mc-paso ofe-mc-form" novalidate hidden aria-labelledby="ofeMcFormTitulo" aria-describedby="ofeMcFormAyuda">
+<h3 id="ofeMcFormTitulo" class="ofe-mc-form-titulo">Agregar montacargas</h3>
+<p id="ofeMcFormAyuda" class="ofe-mc-form-ayuda"></p>
+<div class="ofe-mc-campos">
+<div class="fm-pregunta" data-campo="chasis"><label class="fm-enunciado" for="ofeMcChasis">Chasis<b class="fm-req" aria-hidden="true">*</b></label><input id="ofeMcChasis" name="chasis" type="text" autocomplete="off" spellcheck="false" maxlength="60" required aria-describedby="ofeMcChasisInfo ofeMcChasisError"><p id="ofeMcChasisInfo" class="ofe-mc-info" aria-live="polite"></p><p id="ofeMcChasisError" class="fm-error"></p></div>
+<div class="fm-pregunta" data-campo="cd"><label class="fm-enunciado" for="ofeMcCd">CD<b class="fm-req" aria-hidden="true">*</b></label><select id="ofeMcCd" name="cd" required aria-describedby="ofeMcCdError"><option value="">Elige el CD</option></select><p id="ofeMcCdError" class="fm-error"></p></div>
+<div class="fm-pregunta" data-campo="placa"><label class="fm-enunciado" for="ofeMcPlaca">Placa o número de máquina<b class="fm-req" aria-hidden="true">*</b></label><input id="ofeMcPlaca" name="placa" type="text" autocomplete="off" spellcheck="false" maxlength="20" required aria-describedby="ofeMcPlacaError"><p id="ofeMcPlacaError" class="fm-error"></p></div>
+</div>
+</form>
+</div>
+<p id="ofeMcEstado" class="fm-estado ofe-mc-estado" role="status" aria-live="polite"></p>
+<div class="fm-dialogo-acciones">
+<button type="button" id="ofeMcCerrar" class="pv-btn fm-btn-sec">Cerrar</button>
+<button type="button" id="ofeMcAgregar" class="pv-btn pv-btn-primary"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar montacargas</button>
+<button type="button" id="ofeMcVolver" class="pv-btn fm-btn-sec" hidden>Cancelar</button>
+<button type="submit" id="ofeMcGuardar" form="ofeMcForm" class="pv-btn pv-btn-primary" hidden><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Guardar</button>
+</div>
+</div>
+</dialog>
+<div id="ofeTip" class="t1-tip" aria-hidden="true" hidden></div>
+<p id="ofeAnuncio" class="cc-oculto" aria-live="polite"></p>
+<footer>BAVARIA · TORRE CONTROL · REGIONAL NORTE</footer>
+</body></html>

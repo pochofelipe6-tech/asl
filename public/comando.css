@@ -1,0 +1,135 @@
+/* Comando Central · Team WH North Regional: identidad negra y amarilla de la app (réplica del Power BI "Seguimiento ATCT").
+   Paleta: negro de fondo, amarillo de acento (#ffd100) y texto negro sobre amarillo para que se lea bien. */
+:root{--cc-amarillo:#ffd100;--cc-amarillo-claro:#ffe34d;--cc-amarillo-oscuro:#e0b400;--cc-negro:#050505;--cc-panel:#111214;--cc-borde:#2b2c30;--cc-texto:#f5f5f5;--cc-suave:#b9bcc4;--cc-foco:#ffba48}
+.cc-oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Inicio: lienzo con la proporción de la imagen del Power BI (1779 × 884) y el menú encima ---------- */
+/* El inicio ocupa exactamente la ventana: sin barras de desplazamiento a la derecha ni abajo. */
+html:has(body.cc-inicio){overflow:hidden}
+body.cc-inicio{--cc-cinta:46px;font-family:"Segoe UI",Arial,sans-serif;display:grid;grid-template-rows:auto minmax(var(--cc-cinta),1fr);justify-items:center;height:100vh;height:100dvh;margin:0;overflow:hidden;background:var(--cc-negro);color:var(--cc-texto)}
+.cc-lienzo{container-type:size;position:relative;width:min(100%,calc((100vh - var(--cc-cinta)) * 1779 / 884));width:min(100%,calc((100dvh - var(--cc-cinta)) * 1779 / 884));aspect-ratio:1779/884;overflow:hidden;background:#000 url('/img/comando/fondo-inicio.jpg') 0 0/100% 100% no-repeat}
+/* Sombra a la izquierda para que el menú se lea sobre el cielo. */
+.cc-lienzo::before{content:'';position:absolute;inset:19cqh 0 0 0;background:linear-gradient(90deg,#000000b3 0%,#00000066 22%,transparent 38%);pointer-events:none}
+
+.cc-menu{position:absolute;top:22.5cqh;left:2.9cqw;bottom:11cqh;width:22cqw;display:flex;flex-direction:column;justify-content:flex-start;gap:.55cqh}
+.cc-grupo{margin:1cqh 0 .2cqh;padding-left:.3cqw;color:var(--cc-amarillo);font-size:max(10px,.72cqw);font-weight:800;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 4px #000}
+.cc-grupo:first-of-type{margin-top:.6cqh}
+.cc-boton{position:relative;display:flex;flex:1 1 0;align-items:center;justify-content:space-between;gap:.6cqw;min-height:0;max-height:6.6cqh;padding:0 1cqw;border:1px solid #2f3033;border-radius:max(6px,.5cqw);background:linear-gradient(180deg,#0b0b0c,#000);box-shadow:0 .4cqh 1.2cqh #000000a6;color:#fff;font:inherit;font-size:max(12px,1.08cqw);font-weight:800;letter-spacing:.01em;text-align:left;text-decoration:none;cursor:pointer;transition:border-color .15s ease,transform .15s ease,background .15s ease}
+.cc-boton::after{content:'';flex:none;width:.5cqw;height:.5cqw;min-width:6px;min-height:6px;border-top:2px solid currentColor;border-right:2px solid currentColor;opacity:0;transform:rotate(45deg) translateX(-4px);transition:opacity .15s ease,transform .15s ease}
+.cc-boton:hover{border-color:var(--cc-amarillo);transform:translateX(.3cqw)}
+.cc-boton:hover::after{opacity:1;transform:rotate(45deg)}
+.cc-boton:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.cc-boton.pronto{color:#d9dbe0}
+.cc-pronto{flex:none;padding:.25cqh .55cqw;border-radius:999px;background:var(--cc-amarillo);color:#111;font-size:max(9px,.62cqw);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.cc-boton.pronto::after{display:none}
+
+/* Usuario, tema y salida: debajo del menú. */
+.cc-cuenta{position:absolute;left:2.9cqw;bottom:3cqh;display:flex;flex-wrap:wrap;align-items:center;gap:.6cqw;max-width:34cqw}
+.cc-usuario{display:inline-flex;align-items:center;gap:6px;padding:0 4px;color:#fff;font-size:max(12px,.82cqw);font-weight:700;text-shadow:0 1px 4px #000}
+.cc-usuario svg,.cc-cuenta .logout svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cc-usuario svg{color:var(--cc-amarillo)}
+.cc-cuenta .theme-toggle,.cc-cuenta .logout{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid #3a3b40;border-radius:999px;background:#000000b3;color:#fff;font:inherit;font-size:max(12px,.78cqw);font-weight:700;cursor:pointer}
+html[data-tema='claro'] .cc-cuenta .theme-toggle{border-color:#3a3b40;background:#000000b3;color:#fff}
+.cc-cuenta .logout{border-color:var(--cc-amarillo);background:var(--cc-amarillo);color:#111}
+.cc-cuenta .theme-toggle:hover,.cc-cuenta .logout:hover{border-color:var(--cc-amarillo-claro)}
+.cc-cuenta :is(.theme-toggle,.logout):focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.cc-cuenta .theme-bulb,.cc-cuenta .theme-bulb svg{width:20px;height:20px}
+html[data-tema='claro'] .cc-cuenta .theme-bulb{color:var(--cc-amarillo)}
+
+/* Avisos ("en construcción" y errores de sesión). */
+.cc-aviso{position:absolute;left:50%;bottom:4cqh;z-index:2;max-width:min(560px,80vw);margin:0;padding:12px 18px;border:1px solid var(--cc-amarillo);border-radius:14px;background:#0b0b0cf2;box-shadow:0 18px 40px -16px #000;color:#fff;font-size:14px;font-weight:600;line-height:1.4;text-align:center;opacity:0;transform:translate(-50%,12px);pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+.cc-aviso.visible,.cc-error:not(:empty){opacity:1;transform:translate(-50%,0)}
+.cc-error{border-color:#ff5a5a}
+
+/* Entrada: el menú aparece botón por botón. */
+@media(prefers-reduced-motion:no-preference){
+  @keyframes cc-entrar{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+  @keyframes cc-fondo{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+  .cc-lienzo{animation:cc-fondo .9s cubic-bezier(.16,1,.3,1) both}
+  .cc-menu>*{animation:cc-entrar .5s cubic-bezier(.16,1,.3,1) both}
+  .cc-menu>*:nth-child(1){animation-delay:.15s}.cc-menu>*:nth-child(2){animation-delay:.2s}.cc-menu>*:nth-child(3){animation-delay:.25s}
+  .cc-menu>*:nth-child(4){animation-delay:.3s}.cc-menu>*:nth-child(5){animation-delay:.35s}.cc-menu>*:nth-child(6){animation-delay:.4s}
+  .cc-menu>*:nth-child(7){animation-delay:.45s}.cc-menu>*:nth-child(8){animation-delay:.5s}.cc-menu>*:nth-child(9){animation-delay:.55s}
+  .cc-menu>*:nth-child(10){animation-delay:.6s}.cc-menu>*:nth-child(11){animation-delay:.65s}.cc-menu>*:nth-child(12){animation-delay:.7s}
+  .cc-menu>*:nth-child(13){animation-delay:.75s}
+  .cc-cuenta{animation:cc-entrar .5s .8s cubic-bezier(.16,1,.3,1) both}
+}
+@media(prefers-reduced-motion:reduce){.cc-boton,.cc-boton::after,.cc-aviso{transition:none}.cc-boton:hover{transform:none}}
+
+/* Cinta de frases: se desplaza de derecha a izquierda sin cortes (dos tramos iguales seguidos) y se detiene al pasar el puntero. */
+.cc-cinta{position:relative;display:flex;align-items:center;justify-self:stretch;overflow:hidden;border-top:2px solid var(--cc-amarillo);background:linear-gradient(180deg,#0b0b0c,#000);box-shadow:inset 0 10px 18px -12px #ffd10066}
+.cc-cinta::before,.cc-cinta::after{content:'';position:absolute;top:0;bottom:0;z-index:1;width:90px;pointer-events:none}
+.cc-cinta::before{left:0;background:linear-gradient(90deg,#000,transparent)}
+.cc-cinta::after{right:0;background:linear-gradient(-90deg,#000,transparent)}
+.cc-cinta-pista{display:flex;width:max-content;animation:cc-cinta 70s linear infinite}
+.cc-cinta:hover .cc-cinta-pista{animation-play-state:paused}
+.cc-cinta-tramo{display:flex;flex:none;align-items:center}
+.cc-cinta-tramo span{display:inline-flex;align-items:center;gap:22px;padding-right:22px;color:#f1f1f1;font-size:clamp(13px,1.6vh,17px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.cc-cinta-tramo span::after{content:'';flex:none;width:9px;height:9px;background:var(--cc-amarillo);transform:rotate(45deg);box-shadow:0 0 10px #ffd100aa}
+@keyframes cc-cinta{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.cc-cinta-pista{animation:none}}
+
+/* Pantallas angostas o verticales (celular): la imagen arriba como portada y el menú debajo, a lo ancho. */
+@media(max-aspect-ratio:4/3){
+  html:has(body.cc-inicio){overflow:visible}
+  body.cc-inicio{display:block;height:auto;overflow-x:hidden;overflow-y:auto}
+  .cc-lienzo{container-type:normal;width:100%;aspect-ratio:auto;min-height:100vh;min-height:100dvh;padding:calc(100vw * 884 / 1779 + 16px) 16px 24px;box-sizing:border-box;background-size:100% auto;background-position:0 0}
+  .cc-lienzo::before{background:linear-gradient(180deg,transparent 0,transparent calc(100vw * 884 / 1779 - 40px),#000 calc(100vw * 884 / 1779))}
+  .cc-menu,.cc-cuenta{position:relative;inset:auto;width:auto;max-width:none}
+  .cc-menu{gap:8px}
+  .cc-boton{flex:none;min-height:48px;max-height:none;padding:0 16px;border-radius:10px;font-size:15px}
+  .cc-boton::after{width:7px;height:7px}
+  .cc-grupo{margin:12px 0 2px;font-size:11px}
+  .cc-pronto{padding:3px 9px;font-size:10px}
+  .cc-cuenta{margin-top:18px;gap:8px}
+  .cc-aviso{position:fixed;bottom:16px}
+  .cc-cinta{min-height:var(--cc-cinta)}
+}
+
+/* ---------- Identidad Comando Central en los módulos (Preventas, Control de inventarios, Solicitudes, Índice de frescura) ---------- */
+/* Logo de Comando Central en la cabecera, en lugar del logo de Bavaria. */
+/* Más específico que ".brand img" de cada módulo (que lo dejaría cuadrado). */
+.brand img.cc-logo.cc-logo,.module-selection .brand img.cc-logo.cc-logo{flex:none;width:auto;height:46px;max-width:168px;object-fit:contain}
+.brand:has(.cc-logo){gap:14px}
+html[data-tema="claro"] .brand .cc-logo{filter:drop-shadow(0 0 .6px #000) drop-shadow(0 0 .6px #000)}
+/* Tarjeta amarilla de indicadores: texto negro para que se lea. */
+.fm-tb-rojo{color:#111}
+.fm-tb-rojo .fm-tb-cuadro{background:#0000001f;box-shadow:inset 0 0 0 1px #00000026;color:#111}
+.fm-tb-rojo .fm-tb-delta b{border-color:#00000033;background:#0000001a;color:#111}
+.so-page .so-kpis .fm-tb-rojo .so-kpi-divisor{background:#00000033}
+.so-page .so-kpis .fm-tb-rojo::after{--so-puntos:#0000003d}
+/* Panel de cada parte del formulario: crema suave en lugar del rosado. */
+html[data-tema="claro"] :is(.fm-form,.fm-lienzo){--fm-panel:linear-gradient(90deg,#fff9e0,#fbfbfd 60%);--fm-pie:#fff6cc}
+/* Barra lateral de Índice de frescura (angosta): logo arriba y el nombre del módulo debajo, sin cortarse. */
+.sidebar .brand:has(.cc-logo){flex-direction:column;align-items:flex-start;gap:8px}
+.sidebar .brand img.cc-logo.cc-logo{height:44px;max-width:150px}
+.sidebar .brand:has(.cc-logo)>span{padding-left:0;border-left:0}
+/* "Sin pedido" sigue marcándose en rojo (es una alerta, no el acento). */
+.so-centros-grupo.no::before{background:#e11d48;box-shadow:0 0 0 4px #e11d4826}
+
+/* Cabecera con cinco pestañas (T1, WIP, OFE, Inventario activos): la quinta también entra animada y la barra baja a su
+   propia fila hasta 1700 px (preventas.css lo hace hasta 1500 px), así el nombre y "Cerrar sesión" no se parten. */
+.pv-page .pv-tab:nth-child(5){animation-delay:.39s}
+@media(max-width:1700px){.pv-page:has(.pv-tabs>.pv-tab:nth-child(5)) .header{flex-wrap:wrap;row-gap:0}.pv-page:has(.pv-tabs>.pv-tab:nth-child(5)) .header:after{content:"";order:2;flex-basis:100%}.pv-page:has(.pv-tabs>.pv-tab:nth-child(5)) .pv-tabs{order:3;margin:10px auto 0}}
+.pv-page .pv-tab:nth-child(6){animation-delay:.46s}
+
+/* Botón "Inicio" de la cabecera de los módulos (reemplaza la barra de pestañas): mismo estilo que el de modo claro/oscuro. */
+.account .cc-boton-inicio{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 17px 0 13px;border:1px solid #657487;border-radius:24px;background:linear-gradient(145deg,#202a39,#101724);box-shadow:inset 0 1px 8px #ffffff12;color:#fff;font:inherit;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.account .cc-boton-inicio .pv-ico{width:19px;height:19px;color:var(--cc-amarillo,#ffd100)}
+.account .cc-boton-inicio:hover{border-color:var(--cc-amarillo,#ffd100);box-shadow:inset 0 1px 8px #ffffff1c,0 0 18px #ffd10026}
+.account .cc-boton-inicio:active{transform:scale(.96)}
+.account .cc-boton-inicio:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+html[data-tema='claro'] .account .cc-boton-inicio{background:#fff0f3;color:#8a6600;border-color:#f8d754}
+html[data-tema='claro'] .account .cc-boton-inicio .pv-ico{color:#8a6600}
+@media(max-width:700px){.account .cc-boton-inicio{min-height:36px;padding:5px 11px;font-size:11px;gap:5px}.account .cc-boton-inicio .pv-ico{width:16px;height:16px}}
+@media(prefers-reduced-motion:reduce){.account .cc-boton-inicio{transition:none}}
+
+/* Módulos de Comando Central (T1, WIP, OFE, Inventario activos): al bajar, la barra de arriba (logo, Inicio, modo
+   claro/oscuro, usuario y Cerrar sesión) queda fija; los filtros se van con la página. En celular la barra ocupa varias
+   filas, así que ahí se desplaza con la página para no tapar el contenido. */
+.t1-page .t1-filtros,.aa-page .aa-filtros{position:relative;top:auto}
+@media(min-width:701px){
+  html:has(body.t1-page),html:has(body.aa-page){scroll-padding-top:96px}
+  .t1-page>.header,.aa-page>.header{position:sticky;top:0;z-index:40;box-shadow:0 12px 28px -20px #000c}
+  html[data-tema='claro'] .t1-page>.header,html[data-tema='claro'] .aa-page>.header{box-shadow:0 12px 28px -22px #25304b80}
+}

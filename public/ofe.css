@@ -1,0 +1,265 @@
+/* OFE: uso de los montacargas. Usa el diseño de Seguimiento T1 (t1.css: variables, filtros, tarjetas, gráficos, tablas,
+   avisos, carga de datos y animaciones); aquí solo va lo propio de OFE.
+   Series (validadas con el skill dataviz en claro y oscuro, también de a tres en el mismo gráfico):
+   Carga = ámbar · Movimiento = azul · Ralentí = magenta (turno y dona: los tres juntos);
+   % Encendido = aguamarina (línea diaria, junto a movimiento y carga) · OFE = violeta (sola, por máquina).
+   En claro, el ámbar, el magenta y el aguamarina quedan bajo 3:1 sobre blanco: por eso cada gráfico lleva sus cifras
+   escritas y "Ver tabla". */
+
+.ofe-page{
+  --ofe-car:#d28e05;--ofe-mov:#338ced;--ofe-ral:#e24d8b;--ofe-enc:#00a888;--ofe-ofe:#9887ef;
+}
+html[data-tema="claro"] .ofe-page{
+  --ofe-car:#f2a600;--ofe-mov:#257de0;--ofe-ral:#ee7fac;--ofe-enc:#00b894;--ofe-ofe:#6a4ce2;
+}
+.ofe-c-car{--c:var(--ofe-car)}.ofe-c-mov{--c:var(--ofe-mov)}.ofe-c-ral{--c:var(--ofe-ral)}.ofe-c-enc{--c:var(--ofe-enc)}.ofe-c-ofe{--c:var(--ofe-ofe)}
+
+/* ---------- Portada: la línea de datos cargados puede ocupar dos renglones ---------- */
+.t1-hero .ofe-hero-fuente{border-radius:14px;line-height:1.45}
+.ofe-hero-fuente strong{color:#ffd100;font-weight:800}
+/* "Montacargas" junto a "Subir Excel": la portada siempre es oscura, así que el botón no cambia con el tema. */
+.t1-hero .ofe-boton-hero{border-color:#ffffff47;background:#0a0d16b3;color:#fff}
+.t1-hero .ofe-boton-hero:hover{border-color:var(--cc-amarillo)}
+/* Nota discreta si la lista de montacargas no se pudo consultar (la página sigue con la lista base). */
+.ofe-nota-lista{flex-basis:100%;margin:0;color:var(--t1-suave);font-size:12.5px;line-height:1.45}
+.ofe-nota-lista::before{content:'!';display:inline-grid;place-items:center;width:16px;height:16px;margin-right:7px;border-radius:50%;background:var(--cc-amarillo);color:#111;font-size:11px;font-weight:900;vertical-align:-2px}
+
+/* ---------- Tarjetas ---------- */
+.t1-kpi-serie+.t1-kpi-serie{margin-left:-4px}
+
+/* ---------- Aviso de montacargas fuera de la lista (claro pero discreto) ---------- */
+.ofe-aviso{padding:10px 12px 10px 14px}
+.ofe-aviso .t1-aviso-icono{width:30px;height:30px}
+.ofe-aviso .t1-aviso-icono .t1-ico{width:17px;height:17px;stroke-width:2.2}
+.ofe-chasis{flex:1 1 100%;padding:10px 12px 12px;border:1px solid var(--t1-borde);border-radius:12px;background:var(--t1-card)}
+.ofe-chasis-titulo{margin:0 0 8px;color:var(--t1-suave);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.ofe-chasis-ayuda{margin:-4px 0 10px;color:var(--t1-suave);font-size:12.5px;line-height:1.45}
+/* Sin barras de desplazamiento: los chasis se ven por páginas (las mismas flechas de los gráficos por máquina). */
+.ofe-chasis-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.ofe-chasis-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:5px 6px 5px 11px;border:1px solid var(--t1-borde-campo);border-radius:10px;background:var(--t1-card-2)}
+.ofe-chasis-texto{min-width:0;color:var(--t1-texto);overflow-wrap:anywhere}
+.ofe-chasis-codigo{font:700 12.5px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+.ofe-chasis-texto small{color:var(--t1-suave);font-size:12px;font-weight:600}
+.ofe-chasis-agregar{flex:none;min-height:30px;padding:0 12px;border:1px solid var(--cc-amarillo);border-radius:999px;background:var(--t1-suave-amarillo);color:var(--t1-texto);font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;transition:background .15s ease}
+.ofe-chasis-agregar:hover:not(:disabled){background:var(--cc-amarillo);color:#111}
+.ofe-chasis-agregar:disabled{opacity:.4;cursor:not-allowed}
+.ofe-chasis-agregar:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.ofe-chasis .ofe-paginas{margin-top:10px;padding-top:10px}
+
+/* ---------- Filtro de máquinas: buscador y lista en tres columnas ---------- */
+.ofe-multi-buscar{flex:none}
+.ofe-multi-buscar input{flex:1;width:auto;min-width:0}
+.ofe-multi-lista-3{grid-template-columns:repeat(3,minmax(118px,1fr))}
+.ofe-multi-nada{margin:6px 10px;color:var(--t1-suave);font-size:13px}
+
+/* ---------- Barras por máquina: lista larga que se desplaza dentro de la tarjeta ---------- */
+.ofe-eje-detalle{fill:var(--t1-tenue);font-size:11.5px;font-weight:600}
+.t1-marca.t1-elegida .ofe-eje-detalle{fill:var(--t1-suave)}
+
+/* ---------- Dona: composición de horas ---------- */
+.ofe-dona-zona{min-height:240px}
+.ofe-dona-caja{display:grid;grid-template-columns:minmax(170px,250px) minmax(0,1fr);align-items:center;gap:22px 28px;width:100%}
+.ofe-dona-figura{position:relative;container-type:inline-size}
+.ofe-dona{display:block;width:100%;height:auto;overflow:visible;border-radius:50%}
+.ofe-dona:focus{outline:none}
+.ofe-dona:focus-visible{outline:3px solid var(--cc-foco);outline-offset:4px}
+.ofe-dona-pista{fill:none;stroke:var(--t1-pista)}
+.ofe-dona-seg{fill:none;stroke:var(--c);cursor:pointer;transition:opacity .2s ease}
+.ofe-dona.ofe-enfoque .ofe-dona-seg:not(.ofe-activo){opacity:.3}
+.ofe-dona-centro{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+.ofe-dona-centro strong{color:var(--t1-texto);font-size:min(24px,9.4cqi);font-weight:800;line-height:1.1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.ofe-dona-centro span{color:var(--t1-suave);font-size:12px;font-weight:600}
+.ofe-dona-leyenda{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.ofe-dona-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--t1-borde);border-radius:12px;background:var(--t1-card-2);transition:border-color .15s ease,background .15s ease}
+.ofe-dona-item:hover,.ofe-dona-item.ofe-activo{border-color:var(--t1-borde-campo);background:var(--t1-hover)}
+.ofe-dona-nombre{display:flex;align-items:center;gap:10px;min-width:0;color:var(--t1-texto);font-size:14px;font-weight:700}
+.ofe-dona-cifras{display:flex;flex:none;align-items:baseline;gap:10px;font-variant-numeric:tabular-nums}
+.ofe-dona-cifras b{color:var(--t1-texto);font-size:15px;font-weight:800}
+.ofe-dona-cifras small{min-width:54px;color:var(--t1-suave);font-size:12.5px;font-weight:700;text-align:right}
+
+/* ---------- Tendencia diaria ---------- */
+.t1-nota.ofe-nota-dia{margin-top:10px}
+
+/* ---------- Tabla por CD (con fila de total) ---------- */
+.ofe-tabla tbody tr{height:36px}
+.ofe-tabla tfoot :is(th,td){border-top:2px solid var(--t1-borde-campo);background:var(--t1-card-2);font-weight:800}
+.ofe-tabla tfoot th{text-align:left}
+.t1-fila-vacia.ofe-fila-vacia td{height:150px}
+
+/* ---------- Datos cargados (un solo archivo) ---------- */
+.t1-datos.ofe-datos{grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr)}
+
+/* ---------- Entrada ---------- */
+@media(prefers-reduced-motion:no-preference){
+  @keyframes ofe-dona{from{stroke-dasharray:0 100}}
+  .ofe-dona-seg{animation:ofe-dona 1s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 110ms + 150ms)}
+  .ofe-dona-item{animation:t1-subir .5s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0) * 60ms + 250ms)}
+  .ofe-tabla tbody tr{animation:t1-fila .35s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 18ms)}
+}
+
+/* ---------- Pantallas medianas y celular ---------- */
+@media(max-width:1100px){
+  .t1-datos.ofe-datos{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .ofe-page .pv-tab:last-child:nth-child(odd){grid-column:1 / -1}
+  .ofe-multi-lista-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ofe-dona-caja{grid-template-columns:1fr;gap:16px}
+  .ofe-dona-figura{width:min(220px,72%);margin:0 auto}
+  .ofe-aviso p{flex-basis:100%}
+  /* Tabla por CD más angosta: encabezados en dos renglones y menos relleno. */
+  .ofe-tabla :is(th,td){padding:7px 8px}
+  .ofe-tabla thead th{white-space:normal;vertical-align:bottom}
+}
+@media(forced-colors:active){.ofe-dona-seg{forced-color-adjust:none}}
+
+/* ---------- Máquinas por páginas: flechas ‹ › y números ---------- */
+.t1-grafico:has(>.ofe-paginas){justify-content:flex-start}
+.ofe-paginas{align-self:stretch;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--t1-borde)}
+.ofe-pagina{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--t1-borde-campo);border-radius:999px;background:transparent;color:var(--t1-texto);font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.ofe-pagina.flecha{font-size:19px;line-height:1;padding:0 12px}
+.ofe-pagina:hover:not(:disabled){border-color:#ffd100;transform:translateY(-1px)}
+.ofe-pagina.activa{border-color:#ffd100;background:#ffd100;color:#111}
+.ofe-pagina:disabled{opacity:.35;cursor:default}
+.ofe-paginas-texto{flex-basis:100%;text-align:center;color:var(--t1-suave);font-size:12.5px;font-weight:600}
+.ofe-paginas-salto{min-width:14px;color:var(--t1-tenue);font-weight:800;text-align:center}
+
+/* ---------- Ventana "Lista de montacargas" (la misma tarjeta de las ventanas de Control de inventarios) ---------- */
+.fm-lienzo.ofe-dialogo{width:min(1100px,calc(100vw - 32px))}
+.ofe-dialogo-marco{display:flex;flex-direction:column;max-height:calc(100dvh - 40px)}
+.ofe-dialogo[data-ocupado]{cursor:progress}
+.ofe-dialogo .fm-dialogo-cuerpo{padding:16px 28px 4px}
+.ofe-mc-barra{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin-bottom:12px}
+.ofe-mc-buscar{flex:1 1 280px;max-width:420px;height:40px}
+.ofe-mc-buscar input{flex:1;width:auto;text-transform:none}
+.ofe-mc-cuenta{margin:0;color:var(--t1-suave);font-size:12.5px;font-weight:700}
+.ofe-dialogo .ofe-nota-lista{margin:0 0 10px}
+.ofe-mc-tabla{table-layout:fixed}
+.ofe-mc-tabla thead th:nth-child(1){width:20%}
+.ofe-mc-tabla thead th:nth-child(2){width:13%}
+.ofe-mc-tabla thead th:nth-child(3){width:9%}
+.ofe-mc-tabla thead th:nth-child(4){width:27%}
+.ofe-mc-tabla tbody tr{height:46px}
+.ofe-mc-tabla tbody :is(th,td){white-space:normal;vertical-align:middle;overflow-wrap:anywhere}
+.ofe-mc-chasis{font:700 13px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace}
+.ofe-mc-placa{font-weight:700}
+.ofe-mc-origen small{display:block;margin:3px 0 0}
+.ofe-mc-sello{display:inline-block;padding:1px 9px;border:1px solid transparent;border-radius:10px;font-size:12px;font-weight:700;line-height:1.55}
+.ofe-mc-lista{padding:0;color:var(--t1-suave)}
+.ofe-mc-agregado{border-color:#ffd10080;background:var(--t1-suave-amarillo);color:var(--t1-texto)}
+.ofe-mc-corregido{border-color:#338ced66;background:#338ced1c;color:var(--t1-texto)}
+.ofe-mc-acciones .fm-accion{margin:3px 6px 3px 0;min-height:32px;padding:0 12px}
+.ofe-mc-acciones .t1-ico{width:15px;height:15px}
+.ofe-mc-pregunta{margin-right:8px;color:var(--t1-texto);font-size:12.5px;font-weight:800}
+.ofe-mc-resaltada :is(th,td){background:var(--t1-suave-amarillo)}
+.ofe-mc-vacia td{height:120px;color:var(--t1-suave);text-align:center}
+.ofe-dialogo .ofe-paginas{margin-top:10px;padding-top:10px}
+/* Formulario: la etiqueta se pone amarilla mientras se escribe en su campo, como en los otros formularios. */
+.ofe-mc-form-titulo{margin:4px 0 4px;font-size:17px;font-weight:800}
+.ofe-mc-form-ayuda{margin:0 0 18px;color:var(--fm-suave);font-size:14px;line-height:1.45}
+.ofe-mc-campos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:16px 20px;padding-bottom:12px}
+.ofe-dialogo .fm-enunciado{transition:color .15s ease}
+.ofe-dialogo .fm-pregunta:focus-within .fm-enunciado{color:var(--fm-rojo-texto)}
+.ofe-dialogo .fm-pregunta input[readonly]{background:var(--t1-card-2);color:var(--fm-suave);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;cursor:default}
+.ofe-mc-info{margin:0;color:var(--fm-suave);font-size:12.5px;line-height:1.45}
+.ofe-mc-info:empty{display:none}
+@media(prefers-reduced-motion:no-preference){
+  @keyframes ofe-resalte{from{background:#ffd10066}to{background:var(--t1-suave-amarillo)}}
+  .ofe-mc-fila{animation:t1-fila .3s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 18ms)}
+  .ofe-mc-resaltada :is(th,td){animation:ofe-resalte 1.8s ease-out both}
+}
+@media(prefers-reduced-motion:reduce){.ofe-dialogo .fm-enunciado{transition:none}}
+/* Celular: encabezado en una línea y cada montacargas en una tarjeta de dos renglones (chasis y botones; debajo
+   CD · placa · origen), para que quepan varios por página sin desplazar. */
+@media(max-width:700px){
+  .ofe-dialogo .fm-dialogo-cabeza{grid-template-columns:minmax(0,1fr) auto;padding:16px 16px 14px}
+  .ofe-dialogo .fm-head-icono{display:none}
+  .ofe-dialogo .fm-form-head p{font-size:12.5px}
+  .ofe-dialogo .fm-dialogo-cerrar{width:36px;height:36px}
+  .ofe-dialogo .fm-dialogo-cuerpo{padding:12px 16px 4px}
+  .ofe-dialogo .fm-dialogo-acciones{flex-wrap:wrap;margin-top:10px;padding:12px 16px 16px}
+  .ofe-dialogo .fm-dialogo-acciones .pv-btn{flex:1 1 auto}
+  .ofe-dialogo .fm-estado{margin:10px 16px 0}
+  .ofe-mc-barra{margin-bottom:8px}
+  .ofe-mc-campos{grid-template-columns:1fr}
+  .ofe-mc-tabla thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .ofe-mc-tabla,.ofe-mc-tabla tbody{display:block}
+  .ofe-mc-tabla tbody tr{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;height:auto;padding:9px 12px}
+  .ofe-mc-tabla tbody tr::before{content:'';order:2;flex-basis:100%;height:0}
+  .ofe-mc-tabla tbody tr+tr{border-top:1px solid var(--t1-borde)}
+  .ofe-mc-tabla tbody :is(th,td){display:block;padding:0;border:0}
+  .ofe-mc-chasis{order:0;flex:1 1 auto;min-width:0}
+  .ofe-mc-acciones{order:1;flex:none;margin-left:auto;text-align:right}
+  .ofe-mc-acciones .fm-accion{margin:2px 0 2px 6px;min-height:30px;padding:0 10px}
+  .ofe-mc-tabla tbody :is(.ofe-mc-cd,.ofe-mc-placa,.ofe-mc-origen){order:3;font-size:12.5px}
+  .ofe-mc-placa::before{content:'· Placa ';color:var(--t1-tenue);font-weight:600}
+  .ofe-mc-origen-lista::before{content:'·';margin-right:6px;color:var(--t1-tenue)}
+  /* Lo agregado o corregido va en su propio renglón, con la fecha al lado. */
+  .ofe-mc-tabla tbody .ofe-mc-origen:not(.ofe-mc-origen-lista){flex-basis:100%;margin-top:2px}
+  .ofe-mc-origen small{display:inline;margin:0 0 0 6px}
+  .ofe-paginas .vecina{display:none}
+  .ofe-mc-sello{font-size:11.5px}
+  .ofe-mc-resaltada{background:var(--t1-suave-amarillo)}
+  .ofe-mc-tabla tbody .ofe-mc-resaltada :is(th,td){background:none;animation:none}
+  .ofe-mc-tabla .ofe-mc-vacia td{flex-basis:100%;padding:30px 0}
+}
+
+/* ---------- Tablero compacto de OFE, en la distribución del Power BI ----------
+   Lienzo del Power BI (2970 de ancho): turno 1074 · composición 802 · ralentí por máquina 1028;
+   % por día 1897 · % OFE por máquina 1016; horas por CD 1136 · ralentí por gerencia (el resto de la fila). */
+.ofe-compacto{gap:14px}
+.ofe-compacto .t1-pista{margin:0}
+.ofe-compacto .t1-graficos{gap:14px}
+.ofe-compacto .t1-card{padding:14px 16px 16px;border-radius:18px}
+.ofe-compacto .t1-card-cabeza{gap:10px;margin-bottom:8px}
+.ofe-compacto .t1-card-cabeza h3{font-size:14.5px}
+.ofe-compacto .t1-card-cabeza p{font-size:12px}
+.ofe-compacto .t1-circulo{width:34px;height:34px}
+.ofe-compacto .t1-circulo .t1-ico{width:17px;height:17px}
+.ofe-compacto .t1-ver-tabla{height:29px;padding:0 11px;font-size:12px}
+.ofe-compacto .t1-grafico,.ofe-compacto .t1-grafico-vacio{min-height:150px}
+.ofe-compacto .t1-leyenda{margin-bottom:4px}
+.ofe-compacto .t1-nota.ofe-nota-dia{margin:6px 2px 0;font-size:12px}
+.ofe-fila-1{grid-template-columns:minmax(0,1074fr) minmax(0,802fr) minmax(0,1028fr)}
+.ofe-fila-2{grid-template-columns:minmax(0,1897fr) minmax(0,1016fr)}
+.ofe-fila-3{grid-template-columns:minmax(0,1136fr) minmax(0,1834fr)}
+/* El gráfico de gerencia queda centrado en su tarjeta, que crece con la tabla por CD de al lado. */
+.ofe-fila-3 .t1-grafico:has(>svg){justify-content:center}
+/* Tablas más apretadas. */
+.ofe-compacto .t1-tabla{font-size:12.5px}
+.ofe-compacto .t1-tabla th,.ofe-compacto .t1-tabla td{padding:5px 8px}
+.ofe-compacto .t1-tabla thead th{font-size:11.5px}
+.ofe-compacto .ofe-tabla tbody tr{height:28px}
+/* Páginas de máquinas más bajas. */
+.ofe-compacto .ofe-paginas{gap:5px;margin-top:8px;padding-top:8px}
+.ofe-compacto .ofe-pagina{min-width:30px;height:30px;font-size:12.5px}
+.ofe-compacto .ofe-paginas-texto{font-size:12px}
+/* Dona más chica; si la tarjeta es angosta, la leyenda va debajo. */
+.ofe-compacto .ofe-dona-zona{min-height:150px;container-type:inline-size}
+.ofe-compacto .ofe-dona-caja{grid-template-columns:minmax(120px,170px) minmax(0,1fr);gap:12px 16px}
+.ofe-compacto .ofe-dona-leyenda{gap:6px}
+.ofe-compacto .ofe-dona-item{padding:7px 10px}
+.ofe-compacto .ofe-dona-nombre{gap:8px;font-size:13px}
+.ofe-compacto .ofe-dona-cifras{gap:8px}
+.ofe-compacto .ofe-dona-cifras b{font-size:13.5px}
+.ofe-compacto .ofe-dona-cifras small{min-width:46px;font-size:12px}
+@container (max-width:440px){
+  .ofe-compacto .ofe-dona-caja{grid-template-columns:1fr}
+  .ofe-compacto .ofe-dona-figura{width:min(160px,60%);margin:0 auto}
+}
+
+@media(max-width:1500px){
+  .ofe-fila-1{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ofe-fila-1>.t1-card:last-child{grid-column:1 / -1}
+  /* La tabla por CD necesita su ancho para las cinco columnas. */
+  .ofe-fila-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1280px){
+  .ofe-fila-2{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+}
+@media(max-width:1000px){
+  .ofe-fila-2,.ofe-fila-3{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .ofe-fila-1{grid-template-columns:1fr}
+}

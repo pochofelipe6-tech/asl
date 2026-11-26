@@ -3,7 +3,7 @@
 // server.ts
 import path from "node:path";
 import { readFile as readFile2 } from "node:fs/promises";
-import express5 from "express";
+import express7 from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
@@ -939,6 +939,433 @@ function rutasSolicitudes(pool, sesion) {
   return router;
 }
 
+// src/server/cargas.ts
+import express5 from "express";
+import { gunzipSync } from "node:zlib";
+
+// src/shared/t1.ts
+var MAX_FILAS_T1 = 4e5;
+var GERENCIAS = [
+  { cdRodar: "Arenosa", cd: "La Arenosa", gerencia: "Barranquilla", lider: "Piedad Santiago", gerente: "Jairo Tovar", ol: "LIS", cdWip: "La Arenosa", cdFms: "La Arenosa" },
+  { cdRodar: "Galapa", cd: "Galapa", gerencia: "Barranquilla", lider: "Victor Villa", gerente: "Jairo Tovar", ol: "ASL", cdWip: "Galapa", cdFms: "Galapa" },
+  { cdRodar: "LA ARENOSA", cd: "La Arenosa", gerencia: "Barranquilla", lider: "Piedad Santiago", gerente: "Jairo Tovar", ol: "LIS", cdWip: "La Arenosa", cdFms: "La Arenosa" },
+  { cdRodar: "CARTAGENA", cd: "Cartagena Ka", gerencia: "Cartagena", lider: "Adelfa Herrera", gerente: "Marlon Gonzales", ol: "CONALCA", cdWip: "Cartagena Ka", cdFms: "Cartagena Ka" },
+  { cdRodar: "Cartagena Ka", cd: "Cartagena Ka", gerencia: "Cartagena", lider: "Adelfa Herrera", gerente: "Marlon Gonzales", ol: "CONALCA", cdWip: "Cartagena Ka", cdFms: "Cartagena Ka" },
+  { cdRodar: "Turbaco", cd: "Turbaco", gerencia: "Cartagena", lider: "Adelfa Herrera", gerente: "Marlon Gonzales", ol: "CONALCA", cdWip: "Turbaco", cdFms: "Turbaco" },
+  { cdRodar: "CUCUTA", cd: "Cucuta", gerencia: "Cucuta", lider: "Lizeth Martinez", gerente: "Karen Molina", ol: "LIS", cdWip: "Cucuta", cdFms: "C\xFAcuta" },
+  { cdRodar: "C\xFAcuta", cd: "Cucuta", gerencia: "Cucuta", lider: "Lizeth Martinez", gerente: "Karen Molina", ol: "LIS", cdWip: "Cucuta", cdFms: "C\xFAcuta" },
+  { cdRodar: "APARTADO", cd: "Apartado", gerencia: "Monteria", lider: "Pedro Osorio", gerente: "Gerson Vanegas", ol: "ASL", cdWip: "Apartado", cdFms: "Apartado" },
+  { cdRodar: "Apartad\xF3", cd: "Apartado", gerencia: "Monteria", lider: "Pedro Osorio", gerente: "Gerson Vanegas", ol: "ASL", cdWip: "Apartado", cdFms: "Apartado" },
+  { cdRodar: "CAUCASIA", cd: "Caucasia", gerencia: "Monteria", lider: "Jose Acosta", gerente: "Gerson Vanegas", ol: "ASL", cdWip: "Caucasia", cdFms: "Caucasia" },
+  { cdRodar: "MONTERIA", cd: "Monteria", gerencia: "Monteria", lider: "Jose Acosta", gerente: "Gerson Vanegas", ol: "ASL", cdWip: "Monteria", cdFms: "Monteria" },
+  { cdRodar: "Monter\xEDa", cd: "Monteria", gerencia: "Monteria", lider: "Jose Acosta", gerente: "Gerson Vanegas", ol: "ASL", cdWip: "Monteria", cdFms: "Monteria" },
+  { cdRodar: "Riohacha", cd: "Riohacha", gerencia: "Santa Marta", lider: "Victor Villa", gerente: "Juan Vega", ol: "SEDIAL", cdWip: "Riohacha", cdFms: "Riohacha" },
+  { cdRodar: "Santa Marta", cd: "Santa Marta", gerencia: "Santa Marta", lider: "Victor Villa", gerente: "Juan Vega", ol: "LIS", cdWip: "Santa Marta", cdFms: "Santa Marta" },
+  { cdRodar: "Corozal", cd: "Corozal", gerencia: "Sincelejo", lider: "Alfonso Iriarte", gerente: "Snaider Polo", ol: "SEDIAL", cdWip: "Corozal", cdFms: "Corozal" },
+  { cdRodar: "MAGANGUE", cd: "Magangue", gerencia: "Sincelejo", lider: "Liseth Pe\xF1a", gerente: "Snaider Polo", ol: "SEDIAL", cdWip: "Magangue", cdFms: "Magangu\xE9" },
+  { cdRodar: "Magangu\xE9", cd: "Magangue", gerencia: "Sincelejo", lider: "Liseth Pe\xF1a", gerente: "Snaider Polo", ol: "SEDIAL", cdWip: "Magangue", cdFms: "Magangu\xE9" },
+  { cdRodar: "CURUMANI", cd: "Curumani", gerencia: "Valledupar", lider: "Brayan Epalza", gerente: "Guadalupe Montero", ol: "SEDIAL", cdWip: "Curumani", cdFms: "Curumani" },
+  { cdRodar: "Curuman\xED", cd: "Curumani", gerencia: "Valledupar", lider: "Brayan Epalza", gerente: "Guadalupe Montero", ol: "SEDIAL", cdWip: "Curumani", cdFms: "Curumani" },
+  { cdRodar: "Fonseca", cd: "Fonseca", gerencia: "Valledupar", lider: "Eduardo Diaz", gerente: "Guadalupe Montero", ol: "SEDIAL", cdWip: "Fonseca", cdFms: "Fonseca" },
+  { cdRodar: "Valledupar", cd: "Valledupar", gerencia: "Valledupar", lider: "Eduardo Diaz", gerente: "Guadalupe Montero", ol: "SEDIAL", cdWip: "Valledupar", cdFms: "Valledupar" },
+  { cdRodar: "San Andres", cd: "San Andres", gerencia: "Cartagena", lider: "Laura Mu\xF1oz", gerente: "Marlon Gonzales", ol: "IM", cdWip: "San Andres", cdFms: "San Andres" },
+  { cdRodar: "", cd: "UDC Torices", gerencia: "Cartagena", lider: "Sirith Avecedo", gerente: "Marlon Gonzales", ol: "PC", cdWip: "", cdFms: "UDC Torices" }
+];
+var clave = (v) => String(v ?? "").trim().toLocaleLowerCase("es");
+var porRodar = new Map(GERENCIAS.filter((g) => g.cdRodar).map((g) => [clave(g.cdRodar), g]));
+var porNombre = /* @__PURE__ */ new Map();
+for (const g of GERENCIAS) if (!porNombre.has(clave(g.cd))) porNombre.set(clave(g.cd), g);
+var EPOCA = Date.UTC(1899, 11, 30);
+var fechaDeDia = (dia) => new Date(EPOCA + dia * 864e5);
+var isoDeDia = (dia) => fechaDeDia(dia).toISOString().slice(0, 10);
+function validarColumnas2(datos, tipo) {
+  if (!datos || typeof datos !== "object") return "Los datos no son v\xE1lidos.";
+  const d = datos;
+  if (d.tipo !== tipo || d.version !== 1) return "El tipo de archivo no coincide.";
+  const listas = tipo === "atct" ? { numeros: ["fecha", "placa", "ubicacion", "zona", "dias", "minutos"], textos: ["registro", "ingreso", "salida"], diccionarios: ["placas", "ubicaciones", "zonas"] } : { numeros: ["placa", "programada", "enturnamiento", "inicio", "fin", "ubi"], textos: ["espera", "atencion", "ftct"], diccionarios: ["placas", "ubis"] };
+  const n = d[listas.numeros[0]]?.length ?? -1;
+  if (n < 1 || n > MAX_FILAS_T1) return "La cantidad de filas no es v\xE1lida.";
+  for (const k of listas.numeros) {
+    const a = d[k];
+    if (!Array.isArray(a) || a.length !== n || !a.every((v) => typeof v === "number" && Number.isFinite(v))) return `La columna ${k} no es v\xE1lida.`;
+  }
+  for (const k of listas.textos) {
+    const a = d[k];
+    if (!Array.isArray(a) || a.length !== n || !a.every((v) => typeof v === "string" && v.length <= 120)) return `La columna ${k} no es v\xE1lida.`;
+  }
+  for (const k of listas.diccionarios) {
+    const a = d[k];
+    if (!Array.isArray(a) || a.length > MAX_FILAS_T1 || !a.every((v) => typeof v === "string" && v.length <= 120)) return `La lista ${k} no es v\xE1lida.`;
+  }
+  const rango = (col, dic) => {
+    const max = d[dic].length;
+    return d[col].every((i) => Number.isInteger(i) && i >= 0 && i < max);
+  };
+  const ok = tipo === "atct" ? rango("placa", "placas") && rango("ubicacion", "ubicaciones") && rango("zona", "zonas") && d.minutos.every((m) => m >= 0 && m < 1440) : rango("placa", "placas") && rango("ubi", "ubis");
+  return ok ? null : "Hay \xEDndices fuera de rango.";
+}
+var orden = new Intl.Collator("es", { numeric: true }).compare;
+
+// src/server/cargas.ts
+var TABLA_FALTANTE3 = "Falta crear la tabla de cargas. Ejecuta supabase/t1_schema.sql en Supabase.";
+var CONSERVAR = 5;
+var LIMITE_CUERPO = "8mb";
+var LIMITE_DESCOMPRIMIDO = 80 * 1024 * 1024;
+function rutasCargas(pool, sesion, modulo, tipos) {
+  const nombres = Object.keys(tipos);
+  const router = express5.Router();
+  router.use((req, res, next) => {
+    if (!sesion(req)) {
+      res.status(401).json({ error: `Inicia sesi\xF3n para abrir ${modulo}.` });
+      return;
+    }
+    if (req.method !== "GET" && req.get("sec-fetch-site") === "cross-site") {
+      res.status(403).json({ error: "Abre la aplicaci\xF3n para guardar datos." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
+  const fallo = (res, error, accion, mensaje) => {
+    if (error.code === "42P01") {
+      res.status(503).json({ error: TABLA_FALTANTE3 });
+      return;
+    }
+    console.error(`${accion} de ${modulo}:`, error.message);
+    res.status(503).json({ error: mensaje });
+  };
+  const tipoDe = (req) => nombres.includes(String(req.params.tipo)) ? String(req.params.tipo) : null;
+  const memoria = /* @__PURE__ */ new Map();
+  const datosDe = (db, tipo, id) => {
+    const guardado = memoria.get(tipo);
+    if (guardado?.id === id) return guardado.datos;
+    const datos = db.query("select encode(datos, 'base64') as datos from public.t1_cargas where id = $1", [id]).then(({ rows }) => {
+      if (!rows[0]) throw new Error("La carga ya no existe.");
+      return Buffer.from(String(rows[0].datos).replace(/\s/g, ""), "base64");
+    });
+    memoria.set(tipo, { id, datos });
+    datos.catch(() => {
+      if (memoria.get(tipo)?.datos === datos) memoria.delete(tipo);
+    });
+    return datos;
+  };
+  router.get("/estado", async (_req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: `Configura la conexi\xF3n de Supabase para consultar ${modulo}.` });
+      return;
+    }
+    try {
+      const { rows } = await pool.query(
+        `select distinct on (tipo) id, tipo, archivo, filas, to_char(desde, 'YYYY-MM-DD') as desde, to_char(hasta, 'YYYY-MM-DD') as hasta, usuario_nombre, creado_en
+         from public.t1_cargas where tipo = any($1) order by tipo, creado_en desc, id desc`,
+        [nombres]
+      );
+      for (const r of rows) datosDe(pool, r.tipo, String(r.id)).catch(() => void 0);
+      res.json(Object.fromEntries(nombres.map((t) => [t, rows.find((r) => r.tipo === t) ?? null])));
+    } catch (error) {
+      fallo(res, error, "Consulta", `No se pudo consultar ${modulo}. Reintenta en un momento.`);
+    }
+  });
+  router.get("/datos/:tipo", async (req, res) => {
+    const tipo = tipoDe(req);
+    if (!tipo) {
+      res.status(404).json({ error: "Tipo de datos desconocido." });
+      return;
+    }
+    if (!pool) {
+      res.status(503).json({ error: `Configura la conexi\xF3n de Supabase para consultar ${modulo}.` });
+      return;
+    }
+    try {
+      const { rows } = await pool.query("select id from public.t1_cargas where tipo = $1 order by creado_en desc, id desc limit 1", [tipo]);
+      if (!rows[0]) {
+        res.status(404).json({ error: "A\xFAn no se ha cargado ese archivo." });
+        return;
+      }
+      const datos = await datosDe(pool, tipo, String(rows[0].id));
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Content-Encoding", "gzip");
+      res.send(datos);
+    } catch (error) {
+      fallo(res, error, "Consulta", `No se pudieron consultar los datos de ${modulo}.`);
+    }
+  });
+  router.post("/cargar/:tipo", express5.raw({ type: "application/octet-stream", limit: LIMITE_CUERPO }), async (req, res) => {
+    const tipo = tipoDe(req);
+    if (!tipo) {
+      res.status(404).json({ error: "Tipo de datos desconocido." });
+      return;
+    }
+    if (!pool) {
+      res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para guardar." });
+      return;
+    }
+    const archivo = decodeURIComponent(String(req.get("x-archivo") ?? req.get("x-t1-archivo") ?? "")).trim().slice(0, 180);
+    if (!archivo || !Buffer.isBuffer(req.body) || !req.body.length) {
+      res.status(400).json({ error: "Falta el archivo." });
+      return;
+    }
+    let columnas;
+    try {
+      columnas = JSON.parse(gunzipSync(req.body, { maxOutputLength: LIMITE_DESCOMPRIMIDO }).toString("utf8"));
+    } catch {
+      res.status(400).json({ error: "El archivo lleg\xF3 da\xF1ado o es demasiado grande. Int\xE9ntalo de nuevo." });
+      return;
+    }
+    const problema = tipos[tipo].validar(columnas);
+    if (problema) {
+      res.status(400).json({ error: problema });
+      return;
+    }
+    const dias = tipos[tipo].dias(columnas);
+    let desde = Infinity, hasta = -Infinity;
+    for (const d of dias) {
+      if (d < desde) desde = d;
+      if (d > hasta) hasta = d;
+    }
+    const usuario = sesion(req);
+    let client;
+    try {
+      client = await pool.connect();
+    } catch {
+      res.status(503).json({ error: "No se pudo conectar a Supabase. Reintenta en un momento." });
+      return;
+    }
+    try {
+      await client.query("begin");
+      const { rows } = await client.query(
+        `insert into public.t1_cargas (tipo, archivo, filas, desde, hasta, datos, usuario_id, usuario_nombre)
+         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, creado_en`,
+        [tipo, archivo, dias.length, isoDeDia(desde), isoDeDia(hasta), req.body, usuario.sub, usuario.nombre]
+      );
+      await client.query(
+        `delete from public.t1_cargas where tipo = $1 and id not in
+         (select id from public.t1_cargas where tipo = $1 order by creado_en desc, id desc limit ${CONSERVAR})`,
+        [tipo]
+      );
+      await client.query("commit");
+      memoria.set(tipo, { id: String(rows[0].id), datos: Promise.resolve(req.body) });
+      res.status(201).json({ tipo, archivo, filas: dias.length, desde: isoDeDia(desde), hasta: isoDeDia(hasta), creado_en: rows[0].creado_en });
+    } catch (error) {
+      await client.query("rollback").catch(() => void 0);
+      fallo(res, error, "Guardado", "No se pudo guardar el archivo. No se aplic\xF3 la carga; reintenta.");
+    } finally {
+      client.release();
+    }
+  });
+  return router;
+}
+
+// src/server/montacargas.ts
+import express6 from "express";
+
+// src/shared/montacargas.ts
+var MONTACARGAS = [
+  { cod: "AV74", cd: "La Arenosa", placa: "328", configuracion: "Doble Horquilla", chasis: "308FGJ35-35321", motor: "2510599", tipo: "8FGJ35", combustible: "GLP", alquilado: "Bavaria", contrato: "Leasing" },
+  { cod: "AV41", cd: "Apartado", placa: "569", configuracion: "Doble Horquilla", chasis: "308FGJ35-68104", motor: "2750440", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Bavaria", contrato: "Leasing" },
+  { cod: "AV76", cd: "Galapa", placa: "571", configuracion: "Doble Horquilla", chasis: "308FGJ35-68176", motor: "2771484", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Bavaria", contrato: "Propio" },
+  { cod: "AV76", cd: "Galapa", placa: "572", configuracion: "Doble Horquilla", chasis: "308FGJ35-68190", motor: "2771638", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Bavaria", contrato: "Renta" },
+  { cod: "AV30", cd: "Riohacha", placa: "573", configuracion: "Doble Horquilla", chasis: "308FGJ35-68204", motor: "2771692", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Bavaria", contrato: "Renta" },
+  { cod: "AV32", cd: "Magangu\xE9", placa: "612", configuracion: "Doble Horquilla", chasis: "308FGJ35-80916", motor: "2807784", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Spot(VLC)" },
+  { cod: "AV32", cd: "Magangu\xE9", placa: "613", configuracion: "Doble Horquilla", chasis: "308FGJ35-80921", motor: "2807916", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "640", configuracion: "Doble Horquilla", chasis: "308FGJ35-80859", motor: "2806291", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV13", cd: "Corozal", placa: "651", configuracion: "Doble Horquilla", chasis: "308FGJ35-92324", motor: "2842438", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV13", cd: "Corozal", placa: "652", configuracion: "Doble Horquilla", chasis: "308FGJ35-92348", motor: "2842898", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV13", cd: "Corozal", placa: "653", configuracion: "Doble Horquilla", chasis: "308FGJ35-92362", motor: "2843117", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV10", cd: "Turbaco", placa: "654", configuracion: "Doble Horquilla", chasis: "308FGJ35-92395", motor: "2843782", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV10", cd: "Turbaco", placa: "655", configuracion: "Doble Horquilla", chasis: "308FGJ35-92435", motor: "2844480", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV11", cd: "Santa Marta", placa: "656", configuracion: "Doble Horquilla", chasis: "308FGJ35-92465", motor: "2845043", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV11", cd: "Santa Marta", placa: "657", configuracion: "Doble Horquilla", chasis: "308FGJ35-92497", motor: "2845500", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV11", cd: "Santa Marta", placa: "658", configuracion: "Doble Horquilla", chasis: "308FGJ35-92506", motor: "2845594", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV30", cd: "Riohacha", placa: "659", configuracion: "Doble Horquilla", chasis: "308FGJ35-92553", motor: "2846422", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV30", cd: "Riohacha", placa: "660", configuracion: "Doble Horquilla", chasis: "308FGJ35-92563", motor: "2846527", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV39", cd: "Monteria", placa: "661", configuracion: "Doble Horquilla", chasis: "308FGJ35-93738", motor: "2871067", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV39", cd: "Monteria", placa: "662", configuracion: "Doble Horquilla", chasis: "308FGJ35-93736", motor: "2871035", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV41", cd: "Apartado", placa: "663", configuracion: "Doble Horquilla", chasis: "308FGJ35-93730", motor: "2870924", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV10", cd: "Turbaco", placa: "686", configuracion: "Doble Horquilla", chasis: "308FGJ35-93827", motor: "2872434", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "687", configuracion: "Doble Horquilla", chasis: "308FGJ35-93817", motor: "2872329", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Back up" },
+  { cod: "AV74", cd: "La Arenosa", placa: "688", configuracion: "Doble Horquilla", chasis: "308FGJ35-93814", motor: "2872221", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "748", configuracion: "Doble Horquilla", chasis: "308FGJ35-95344", motor: "2902554", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV10", cd: "Turbaco", placa: "749", configuracion: "Doble Horquilla", chasis: "308FGJ35-95346", motor: "2902575", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Propio" },
+  { cod: "AV48", cd: "Turbaco", placa: "750", configuracion: "Doble Horquilla", chasis: "308FGJ35-95347", motor: "2902584", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV74", cd: "La Arenosa", placa: "752", configuracion: "Doble Horquilla", chasis: "308FGJ35-95354", motor: "2902861", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "754", configuracion: "Doble Horquilla", chasis: "308FGJ35-95361", motor: "2902917", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV10", cd: "Turbaco", placa: "758", configuracion: "Doble Horquilla", chasis: "308FGJ35-95376", motor: "2903305", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "759", configuracion: "Doble Horquilla", chasis: "308FGJ35-95382", motor: "2903579", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV20", cd: "C\xFAcuta", placa: "760", configuracion: "Doble Horquilla", chasis: "308FGJ35-95391", motor: "2903482", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV10", cd: "Turbaco", placa: "762", configuracion: "Doble Horquilla", chasis: "308FGJ35-95401", motor: "2903991", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV10", cd: "Turbaco", placa: "763", configuracion: "Doble Horquilla", chasis: "308FGJ35-95403", motor: "2903675", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Spot(VLC)" },
+  { cod: "AV10", cd: "Turbaco", placa: "767", configuracion: "Doble Horquilla", chasis: "308FGJ35-95420", motor: "2904028", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Propio" },
+  { cod: "AV36", cd: "Fonseca", placa: "785", configuracion: "Doble Horquilla", chasis: "308FGJ35-97009", motor: "2933924", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV40", cd: "Caucasia", placa: "800", configuracion: "Doble Horquilla", chasis: "308FGJ35-97107", motor: "2934685", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV76", cd: "Galapa", placa: "801", configuracion: "Doble Horquilla", chasis: "308FGJ35-97105", motor: "2934669", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV12", cd: "Valledupar", placa: "805", configuracion: "Doble Horquilla", chasis: "308FGJ35-97124", motor: "2934861", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV38", cd: "Curumani", placa: "807", configuracion: "Doble Horquilla", chasis: "308FGJ35-97128", motor: "2934874", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV11", cd: "Santa Marta", placa: "808", configuracion: "Doble Horquilla", chasis: "308FGJ35-97136", motor: "2934982", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV12", cd: "Valledupar", placa: "810", configuracion: "Doble Horquilla", chasis: "308FGJ35-97145", motor: "2935021", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV39", cd: "Monteria", placa: "831", configuracion: "Doble Horquilla", chasis: "308FGJ35-93135", motor: "2858732", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV12", cd: "Valledupar", placa: "834", configuracion: "Doble Horquilla", chasis: "308FGJ35-97152", motor: "2935067", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV40", cd: "Caucasia", placa: "835", configuracion: "Doble Horquilla", chasis: "308FGJ35-97169", motor: "2935248", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV39", cd: "Monteria", placa: "837", configuracion: "Doble Horquilla", chasis: "308FGJ35-93117", motor: "2858248", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV76", cd: "Galapa", placa: "858", configuracion: "Doble Horquilla", chasis: "308FGJ35-99750", motor: "2958721", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV76", cd: "Galapa", placa: "861", configuracion: "Doble Horquilla", chasis: "308FGJ35-99782", motor: "2959135", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV76", cd: "Galapa", placa: "865", configuracion: "Doble Horquilla", chasis: "308FGJ35-99761", motor: "2958991", tipo: "32-8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Spot(VLC)" },
+  { cod: "AV39", cd: "Monteria", placa: "892", configuracion: "Doble Horquilla", chasis: "308FGJ35-A0499", motor: "4Y*2967494", tipo: "8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV32", cd: "Corozal", placa: "CP21", configuracion: "Doble Horquilla", chasis: "328FGJ35-93398", motor: "4Y*2866221", tipo: "8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Propio" },
+  { cod: "AV76", cd: "Galapa", placa: "CP3", configuracion: "Doble Horquilla", chasis: "308FGJ35-92736", motor: "4Y*2849694", tipo: "8FGJ35", combustible: "GLP", alquilado: "Distoyota", contrato: "Renta" },
+  { cod: "AV74", cd: "La Arenosa", placa: "MC7", configuracion: "Doble Horquilla", chasis: "8FBJ35-16220", motor: "AT06209", tipo: "8FBJ35", combustible: "ELECTRICO", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV74", cd: "La Arenosa", placa: "MC8", configuracion: "Doble Horquilla", chasis: "8FBJ35-16120", motor: "AT06209", tipo: "8FBJ35", combustible: "ELECTRICO", alquilado: "Distoyota", contrato: "Leasing" },
+  { cod: "AV29", cd: "San Andres", placa: "SAI01", configuracion: "Sencillo", chasis: "", motor: "", tipo: "123", combustible: "GLP", alquilado: "", contrato: "" },
+  { cod: "AV29", cd: "San Andres", placa: "SAI1", configuracion: "Sencillo", chasis: "FGZN30-40319", motor: "4Y2938383", tipo: "FGZN30", combustible: "GLP", alquilado: "SLA", contrato: "Renta" },
+  { cod: "AV69", cd: "UDC Torices", placa: "UC10", configuracion: "Sencillo", chasis: "8FBE20-58482", motor: "FF31739", tipo: "8FBE20", combustible: "ELECTRICO", alquilado: "Distoyota", contrato: "Propio" }
+];
+
+// src/shared/ofe.ts
+var MAX_FILAS_FMS = 2e5;
+var clave2 = (v) => String(v ?? "").trim().toLocaleLowerCase("es");
+var porChasisBase = new Map(MONTACARGAS.map((m) => [clave2(m.chasis), m]));
+var porCdFms = /* @__PURE__ */ new Map();
+for (const g of GERENCIAS) if (g.cdFms && !porCdFms.has(clave2(g.cdFms))) porCdFms.set(clave2(g.cdFms), g);
+var claveChasis = (chasis) => clave2(chasis);
+var CDS_FMS = [...porCdFms.values()].map((g) => g.cdFms).sort(new Intl.Collator("es").compare);
+function revisarMontacargas(datos) {
+  const d = datos ?? {};
+  const chasis = typeof d.chasis === "string" ? d.chasis.trim() : "";
+  const placa = typeof d.placa === "string" ? d.placa.trim() : "";
+  const cd = typeof d.cd === "string" ? CDS_FMS.find((x) => clave2(x) === clave2(d.cd)) : void 0;
+  if (chasis.length < 3 || chasis.length > 60 || !/^[\p{L}\p{N}][\p{L}\p{N} ._/-]*$/u.test(chasis)) return { error: "Escribe el n\xFAmero de chasis tal como sale en Data FMS (columna Forklift)." };
+  if (!cd) return { error: "Elige el CD del montacargas." };
+  if (!placa || placa.length > 20 || /[<>]/.test(placa)) return { error: "Escribe la placa o n\xFAmero de m\xE1quina (m\xE1ximo 20 caracteres)." };
+  return { montacargas: { chasis, cd, placa } };
+}
+function validarColumnasFms(datos) {
+  const d = datos;
+  if (!d || d.tipo !== "fms" || d.version !== 1) return "El tipo de archivo no coincide.";
+  const n = d.fecha?.length ?? 0;
+  const numeros = (a, vacios = false) => Array.isArray(a) && a.length === n && a.every((v) => vacios && v === null || typeof v === "number" && Number.isFinite(v));
+  if (n < 1 || n > MAX_FILAS_FMS || !numeros(d.fecha) || !numeros(d.forklift) || !numeros(d.ralenti, true) || !numeros(d.carga, true) || !numeros(d.movimiento, true)) return "Las columnas no son v\xE1lidas.";
+  if (!Array.isArray(d.turno) || d.turno.length !== n || !d.turno.every((t) => typeof t === "string" && t.length <= 20)) return "La columna Turno no es v\xE1lida.";
+  if (!Array.isArray(d.forklifts) || !d.forklifts.every((v) => typeof v === "string" && v.length <= 120)) return "La lista de montacargas no es v\xE1lida.";
+  if (!d.forklift.every((i) => Number.isInteger(i) && i >= 0 && i < d.forklifts.length)) return "Hay valores fuera de rango.";
+  return null;
+}
+var orden2 = new Intl.Collator("es", { numeric: true }).compare;
+
+// src/server/montacargas.ts
+var TABLA_FALTANTE4 = "Falta crear la tabla de montacargas. Ejecuta supabase/t1_schema.sql en Supabase.";
+var MAX_CAMBIOS = 1e3;
+function rutasMontacargas(pool, sesion) {
+  const router = express6.Router();
+  const fallo = (res, error, mensaje) => {
+    if (error.code === "42P01") {
+      res.status(503).json({ error: TABLA_FALTANTE4 });
+      return;
+    }
+    console.error("Montacargas de OFE:", error.message);
+    res.status(503).json({ error: mensaje });
+  };
+  const sinBase = (res) => {
+    res.status(503).json({ error: "Configura la conexi\xF3n de Supabase para la lista de montacargas." });
+  };
+  router.get("/", async (_req, res) => {
+    if (!pool) {
+      sinBase(res);
+      return;
+    }
+    try {
+      const { rows } = await pool.query(
+        `select chasis, cd, placa, usuario_nombre, actualizado_en from public.ofe_montacargas order by actualizado_en desc limit ${MAX_CAMBIOS}`
+      );
+      res.json({ cambios: rows });
+    } catch (error) {
+      fallo(res, error, "No se pudo consultar la lista de montacargas. Reintenta en un momento.");
+    }
+  });
+  router.put("/", async (req, res) => {
+    if (!pool) {
+      sinBase(res);
+      return;
+    }
+    const revision = revisarMontacargas(req.body);
+    if ("error" in revision) {
+      res.status(400).json({ error: revision.error });
+      return;
+    }
+    const { chasis, cd, placa } = revision.montacargas;
+    const usuario = sesion(req);
+    try {
+      const { rows } = await pool.query(
+        `insert into public.ofe_montacargas (clave, chasis, cd, placa, usuario_id, usuario_nombre) values ($1, $2, $3, $4, $5, $6)
+         on conflict (clave) do update set chasis = excluded.chasis, cd = excluded.cd, placa = excluded.placa,
+           usuario_id = excluded.usuario_id, usuario_nombre = excluded.usuario_nombre, actualizado_en = now()
+         returning chasis, cd, placa, usuario_nombre, actualizado_en`,
+        [claveChasis(chasis), chasis, cd, placa, usuario.sub, usuario.nombre]
+      );
+      res.json({ cambio: rows[0] });
+    } catch (error) {
+      fallo(res, error, "No se pudo guardar el montacargas. Reintenta en un momento.");
+    }
+  });
+  router.delete("/", async (req, res) => {
+    if (!pool) {
+      sinBase(res);
+      return;
+    }
+    const chasis = typeof req.query.chasis === "string" ? req.query.chasis : "";
+    if (!chasis.trim() || chasis.length > 60) {
+      res.status(400).json({ error: "Falta el n\xFAmero de chasis." });
+      return;
+    }
+    try {
+      const { rowCount } = await pool.query("delete from public.ofe_montacargas where clave = $1", [claveChasis(chasis)]);
+      if (!rowCount) {
+        res.status(404).json({ error: "Ese montacargas no tiene cambios guardados." });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (error) {
+      fallo(res, error, "No se pudo quitar el montacargas. Reintenta en un momento.");
+    }
+  });
+  return router;
+}
+
+// src/shared/wip.ts
+var COLUMNAS_WIP = ["Fecha", "CD", "0. Pendiente", "1. En Pausa", "2. Liberado", "3. Asignado", "4. Armado", "5. En verificaci\xF3n", "6. Verificados", "7. En Cargue", "8. Finalizado", "Total DTs"];
+var ESTADOS_WIP = COLUMNAS_WIP.slice(2, 11);
+var MAX_FILAS_WIP = 1e5;
+var clave3 = (v) => String(v ?? "").trim().toLocaleLowerCase("es");
+var porCdWip = /* @__PURE__ */ new Map();
+for (const g of GERENCIAS) if (g.cdWip && !porCdWip.has(clave3(g.cdWip))) porCdWip.set(clave3(g.cdWip), g);
+function validarColumnasWip(datos) {
+  const d = datos;
+  if (!d || d.tipo !== "wip" || d.version !== 1) return "El tipo de archivo no coincide.";
+  const n = d.fecha?.length ?? 0;
+  const numeros = (a, largo = n) => Array.isArray(a) && a.length === largo && a.every((v) => typeof v === "number" && Number.isFinite(v));
+  if (n < 1 || n > MAX_FILAS_WIP || !numeros(d.fecha) || !numeros(d.cd) || !numeros(d.total)) return "Las columnas no son v\xE1lidas.";
+  if (!Array.isArray(d.cds) || !d.cds.every((v) => typeof v === "string" && v.length <= 120)) return "La lista de CD no es v\xE1lida.";
+  if (!Array.isArray(d.estados) || d.estados.length !== ESTADOS_WIP.length || !d.estados.every((e) => Array.isArray(e) && e.length === n && e.every((v) => v === null || typeof v === "number" && Number.isFinite(v)))) return "Los estados no son v\xE1lidos.";
+  if (!d.cd.every((i) => Number.isInteger(i) && i >= 0 && i < d.cds.length) || !d.total.every((t) => t > 0)) return "Hay valores fuera de rango.";
+  return null;
+}
+var orden3 = new Intl.Collator("es").compare;
+
+// src/server/t1.ts
+var rutasT1 = (pool, sesion) => rutasCargas(pool, sesion, "Seguimiento T1", {
+  atct: { validar: (d) => validarColumnas2(d, "atct"), dias: (d) => d.fecha },
+  espera: { validar: (d) => validarColumnas2(d, "espera"), dias: (d) => d.enturnamiento.map((s) => Math.floor(s / 86400)) }
+});
+var rutasWip = (pool, sesion) => rutasCargas(pool, sesion, "Seguimiento WIP", {
+  wip: { validar: validarColumnasWip, dias: (d) => d.fecha }
+});
+var rutasOfe = (pool, sesion) => {
+  const router = rutasCargas(pool, sesion, "OFE", {
+    fms: { validar: validarColumnasFms, dias: (d) => d.fecha }
+  });
+  router.use("/montacargas", rutasMontacargas(pool, sesion));
+  return router;
+};
+
 // server.ts
 var { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
 var variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
@@ -951,10 +1378,10 @@ var clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY,
 var COOKIE = "sesion";
 var DURACION_SESION = 8 * 60 * 60 * 1e3;
 var isProd = process.env.NODE_ENV === "production";
-var app = express5();
-app.use("/api/excel", express5.json({ limit: "2mb" }));
-app.use("/api/preventas", express5.json({ limit: "20mb" }));
-app.use(express5.json());
+var app = express7();
+app.use("/api/excel", express7.json({ limit: "2mb" }));
+app.use("/api/preventas", express7.json({ limit: "20mb" }));
+app.use(express7.json());
 app.use(cookieParser());
 app.use("/api", (_req, res, next) => {
   if (variablesFaltantes.length) {
@@ -985,7 +1412,7 @@ app.get("/", (req, res) => {
   }
   res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
 });
-app.use(express5.static(path.join(import.meta.dirname, "public")));
+app.use(express7.static(path.join(import.meta.dirname, "public")));
 var limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,
   limit: 10,
@@ -1048,6 +1475,9 @@ var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: p
 app.use("/api/preventas", rutasPreventas(dbFrescura, leerSesion));
 app.use("/api/formularios", rutasFormularios(dbFrescura, leerSesion));
 app.use("/api/solicitudes", rutasSolicitudes(dbFrescura, leerSesion));
+app.use("/api/t1", rutasT1(dbFrescura, leerSesion));
+app.use("/api/wip", rutasWip(dbFrescura, leerSesion));
+app.use("/api/ofe", rutasOfe(dbFrescura, leerSesion));
 app.get("/api/frescura/indice.json", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -1251,6 +1681,10 @@ app.get("/modulos", paginaProtegida("modulos.html"));
 app.get("/preventas", paginaProtegida("preventas.html"));
 app.get("/formularios", paginaProtegida("formularios.html"));
 app.get("/solicitudes", paginaProtegida("solicitudes.html"));
+app.get("/activos", paginaProtegida("activos.html"));
+app.get("/t1", paginaProtegida("t1.html"));
+app.get("/wip", paginaProtegida("wip.html"));
+app.get("/ofe", paginaProtegida("ofe.html"));
 var server_default = app;
 if (!process.env.VERCEL) app.listen(Number(PORT), (err) => {
   if (err) {

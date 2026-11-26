@@ -6,13 +6,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>try { if (localStorage.getItem('frescura-tema') === 'claro') document.documentElement.dataset.tema = 'claro'; } catch (_) {}</script>
-  <link rel="stylesheet" href="/panel.css"><script type="module" src="/js/panel.js"></script>
+  <link rel="stylesheet" href="/panel.css"><link rel="stylesheet" href="/comando.css"><script type="module" src="/js/panel.js"></script>
 </head>
 <body>
   <div id="loadingIndicator" class="loading-indicator" role="status" aria-live="polite" hidden><span class="loading-indicator-spinner" aria-hidden="true"></span><span class="loading-indicator-copy"><strong>Cargando información</strong><small>Un momento, por favor</small></span><span class="loading-indicator-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
   <div class="app">
     <aside class="sidebar" id="sidebar" aria-label="Menú principal">
-      <a class="brand" href="/modulos"><img src="/img/logo-bavaria.svg" alt=""><span><strong>TORRE CONTROL</strong><small>Índice de frescura</small></span></a>
+      <a class="brand" href="/modulos"><img class="cc-logo" src="/img/comando/logo-comando.png" alt=""><span><strong>TORRE CONTROL</strong><small>Índice de frescura</small></span></a>
       <div class="sidebar-label"><span class="pin">●</span> REGIONAL NORTE <button type="button" id="closeMenu" aria-label="Cerrar menú">×</button></div>
       <nav id="modules" class="modules" aria-label="Módulos del informe"><p>Cargando módulos…</p></nav>
       <div class="sidebar-footer"><span class="footer-icon">●</span><span><strong>Bavaria</strong><small>Regional Norte</small></span></div>

@@ -1,0 +1,80 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Inventario activos · Comando Central</title><script>try { document.documentElement.dataset.tema = localStorage.getItem('frescura-tema') || 'oscuro'; } catch (_) {}</script><link rel="stylesheet" href="/modulos.css"><link rel="stylesheet" href="/control-design.css"><link rel="stylesheet" href="/preventas.css"><link rel="stylesheet" href="/comando.css"><link rel="stylesheet" href="/activos.css"><script type="module" src="/js/modulos.js"></script><script type="module" src="/js/activos.js"></script></head><body class="pv-page aa-page">
+<header class="header pv-header"><a class="brand" href="/modulos"><img class="cc-logo" src="/img/comando/logo-comando.png" alt="Comando Central · Team WH North Regional"><span><strong>TORRE CONTROL</strong><small>Regional Norte</small></span></a>
+<div class="account"><a class="cc-boton-inicio" href="/modulos"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h4.5v-6h4v6h4.5V10"/></svg>Inicio</a><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span class="theme-bulb" aria-hidden="true"><svg viewBox="0 0 32 32"><g class="bulb-rays"><path d="M16 1v3M5.4 5.5l2.1 2.1M1.5 15h3M26.5 15h3M24.5 7.6l2.1-2.1"/></g><path class="bulb-glass" d="M10 20c0-1.8-2.4-3.1-2.4-6.7a8.4 8.4 0 0 1 16.8 0C24.4 16.9 22 18.2 22 20z"/><path class="bulb-base" d="M10.5 23h11M11.5 26h9M14 29h4"/><path class="bulb-filament" d="M13 20v-5l3 2 3-2v5"/></svg></span><span id="themeLabel">Modo claro</span></button><span class="pv-user"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5v-1a7 7 0 0 1 14 0v1"/></svg><span id="userName">Usuario</span></span><button class="logout" id="logout" type="button">Cerrar sesión</button></div></header><p id="sessionStatus" class="session-status" role="status"></p>
+<main class="preventa-app pv-anim aa-app">
+<section class="pv-hero aa-hero" aria-labelledby="aaTitulo"><span class="pv-eyebrow">Comando Central · Team WH North Regional</span><h1 id="aaTitulo">Inventario de <em>activos</em></h1><p class="aa-hero-lineas"><span>Estibas</span><span>Cajas plásticas</span><span>Isotanques</span></p></section>
+
+<!-- Filtros: mandan sobre todo lo de abajo (tarjetas, donas, gráficos y tabla). Por defecto, el último día con conteos. -->
+<section class="aa-filtros aa-anima" style="--i:0" aria-labelledby="aaFiltrosTitulo">
+<h2 id="aaFiltrosTitulo" class="cc-oculto">Filtros</h2>
+<div class="aa-filtros-fila">
+<div class="aa-campo aa-campo-rango" role="group" aria-labelledby="aaRangoEt"><span id="aaRangoEt" class="aa-etiqueta"><svg class="aa-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Rango de fecha</span>
+<span class="aa-rango"><input id="aaDesde" type="date" aria-label="Desde (primer día)"><span class="aa-rango-a" aria-hidden="true">a</span><input id="aaHasta" type="date" aria-label="Hasta (último día)"></span></div>
+<label class="aa-campo" for="aaCd"><span class="aa-etiqueta"><svg class="aa-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>CD</span><select id="aaCd"><option value="">Todos los CD</option></select></label>
+<label class="aa-campo" for="aaMes"><span class="aa-etiqueta"><svg class="aa-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Mes</span><select id="aaMes"><option value="">Elegir mes</option></select></label>
+<div class="aa-atajos" role="group" aria-label="Atajos de fecha"><button type="button" class="aa-atajo" data-atajo="ultimo" aria-pressed="true">Último día</button><button type="button" class="aa-atajo" data-atajo="semana" aria-pressed="false">Últimos 7 días</button><button type="button" class="aa-atajo" data-atajo="mes" aria-pressed="false">Este mes</button><button type="button" class="aa-atajo" data-atajo="todo" aria-pressed="false">Todo</button></div>
+<button type="button" id="aaActualizar" class="aa-boton-sec"><svg class="aa-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4h-4"/></svg>Actualizar</button>
+</div>
+<p id="aaResumen" class="aa-resumen" role="status" aria-live="polite">Consultando los conteos de inventario…</p>
+</section>
+
+<section class="aa-kpis" aria-labelledby="aaKpisTitulo">
+<h2 id="aaKpisTitulo" class="cc-oculto">Totales del periodo</h2>
+<article class="aa-kpi aa-kpi-amarillo aa-anima" style="--i:1"><span class="aa-kpi-icono" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M3 9.5h18v3H3zM4.5 12.5v6M12 12.5v6M19.5 12.5v6M3 18.5h18"/><path d="M6 9.5V5h12v4.5"/></svg></span><div class="aa-kpi-texto"><p class="aa-kpi-etiqueta">Cantidad de estibas</p><strong id="aaKpiEstibas" class="aa-kpi-valor">0</strong><p class="aa-kpi-nota">Tipo A + B + C</p></div></article>
+<article class="aa-kpi aa-anima" style="--i:2"><span class="aa-kpi-icono" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M3 8h18l-1.6 11.5H4.6z"/><path d="M7.5 11.5v5M12 11.5v5M16.5 11.5v5M4.5 8l1.5-3h12l1.5 3"/></svg></span><div class="aa-kpi-texto"><p class="aa-kpi-etiqueta">Cantidad de cajas plásticas</p><strong id="aaKpiCajas" class="aa-kpi-valor">0</strong><p class="aa-kpi-nota">250 · 330 · 750 · 1000 · 225</p></div></article>
+<article class="aa-kpi aa-anima" style="--i:3"><span class="aa-kpi-icono" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="13" rx="3.5"/><path d="M3.5 9.5h17M3.5 13.5h17M7 18v2.5M17 18v2.5"/></svg></span><div class="aa-kpi-texto"><p class="aa-kpi-etiqueta">Cantidad de isotanques</p><strong id="aaKpiIsotanques" class="aa-kpi-valor">0</strong><p id="aaKpiIsotanquesNota" class="aa-kpi-nota">Llenos + vacíos</p></div></article>
+<article class="aa-kpi aa-anima" style="--i:4"><span class="aa-kpi-icono" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M12 3.5s-6 6.6-6 11a6 6 0 0 0 12 0c0-4.4-6-11-6-11z"/><path d="M9 15a3 3 0 0 0 3 3"/></svg></span><div class="aa-kpi-texto"><p class="aa-kpi-etiqueta">HL pendientes por verter</p><strong id="aaKpiHl" class="aa-kpi-valor">0</strong><p class="aa-kpi-nota">Hectolitros</p></div></article>
+</section>
+
+<!-- Sin conteos: aparece en lugar de los gráficos y ofrece a dónde ir. -->
+<section id="aaVacio" class="aa-card aa-vacio" aria-labelledby="aaVacioTitulo" hidden>
+<span class="aa-vacio-icono" aria-hidden="true"><svg viewBox="0 0 64 52"><path class="aa-vacio-lado" d="M32 24 50 15v19L32 45z"/><path class="aa-vacio-frente" d="M32 24 14 15v19l18 11z"/><path class="aa-vacio-tapa" d="M14 15 32 6l18 9-18 9z"/></svg></span>
+<h2 id="aaVacioTitulo">Sin conteos</h2><p id="aaVacioTexto"></p>
+<div class="aa-vacio-acciones"><button type="button" id="aaVacioUltimo" class="aa-boton" hidden></button><button type="button" id="aaVacioTodos" class="aa-boton-sec" hidden>Ver todos los CD</button><a id="aaVacioRegistrar" class="aa-boton" href="/formularios" hidden>Registrar un conteo</a></div>
+</section>
+
+<div id="aaTablero" class="aa-tablero">
+<section class="aa-seccion" aria-labelledby="aaDistTitulo">
+<h2 id="aaDistTitulo" class="aa-seccion-titulo"><span>Distribución</span></h2>
+<div class="aa-donas">
+<article class="aa-card aa-anima" style="--i:5" aria-labelledby="aaDonaEstTitulo"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M3 9.5h18v3H3zM4.5 12.5v6M12 12.5v6M19.5 12.5v6M3 18.5h18"/></svg></span><div><h3 id="aaDonaEstTitulo">Cantidad de estibas por tipo</h3><p>Tipo A, B y C</p></div></div><div id="aaDonaEstibas" class="aa-dona-caja"></div></article>
+<article class="aa-card aa-anima" style="--i:6" aria-labelledby="aaDonaCajTitulo"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M3 8h18l-1.6 11.5H4.6z"/><path d="M7.5 11.5v5M12 11.5v5M16.5 11.5v5"/></svg></span><div><h3 id="aaDonaCajTitulo">Cantidad de cajas plásticas por referencia</h3><p>Cinco referencias</p></div></div><div id="aaDonaCajas" class="aa-dona-caja"></div></article>
+<article class="aa-card aa-anima" style="--i:7" aria-labelledby="aaDonaIsoTitulo"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="13" rx="3.5"/><path d="M3.5 9.5h17M3.5 13.5h17"/></svg></span><div><h3 id="aaDonaIsoTitulo">Cantidad de isotanques</h3><p>Llenos y vacíos</p></div></div><div id="aaDonaIsotanques" class="aa-dona-caja"></div></article>
+</div>
+</section>
+
+<section class="aa-seccion" aria-labelledby="aaCdTitulo">
+<h2 id="aaCdTitulo" class="aa-seccion-titulo"><span>Por centro de distribución</span></h2>
+<div class="aa-graficos">
+<article class="aa-card aa-anima" style="--i:8" aria-labelledby="aaGCdEstT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="aaGCdEstT">Cantidad de estibas por CD y tipo</h3><p id="aaGCdEstS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="cdEstibas" aria-pressed="false">Ver tabla</button></div><div id="aaGCdEst" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:9" aria-labelledby="aaGCdCajT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="aaGCdCajT">Cantidad de cajas plásticas por CD y referencia</h3><p id="aaGCdCajS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="cdCajas" aria-pressed="false">Ver tabla</button></div><div id="aaGCdCaj" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:10" aria-labelledby="aaGCdIsoT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="aaGCdIsoT">Cantidad de isotanques por CD</h3><p id="aaGCdIsoS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="cdIsotanques" aria-pressed="false">Ver tabla</button></div><div id="aaGCdIso" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:11" aria-labelledby="aaGCdHlT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="aaGCdHlT">Cantidad de HL pendientes por verter por CD</h3><p id="aaGCdHlS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="cdHl" aria-pressed="false">Ver tabla</button></div><div id="aaGCdHl" class="aa-grafico"></div></article>
+</div>
+
+<article class="aa-card aa-tabla-card aa-anima" style="--i:12" aria-labelledby="aaTablaTitulo">
+<div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="aaTablaTitulo">Inventario por CD</h3><p id="aaTablaSub"></p></div></div>
+<div class="aa-tabla-caja" role="region" tabindex="0" aria-labelledby="aaTablaTitulo"><table class="aa-tabla">
+<thead><tr><th scope="col" rowspan="2" class="aa-th-cd">CD</th><th scope="colgroup" colspan="3" class="aa-grupo">Estibas</th><th scope="colgroup" colspan="5" class="aa-grupo">Cajas plásticas</th><th scope="colgroup" colspan="3" class="aa-grupo">Isotanques</th><th scope="col" rowspan="2" class="num aa-th-hl">HL pendientes por verter</th></tr>
+<tr><th scope="col" class="num">Tipo A</th><th scope="col" class="num">Tipo B</th><th scope="col" class="num aa-fin-grupo">Tipo C</th><th scope="col" class="num">250</th><th scope="col" class="num">330</th><th scope="col" class="num">750</th><th scope="col" class="num">1000</th><th scope="col" class="num aa-fin-grupo">225</th><th scope="col" class="num">Llenos</th><th scope="col" class="num">Vacíos</th><th scope="col" class="num aa-fin-grupo">Necesidad</th></tr></thead>
+<tbody id="aaTablaCuerpo"></tbody><tfoot id="aaTablaPie"></tfoot></table></div>
+<p id="aaSinConteo" class="aa-nota" hidden></p>
+</article>
+</section>
+
+<section class="aa-seccion" aria-labelledby="aaDiaTitulo">
+<h2 id="aaDiaTitulo" class="aa-seccion-titulo"><span>Por día</span></h2>
+<p id="aaDiaNota" class="aa-dia-nota" hidden><span id="aaDiaNotaTexto"></span><button type="button" id="aaDiaSemana" class="aa-boton-sec">Ver los últimos 7 días</button></p>
+<div class="aa-graficos">
+<article class="aa-card aa-anima" style="--i:13" aria-labelledby="aaGDiaEstT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div><h3 id="aaGDiaEstT">Cantidad de estibas por día y tipo</h3><p id="aaGDiaEstS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="diaEstibas" aria-pressed="false">Ver tabla</button></div><div id="aaGDiaEst" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:14" aria-labelledby="aaGDiaCajT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div><h3 id="aaGDiaCajT">Cantidad de cajas plásticas por día y referencia</h3><p id="aaGDiaCajS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="diaCajas" aria-pressed="false">Ver tabla</button></div><div id="aaGDiaCaj" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:15" aria-labelledby="aaGDiaIsoT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div><h3 id="aaGDiaIsoT">Cantidad de isotanques por día</h3><p id="aaGDiaIsoS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="diaIsotanques" aria-pressed="false">Ver tabla</button></div><div id="aaGDiaIso" class="aa-grafico"></div></article>
+<article class="aa-card aa-anima" style="--i:16" aria-labelledby="aaGDiaHlT"><div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div><h3 id="aaGDiaHlT">Cantidad de HL pendientes por verter por día</h3><p id="aaGDiaHlS"></p></div><button type="button" class="aa-ver-tabla" data-grafico="diaHl" aria-pressed="false">Ver tabla</button></div><div id="aaGDiaHl" class="aa-grafico"></div></article>
+</div>
+</section>
+</div>
+</main>
+<div id="aaTip" class="aa-tip" aria-hidden="true" hidden></div>
+<p id="aaAnuncio" class="cc-oculto" aria-live="polite"></p>
+<footer>BAVARIA · TORRE CONTROL · REGIONAL NORTE</footer>
+</body></html>

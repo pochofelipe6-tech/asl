@@ -1,0 +1,80 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seguimiento WIP · Comando Central</title><script>try { document.documentElement.dataset.tema = localStorage.getItem('frescura-tema') || 'oscuro'; } catch (_) {}</script><link rel="stylesheet" href="/modulos.css"><link rel="stylesheet" href="/control-design.css"><link rel="stylesheet" href="/comando.css"><link rel="stylesheet" href="/preventas.css"><link rel="stylesheet" href="/formularios.css"><link rel="stylesheet" href="/t1.css"><link rel="stylesheet" href="/wip.css"><script type="module" src="/js/modulos.js"></script><script type="module" src="/js/wip.js"></script></head><body class="pv-page t1-page wip-page">
+<header class="header pv-header"><a class="brand" href="/modulos"><img class="cc-logo" src="/img/comando/logo-comando.png" alt="Comando Central · Team WH North Regional"><span><strong>TORRE CONTROL</strong><small>Regional Norte</small></span></a>
+<div class="account"><a class="cc-boton-inicio" href="/modulos"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h4.5v-6h4v6h4.5V10"/></svg>Inicio</a><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span class="theme-bulb" aria-hidden="true"><svg viewBox="0 0 32 32"><g class="bulb-rays"><path d="M16 1v3M5.4 5.5l2.1 2.1M1.5 15h3M26.5 15h3M24.5 7.6l2.1-2.1"/></g><path class="bulb-glass" d="M10 20c0-1.8-2.4-3.1-2.4-6.7a8.4 8.4 0 0 1 16.8 0C24.4 16.9 22 18.2 22 20z"/><path class="bulb-base" d="M10.5 23h11M11.5 26h9M14 29h4"/><path class="bulb-filament" d="M13 20v-5l3 2 3-2v5"/></svg></span><span id="themeLabel">Modo claro</span></button><span class="pv-user"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5v-1a7 7 0 0 1 14 0v1"/></svg><span id="userName">Usuario</span></span><button class="logout" id="logout" type="button">Cerrar sesión</button></div></header><p id="sessionStatus" class="session-status" role="status"></p>
+<main class="preventa-app pv-anim t1-app">
+<section class="pv-hero t1-hero" aria-labelledby="wipTitulo"><span class="pv-eyebrow">Comando Central · Team WH North Regional</span><h1 id="wipTitulo">Seguimiento WIP <span class="t1-hero-barra" aria-hidden="true">/</span> <em>North Regional</em></h1><p class="t1-hero-lineas">Armado / Verificación / Montacargas</p><div class="t1-hero-datos"><button type="button" id="wipSubir" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><p id="wipHeroDatos" class="t1-hero-fuente wip-hero-fuente">Consultando los datos cargados…</p></div></section>
+
+<!-- Filtros (los segmentadores del Power BI): mandan sobre todo lo de abajo. Por defecto, el mes de la última fecha. -->
+<section id="wipFiltros" class="t1-filtros t1-anima" style="--i:0" aria-labelledby="wipFiltrosTitulo">
+<h2 id="wipFiltrosTitulo" class="cc-oculto">Filtros</h2>
+<div class="t1-filtros-fila">
+<div class="t1-campo" role="group" aria-labelledby="wipRangoEt"><span id="wipRangoEt" class="t1-etiqueta"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Rango de fecha</span>
+<span class="t1-rango"><input id="wipDesde" type="date" aria-label="Desde (primer día)"><span class="t1-rango-a" aria-hidden="true">a</span><input id="wipHasta" type="date" aria-label="Hasta (último día)"></span></div>
+<label class="t1-campo" for="wipMes"><span class="t1-etiqueta"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Mes</span><select id="wipMes"><option value="">Rango libre</option></select></label>
+<div class="t1-campo t1-multi" id="wipMultiCds"><span class="t1-etiqueta" id="wipCdsEt"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>CD</span></div>
+<div class="t1-filtros-acciones"><button type="button" id="wipLimpiar" class="t1-boton-sec"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4h-4"/></svg>Limpiar filtros</button></div>
+</div>
+<div class="t1-pie-filtros"><ul id="wipActivos" class="t1-activos" aria-label="Filtros aplicados" hidden></ul><p id="wipResumen" class="t1-resumen" role="status" aria-live="polite">Cargando los datos de WIP…</p></div>
+<div id="wipProgreso" class="t1-progreso" role="status" aria-live="polite" hidden><span class="t1-progreso-barra" aria-hidden="true"><i></i></span><span id="wipProgresoTexto"></span></div>
+</section>
+
+<!-- Nota discreta: CD del archivo que no están en la tabla de gerencias (no salen en los cortes por CD, gerencia ni OL). -->
+<p id="wipAvisoCd" class="wip-nota-cd" hidden><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.1"/></svg><span id="wipAvisoCdTexto"></span></p>
+
+<!-- Indicadores como los del Power BI: la cifra va en verde si llega a la meta (99 % o más) y en rojo si no. -->
+<section class="wip-indicadores" aria-labelledby="wipKpisTitulo">
+<h2 id="wipKpisTitulo" class="cc-oculto">Usabilidad del periodo (meta: 99 %)</h2>
+<article class="wip-ind t1-anima" style="--i:1" title="Promedio de armado, verificación y montacargas"><img class="wip-ind-img wip-ind-logo" src="/img/comando/wip/logo-wip.png" alt="" width="220" height="147"><div class="wip-ind-texto"><p class="wip-ind-titulo">Usabilidad WIP</p><strong id="wipKpiWip" class="wip-ind-valor">—</strong></div></article>
+<article class="wip-ind t1-anima" style="--i:2" title="DTs armados o más avanzados"><img class="wip-ind-img " src="/img/comando/wip/caja.png" alt="" width="128" height="128"><div class="wip-ind-texto"><p class="wip-ind-titulo">Armado</p><strong id="wipKpiArmado" class="wip-ind-valor">—</strong></div></article>
+<article class="wip-ind t1-anima" style="--i:3" title="DTs verificados o más avanzados"><img class="wip-ind-img " src="/img/comando/wip/portapapeles.png" alt="" width="128" height="128"><div class="wip-ind-texto"><p class="wip-ind-titulo">Verificación</p><strong id="wipKpiVerif" class="wip-ind-valor">—</strong></div></article>
+<article class="wip-ind t1-anima" style="--i:4" title="DTs en cargue o finalizados"><img class="wip-ind-img " src="/img/comando/wip/montacargas.png" alt="" width="128" height="128"><div class="wip-ind-texto"><p class="wip-ind-titulo">Montacargas</p><strong id="wipKpiMonta" class="wip-ind-valor">—</strong></div></article>
+<p id="wipKpiWipNota" class="cc-oculto"></p>
+</section>
+
+<!-- Sin datos cargados: aparece en lugar del tablero. -->
+<section id="wipVacio" class="t1-card t1-vacio" aria-labelledby="wipVacioTitulo" hidden>
+<span class="t1-vacio-icono" aria-hidden="true"><svg viewBox="0 0 64 52"><path class="t1-vacio-lado" d="M32 24 50 15v19L32 45z"/><path class="t1-vacio-frente" d="M32 24 14 15v19l18 11z"/><path class="t1-vacio-tapa" d="M14 15 32 6l18 9-18 9z"/></svg></span>
+<h2 id="wipVacioTitulo">Aún no hay datos de Seguimiento WIP</h2><p>Sube Data WIP.xlsx para ver la usabilidad de armado, verificación y montacargas.</p>
+<div class="t1-vacio-acciones"><button type="button" id="wipVacioSubir" class="t1-boton">Subir Excel</button></div>
+</section>
+
+<!-- Tablero en el orden del Power BI: tabla por CD junto a las dos tendencias diarias; tabla por día junto a la
+     usabilidad por CD; la matriz CD × día a lo ancho; y abajo gerencia, OL y semana. -->
+<div id="wipTablero" class="t1-tablero wip-compacto">
+<h2 class="cc-oculto">Usabilidad WIP: gráficos y tablas</h2>
+<p class="t1-pista">Toca una columna del gráfico por CD para filtrar toda la página por ese CD; vuelve a tocarla para quitarlo.</p>
+<div class="t1-graficos wip-fila-a">
+<article class="t1-card t1-anima" style="--i:5" aria-labelledby="wipTCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="wipTCdT">Seguimiento usabilidad WIP por CD</h3><p id="wipTCdS"></p></div></div><div id="wipTCd" class="t1-tabla-zona"></div></article>
+<div class="wip-pila">
+<article class="t1-card t1-anima" style="--i:6" aria-labelledby="wipGDiaT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3.5 17l5-5.5 4 3.5 7.5-8.5"/><path d="M3.5 20.5h17"/></svg></span><div><h3 id="wipGDiaT">Seguimiento usabilidad de WIP por día</h3><p id="wipGDiaS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="dia" aria-pressed="false">Ver tabla</button></div>
+<div class="wip-tendencias" role="group" aria-labelledby="wipTendEt"><span id="wipTendEt" class="t1-etiqueta">Tendencia</span><div id="wipTendencias" class="wip-tend-chips"></div></div>
+<div id="wipGDia" class="t1-grafico"></div></article>
+<article class="t1-card t1-anima" style="--i:7" aria-labelledby="wipGDtsT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3.5 17l5-5.5 4 3.5 7.5-8.5"/><path d="M3.5 20.5h17"/></svg></span><div><h3 id="wipGDtsT">Seguimiento cargue de DTs por día</h3><p id="wipGDtsS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="dts" aria-pressed="false">Ver tabla</button></div><div id="wipGDts" class="t1-grafico"></div></article>
+</div>
+</div>
+<div class="t1-graficos wip-fila-b">
+<article class="t1-card t1-anima" style="--i:8" aria-labelledby="wipTDiaT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="wipTDiaT">DTs y usabilidad por día</h3><p id="wipTDiaS"></p></div></div><div id="wipTDia" class="t1-tabla-zona"></div></article>
+<article class="t1-card t1-anima" style="--i:9" aria-labelledby="wipGCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="wipGCdT">% Usabilidad WIP por CD</h3><p id="wipGCdS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="cd" aria-pressed="false">Ver tabla</button></div><div id="wipGCd" class="t1-grafico"></div></article>
+</div>
+<article class="t1-card t1-anima" style="--i:10" aria-labelledby="wipMapaT"><div class="t1-card-cabeza wip-mapa-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><div><h3 id="wipMapaT">Usabilidad por CD y día</h3><p id="wipMapaS"></p></div><div class="wip-medida" role="group" aria-label="Usabilidad que muestra el mapa"><div id="wipMapaMedida" class="t1-chips"></div></div></div><div id="wipMapa" class="t1-mapa-caja"></div></article>
+<div class="t1-graficos wip-fila-d">
+<article class="t1-card t1-anima" style="--i:11" aria-labelledby="wipGGerT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="wipGGerT">% Usabilidad WIP por gerencia</h3><p id="wipGGerS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="gerencia" aria-pressed="false">Ver tabla</button></div><div id="wipGGer" class="t1-grafico"></div></article>
+<article class="t1-card t1-anima" style="--i:12" aria-labelledby="wipGOlT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="wipGOlT">% Usabilidad WIP por OL</h3><p id="wipGOlS">Operador logístico de cada CD</p></div><button type="button" class="t1-ver-tabla" data-grafico="ol" aria-pressed="false">Ver tabla</button></div><div id="wipGOl" class="t1-grafico"></div></article>
+<article class="t1-card t1-anima" style="--i:13" aria-labelledby="wipGSemT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M3.5 17l5-5.5 4 3.5 7.5-8.5"/><path d="M3.5 20.5h17"/></svg></span><div><h3 id="wipGSemT">% Usabilidad WIP por semana</h3><p id="wipGSemS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="semana" aria-pressed="false">Ver tabla</button></div><div id="wipGSem" class="t1-grafico"></div></article>
+</div>
+</div>
+
+<!-- Carga de datos: Data WIP.xlsx. -->
+<section id="wipDatos" class="t1-seccion" aria-labelledby="wipDatosTitulo">
+<h2 id="wipDatosTitulo" class="t1-seccion-titulo"><span>Datos cargados</span></h2>
+<div class="t1-card t1-datos wip-datos t1-anima" style="--i:14">
+<div class="t1-archivo" id="wipArchivoCaja"><span class="t1-archivo-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 12.5l6 5M15 12.5l-6 5"/></svg></span><div><p class="t1-archivo-tipo">Data WIP · estados de los DTs por CD y día</p><strong class="t1-archivo-nombre">Sin cargar</strong><p class="t1-archivo-detalle"></p><p class="t1-archivo-quien"></p></div></div>
+<div class="t1-datos-subir"><button type="button" id="wipSubirAbajo" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><p>Acepta Data WIP.xlsx (columnas Fecha, CD, los estados de 0. Pendiente a 8. Finalizado y Total DTs). Cada archivo reemplaza los datos anteriores.</p></div>
+</div>
+</section>
+<input id="wipArchivo" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+</main>
+<div id="wipTip" class="t1-tip" aria-hidden="true" hidden></div>
+<p id="wipAnuncio" class="cc-oculto" aria-live="polite"></p>
+<footer>BAVARIA · TORRE CONTROL · REGIONAL NORTE</footer>
+</body></html>
