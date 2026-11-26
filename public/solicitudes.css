@@ -275,11 +275,6 @@ html[data-tema="claro"] .fm-tb-tabla.so-hist-tabla tr.so-hist-repetida td{backgr
 .so-kpi-azul-icono .fm-ico{width:32px;height:32px;stroke-width:1.6}
 
 /* Mes del tablero, en la cabecera del gráfico. */
-.so-mes-pildora{position:relative;display:inline-flex;align-items:center;margin-left:auto}
-.so-page .so-mes-pildora select{min-height:38px;padding:0 36px 0 16px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);font:inherit;font-size:13.5px;font-weight:700;appearance:none;cursor:pointer}
-.so-mes-pildora select:hover{border-color:#ff2b5588}
-.so-mes-pildora select:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
-.so-mes-pildora .fm-ico{position:absolute;right:13px;width:15px;height:15px;pointer-events:none}
 .so-barras-guia{stroke:var(--fm-velo-2);stroke-width:1}
 .so-barras-marca{fill:var(--fm-suave);font-size:12px;font-weight:600}
 .so-page .so-barra-valor{fill:var(--fm-texto);font-size:12.5px;font-weight:600}
@@ -584,3 +579,29 @@ html:not([data-tema="claro"]) .so-centro.sin::after{background:linear-gradient(9
   .so-centros-dialogo .fm-dialogo-acciones{padding:4px 28px 10px}
   .so-centros-dialogo #soCentrosListo{min-height:38px}
 }
+
+/* Filtro de fecha del tablero: ‹ [📅 Hoy 26/11/2026] › y "Hoy" para volver. El calendario se abre al tocar la píldora. */
+.so-tb-medio .so-card-cabeza{flex-wrap:wrap}
+.so-fecha-filtro{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.so-fecha-paso,.so-fecha-hoy{display:grid;place-items:center;height:38px;border:1px solid var(--fm-campo-borde);background:var(--fm-campo);color:var(--fm-texto);font:inherit;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.so-fecha-paso{width:38px;padding:0;border-radius:50%}
+.so-fecha-paso .fm-ico{width:17px;height:17px;stroke-width:2.3}
+.so-fecha-paso:hover:not(:disabled),.so-fecha-hoy:hover{border-color:#ff2b5588}
+.so-fecha-paso:disabled{opacity:.4;cursor:default}
+.so-fecha-hoy{padding:0 15px;border-color:transparent;border-radius:999px;background:linear-gradient(145deg,#ff3a61,#c8002c);box-shadow:0 8px 16px -8px #e8002ecc;color:#fff;font-size:13px;font-weight:800}
+.so-fecha-hoy[hidden]{display:none}
+.so-fecha-pildora{position:relative;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px 0 12px;border:1px solid var(--fm-campo-borde);border-radius:999px;background:var(--fm-campo);color:var(--fm-texto);cursor:pointer}
+.so-fecha-pildora:hover{border-color:#ff2b5588}
+.so-fecha-pildora:focus-within{outline:3px solid #ffba48;outline-offset:2px}
+.so-fecha-ico{width:17px;height:17px;color:var(--fm-rojo-texto)}
+.so-fecha-dia{padding:2px 9px;border-radius:999px;background:#e8002e1a;color:var(--fm-rojo-texto);font-size:12px;font-weight:800;white-space:nowrap}
+.so-page .so-fecha-pildora input{width:112px;min-height:0;padding:0;border:0;background:none;color:var(--fm-texto);font:inherit;font-size:13.5px;font-weight:700;outline:none;cursor:pointer;color-scheme:light}
+html:not([data-tema="claro"]) .so-page .so-fecha-pildora input{color-scheme:dark}
+/* El ícono del calendario del navegador cubre toda la píldora (invisible): tocar en cualquier parte abre el calendario. */
+.so-fecha-pildora input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:auto;height:auto;margin:0;padding:0;opacity:0;cursor:pointer}
+/* Todas las fechas: el campo vacío no muestra "dd/mm/aaaa". */
+.so-fecha-pildora.todas input{width:0;color:transparent}
+.so-fecha-pildora.todas .so-fecha-dia{background:none;padding:0;color:var(--fm-texto);font-size:13.5px}
+.so-fecha-paso:focus-visible,.so-fecha-hoy:focus-visible{outline:3px solid #ffba48;outline-offset:2px}
+.so-filtros-panel .so-todas-fechas{align-self:flex-start;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.so-fecha-paso,.so-fecha-hoy{transition:none}}

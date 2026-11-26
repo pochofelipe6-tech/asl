@@ -54,7 +54,7 @@
 </div>
 
 <div class="so-tb-medio">
-<article class="fm-tb-card so-anima" style="--i:4" aria-labelledby="soGraficoTitulo"><div class="so-card-cabeza"><span class="rs-circulo" aria-hidden="true"><svg class="fm-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="soGraficoTitulo">Solicitudes por centro</h3><p id="soGraficoSub">Unidades pedidas por centro destino</p></div><label class="so-mes-pildora"><select id="soMes" aria-label="Mes del tablero"><option value="">Todos los meses</option></select><svg class="fm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label></div><div id="soGrafico" class="so-barras"></div></article>
+<article class="fm-tb-card so-anima" style="--i:4" aria-labelledby="soGraficoTitulo"><div class="so-card-cabeza"><span class="rs-circulo" aria-hidden="true"><svg class="fm-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="soGraficoTitulo">Solicitudes por centro</h3><p id="soGraficoSub">Unidades pedidas por centro destino</p></div><div class="so-fecha-filtro" role="group" aria-label="Fecha del tablero"><button type="button" id="soDiaAnterior" class="so-fecha-paso" aria-label="Ver el día anterior" title="Día anterior"><svg class="fm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button><label class="so-fecha-pildora"><svg class="fm-ico so-fecha-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span id="soFechaDia" class="so-fecha-dia" aria-hidden="true">Hoy</span><input id="soFecha" type="date" aria-label="Fecha de las solicitudes que se muestran"></label><button type="button" id="soDiaSiguiente" class="so-fecha-paso" aria-label="Ver el día siguiente" title="Día siguiente"><svg class="fm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button><button type="button" id="soHoy" class="so-fecha-hoy" hidden>Hoy</button></div></div><div id="soGrafico" class="so-barras"></div></article>
 <article class="fm-tb-card so-anima" style="--i:5" aria-labelledby="soTopTitulo"><div class="so-card-cabeza"><span class="rs-circulo" aria-hidden="true"><svg class="fm-ico" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg></span><div><h3 id="soTopTitulo">Top 5 materiales</h3><p>Los más pedidos por número de solicitudes</p></div></div><ol id="soTop" class="so-top"></ol></article>
 </div>
 
@@ -66,7 +66,7 @@
 <div class="so-filtros-panel">
 <label class="so-filtros-campo" for="soFiltroCentro">Centro destino</label>
 <select id="soFiltroCentro"><option value="">Todos los centros</option></select>
-<p class="so-filtros-nota">El mes se elige en el gráfico "Solicitudes por centro".</p>
+<p class="so-filtros-nota">La fecha se elige en el gráfico "Solicitudes por centro" (por defecto, hoy).</p><button type="button" id="soTodasFechas" class="so-boton-tabla so-todas-fechas">Ver todas las fechas</button>
 <div class="so-filtros-acciones"><button type="button" id="soQuitarFiltros" class="so-boton-tabla so-quitar">Quitar filtros</button><button type="button" id="soActualizar" class="so-boton-tabla"><svg class="fm-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5v4h-4"/></svg>Actualizar datos</button></div>
 </div>
 </details>

@@ -41,8 +41,6 @@ let truncado = false;
 let fallaCarga = false;
 let pagina = 0;
 let cargando: Promise<void> | null = null;
-/** Al cargar por primera vez, el tablero abre en el mes actual (o el último con solicitudes). */
-let mesPorDefecto = true;
 /** Descripciones de materiales que no están en MATERIALES, tomadas de las solicitudes guardadas. */
 let aprendidas = new Map<string, string>();
 
@@ -72,13 +70,31 @@ const formatoFecha = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '
 const formatoCorta = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short' });
 const formatoHora = new Intl.DateTimeFormat('es-CO', { timeStyle: 'short' });
 const formatoMes = new Intl.DateTimeFormat('es-CO', { month: 'long' });
-const formatoMesAnio = new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' });
 const cifra = (n: number) => n.toLocaleString('es-CO');
 const normal = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const cdDe = (codigo: string | undefined) => CENTROS_DESTINO.find(c => c.codigo === codigo)?.cd ?? '';
 const claveMes = (fecha: Date) => `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-const fechaDeClave = (clave: string) => { const [anio, mes] = clave.split('-').map(Number); return new Date(anio, mes - 1, 1); };
+/** Día local en el formato del campo de fecha: "2026-11-26". */
+const claveDia = (fecha: Date) => `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+const fechaDeDia = (dia: string) => { const [anio, mes, d] = dia.split('-').map(Number); return new Date(anio, mes - 1, d); };
+const sumarDias = (dia: string, n: number) => { const f = fechaDeDia(dia); f.setDate(f.getDate() + n); return claveDia(f); };
+const formatoDiaSemana = new Intl.DateTimeFormat('es-CO', { weekday: 'long' });
+const formatoDiaMes = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit' });
+/** Cómo se nombra un día en el tablero: "Hoy", "Ayer" o el día de la semana. */
+function nombreDia(dia: string): string {
+  const hoy = claveDia(new Date());
+  return dia === hoy ? 'Hoy' : dia === sumarDias(hoy, -1) ? 'Ayer' : mayuscula(formatoDiaSemana.format(fechaDeDia(dia)));
+}
+/** "de hoy", "de ayer" o "del 24/11", para los indicadores. */
+function delDia(dia: string): string {
+  const nombre = nombreDia(dia);
+  return nombre === 'Hoy' ? 'de hoy' : nombre === 'Ayer' ? 'de ayer' : `del ${formatoDiaMes.format(fechaDeDia(dia))}`;
+}
+/** "hoy", "ayer" o "el 24/11/2026", para frases como "No hay solicitudes hoy". */
+const enElDia = (dia: string) => { const n = nombreDia(dia); return n === 'Hoy' ? 'hoy' : n === 'Ayer' ? 'ayer' : `el ${formatoFecha.format(fechaDeDia(dia))}`; };
+/** "Hoy, 26/11/2026" o "Martes, 24/11/2026"; sin fecha, "Todas las fechas". */
+const tituloDia = (dia: string) => (dia ? `${nombreDia(dia)}, ${formatoFecha.format(fechaDeDia(dia))}` : 'Todas las fechas');
 const describir = (r: Registro) => `${r.respuestas.solicitante ?? 'sin solicitante'} (${r.respuestas.centro ?? '—'})`;
 const cantidadDe = (r: Registro) => (typeof r.respuestas.cantidad === 'number' ? r.respuestas.cantidad : 0);
 const sumar = (lista: readonly Registro[]) => lista.reduce((t, r) => t + cantidadDe(r), 0);
@@ -584,7 +600,8 @@ const cuerpo = porId<HTMLTableElement>('soTabla').tBodies[0];
 const cajaTabla = porId('soTablaCaja');
 const estadoTabla = porId('soTablaEstado');
 const buscar = porId<HTMLInputElement>('soBuscar');
-const filtroMes = porId<HTMLSelectElement>('soMes');
+/** Fecha del tablero (AAAA-MM-DD). Vacía: todas las fechas. Al abrir la página, hoy. */
+const filtroFecha = porId<HTMLInputElement>('soFecha');
 const filtroCentro = porId<HTMLSelectElement>('soFiltroCentro');
 const vacio = porId('soVacio');
 const vacioNueva = porId('soVacioNueva');
@@ -618,24 +635,23 @@ function aprender(lista: readonly Registro[]) {
   porId('soMateriales').replaceChildren(...[...materiales].sort(([a], [b]) => a.localeCompare(b)).map(([codigo, texto]) => new Option(texto, codigo)));
 }
 
-/** "Noviembre 2026", como en el selector del gráfico. */
-const nombreMes = (clave: string) => { const f = fechaDeClave(clave); return `${mayuscula(formatoMes.format(f))} ${f.getFullYear()}`; };
-
-function pintarMeses(lista: readonly Registro[]) {
-  const meses = [...new Set(lista.map(r => claveMes(new Date(r.creado_en))))].sort().reverse();
-  const actual = claveMes(new Date());
-  const elegido = mesPorDefecto ? (meses.includes(actual) ? actual : meses[0] ?? '') : filtroMes.value;
-  if (lista.length) mesPorDefecto = false;
-  filtroMes.replaceChildren(new Option('Todos los meses', ''), ...meses.map(m => new Option(nombreMes(m), m)));
-  filtroMes.value = meses.includes(elegido) ? elegido : '';
+/** Texto y botones del filtro de fecha: "Hoy", ‹ día anterior y › día siguiente (no pasa de hoy). */
+function pintarFecha() {
+  const hoy = claveDia(new Date());
+  const dia = filtroFecha.value;
+  filtroFecha.max = hoy;
+  porId('soFechaDia').textContent = dia ? nombreDia(dia) : 'Todas las fechas';
+  porId('soFecha').closest('.so-fecha-pildora')?.classList.toggle('todas', !dia);
+  porId<HTMLButtonElement>('soDiaSiguiente').disabled = !!dia && dia >= hoy;
+  porId('soHoy').hidden = dia === hoy;
 }
 
-/** Solicitudes que pasan la búsqueda, el centro y el mes (por defecto, el mes elegido arriba). */
-function filtrados(lista: readonly Registro[], mes = filtroMes.value): Registro[] {
+/** Solicitudes que pasan la búsqueda, el centro y la fecha (por defecto, la fecha elegida en el tablero). */
+function filtrados(lista: readonly Registro[], dia = filtroFecha.value): Registro[] {
   const texto = normal(buscar.value.trim());
   return ordenados(lista.filter(r => {
     const s = r.respuestas;
-    if (mes && claveMes(new Date(r.creado_en)) !== mes) return false;
+    if (dia && claveDia(new Date(r.creado_en)) !== dia) return false;
     if (filtroCentro.value && s.centro !== filtroCentro.value) return false;
     if (!texto) return true;
     return normal([s.solicitante, s.centro, cdDe(s.centro), s.material, s.descripcion, r.usuario_nombre, formatoFecha.format(new Date(r.creado_en))].join(' ')).includes(texto);
@@ -644,21 +660,23 @@ function filtrados(lista: readonly Registro[], mes = filtroMes.value): Registro[
 
 /** Indicadores del periodo filtrado: solicitudes, unidades, centros que pidieron y último pedido. */
 function pintarIndicadores(lista: readonly Registro[]) {
-  const mes = filtroMes.value;
-  const periodo = mes ? `en ${formatoMes.format(fechaDeClave(mes))}` : 'en total';
+  const dia = filtroFecha.value;
+  const periodo = dia ? delDia(dia) : 'en total';
   kpi.solEt.textContent = `Solicitudes ${periodo}`;
   contar(kpi.sol, lista.length);
   kpi.solUni.textContent = lista.length === 1 ? 'solicitud' : 'solicitudes';
-  // Comparación con el mes anterior, con los mismos filtros de centro y búsqueda.
-  const previo = mes ? claveMes(new Date(fechaDeClave(mes).getFullYear(), fechaDeClave(mes).getMonth() - 1, 1)) : '';
+  // Comparación con el día anterior, con los mismos filtros de centro y búsqueda.
+  const previo = dia ? sumarDias(dia, -1) : '';
   const antes = previo && registros ? filtrados(registros, previo).length : 0;
-  kpi.solDelta.hidden = !antes;
-  if (antes) {
+  // Sin solicitudes en el día elegido no se compara: a primera hora de hoy daría un "−100 %" engañoso.
+  const comparar = antes > 0 && lista.length > 0;
+  kpi.solDelta.hidden = !comparar;
+  if (comparar) {
     const cambio = Math.round(((lista.length - antes) / antes) * 100);
     kpi.solDeltaValor.textContent = cambio > 0 ? `+${cambio}%` : cambio < 0 ? `−${Math.abs(cambio)}%` : 'Igual';
-    kpi.solDeltaTexto.textContent = 'que el mes anterior';
+    kpi.solDeltaTexto.textContent = nombreDia(dia) === 'Hoy' ? 'que ayer' : 'que el día anterior';
     kpi.solDelta.dataset.tendencia = cambio > 0 ? 'sube' : cambio < 0 ? 'baja' : 'igual';
-    kpi.solDelta.title = `${mayuscula(formatoMes.format(fechaDeClave(previo)))}: ${plural(antes, 'solicitud', 'solicitudes')}`;
+    kpi.solDelta.title = `${formatoFecha.format(fechaDeDia(previo))}: ${plural(antes, 'solicitud', 'solicitudes')}`;
   }
 
   kpi.uniEt.textContent = `Unidades ${periodo}`;
@@ -686,7 +704,7 @@ function pintarIndicadores(lista: readonly Registro[]) {
   kpi.ultHace.hidden = !ultimo;
   if (!ultimo) {
     kpi.ultFecha.textContent = '—';
-    kpi.ultQuien.textContent = 'Sin solicitudes';
+    kpi.ultQuien.textContent = dia ? 'Sin solicitudes este día' : 'Sin solicitudes';
     kpi.ultQue.textContent = '';
     return;
   }
@@ -721,8 +739,7 @@ function pintarGrafico(lista: readonly Registro[]) {
     por.set(codigo, b);
   }
   barras = [...por.values()].sort((a, b) => b.unidades - a.unidades || b.n - a.n || a.codigo.localeCompare(b.codigo));
-  const mes = filtroMes.value;
-  graficoSub.textContent = `${mes ? mayuscula(formatoMesAnio.format(fechaDeClave(mes))) : 'Todos los meses'} • ${plural(lista.length, 'solicitud', 'solicitudes')} en ${plural(barras.length, 'centro', 'centros')}`;
+  graficoSub.textContent = `${tituloDia(filtroFecha.value)} • ${plural(lista.length, 'solicitud', 'solicitudes')} en ${plural(barras.length, 'centro', 'centros')}`;
   dibujarGrafico();
 }
 
@@ -743,7 +760,7 @@ function dibujarGrafico() {
   const ancho = Math.floor(grafico.clientWidth);
   anchoDibujado = ancho;
   if (!barras.length) {
-    grafico.replaceChildren(crear('p', 'so-grafico-vacio', registros?.length ? 'Ninguna solicitud coincide con los filtros.' : 'Aún no hay solicitudes para graficar.'));
+    grafico.replaceChildren(crear('p', 'so-grafico-vacio', !registros?.length ? 'Aún no hay solicitudes para graficar.' : sinDelDia() ? `No hay solicitudes ${enElDia(filtroFecha.value)}. Usa ‹ para ver el día anterior.` : 'Ninguna solicitud coincide con los filtros.'));
     return;
   }
   if (!ancho) return; // Pestaña oculta: se dibuja al mostrarse (ResizeObserver).
@@ -802,7 +819,7 @@ function pintarTop(lista: readonly Registro[]) {
   }
   const primeros = [...por].sort(([a, x], [b, y]) => y.n - x.n || y.unidades - x.unidades || a.localeCompare(b)).slice(0, 5);
   if (!primeros.length) {
-    top.replaceChildren(crear('li', 'so-top-vacio', registros?.length ? 'Ningún material coincide con los filtros.' : 'Aún no hay materiales pedidos.'));
+    top.replaceChildren(crear('li', 'so-top-vacio', !registros?.length ? 'Aún no hay materiales pedidos.' : sinDelDia() ? 'Ningún material pedido este día.' : 'Ningún material coincide con los filtros.'));
     return;
   }
   const max = primeros[0][1].n;
@@ -863,7 +880,7 @@ function pintarTablero() {
   porId('soListado').classList.toggle('so-quieto', sinAnimar);
   sinAnimar = false;
   aprender(registros);
-  pintarMeses(registros);
+  pintarFecha();
   const lista = filtrados(registros);
   pintarIndicadores(lista);
   pintarGrafico(lista);
@@ -876,7 +893,9 @@ function pintarTablero() {
   cuerpo.replaceChildren(...visibles.map(filaDe));
   cajaTabla.hidden = !lista.length;
   vacio.hidden = !!lista.length;
-  porId('soVacioTexto').textContent = registros.length ? 'Ninguna solicitud coincide con la búsqueda o los filtros.' : 'Aún no hay solicitudes. Registra la primera en la pestaña Nueva solicitud.';
+  porId('soVacioTexto').textContent = !registros.length ? 'Aún no hay solicitudes. Registra la primera en la pestaña Nueva solicitud.'
+    : sinDelDia() ? `No hay solicitudes registradas ${enElDia(filtroFecha.value)}. Usa la flecha ‹ del gráfico para ver el día anterior.`
+    : 'Ninguna solicitud coincide con la búsqueda o los filtros.';
   vacioNueva.hidden = !!registros.length;
   const rango = lista.length ? `Mostrando ${desde + 1}–${desde + visibles.length} de ${cifra(lista.length)}` : 'Sin filas para mostrar';
   mostrando.textContent = truncado ? `${rango} · se muestran las ${cifra(registros.length)} más recientes` : rango;
@@ -885,7 +904,7 @@ function pintarTablero() {
   pintarNumerosPagina(total);
   anterior.disabled = pagina === 0;
   siguiente.disabled = pagina >= total - 1;
-  // El botón Filtros muestra cuántos filtros hay puestos (el mes va en el gráfico).
+  // El botón Filtros muestra cuántos filtros hay puestos (la fecha va en el gráfico).
   const activos = filtroCentro.value ? 1 : 0;
   filtrosCuenta.hidden = !activos;
   filtrosCuenta.textContent = String(activos);
@@ -914,9 +933,21 @@ function pintarNumerosPagina(total: number) {
   numerosPagina.replaceChildren(...nodos);
 }
 
+/** El día elegido no tiene ninguna solicitud (sin contar búsqueda ni centro). */
+const sinDelDia = () => !!filtroFecha.value && !!registros?.length && !registros.some(r => claveDia(new Date(r.creado_en)) === filtroFecha.value);
+
 const alFiltrar = () => { pagina = 0; pintarTablero(); };
 buscar.addEventListener('input', () => { sinAnimar = true; alFiltrar(); });
-filtroMes.addEventListener('change', alFiltrar);
+filtroFecha.addEventListener('change', alFiltrar);
+const irADia = (dia: string) => { filtroFecha.value = dia; alFiltrar(); };
+porId('soDiaAnterior').addEventListener('click', () => irADia(sumarDias(filtroFecha.value || claveDia(new Date()), -1)));
+porId('soDiaSiguiente').addEventListener('click', () => {
+  const hoy = claveDia(new Date());
+  const siguiente = sumarDias(filtroFecha.value || hoy, 1);
+  irADia(siguiente > hoy ? hoy : siguiente);
+});
+porId('soHoy').addEventListener('click', () => irADia(claveDia(new Date())));
+porId('soTodasFechas').addEventListener('click', () => { filtrosMenu.open = false; irADia(''); });
 filtroCentro.addEventListener('change', alFiltrar);
 anterior.addEventListener('click', () => { pagina -= 1; pintarTablero(); });
 siguiente.addEventListener('click', () => { pagina += 1; pintarTablero(); });
@@ -939,7 +970,7 @@ vacioNueva.addEventListener('click', () => mostrarVista('nueva', true));
 /** Desde el historial: abre el tablero con todas las solicitudes de ese centro. */
 function verDelCentro(codigo: string) {
   buscar.value = '';
-  filtroMes.value = '';
+  filtroFecha.value = '';
   filtroCentro.value = codigo;
   pagina = 0;
   pintarTablero();
@@ -1101,9 +1132,9 @@ function fichaCentro(c: CentroDestino, lista: readonly Registro[], orden: number
 
 function abrirCentros() {
   if (!registros) return;
-  // El mes elegido, sin la búsqueda ni el filtro de centro: así se ve quién pidió y quién falta.
-  const mes = filtroMes.value;
-  const delPeriodo = ordenados(registros.filter(r => !mes || claveMes(new Date(r.creado_en)) === mes));
+  // El día elegido, sin la búsqueda ni el filtro de centro: así se ve quién pidió y quién falta.
+  const dia = filtroFecha.value;
+  const delPeriodo = ordenados(registros.filter(r => !dia || claveDia(new Date(r.creado_en)) === dia));
   const porCentro = new Map<string, Registro[]>();
   for (const r of delPeriodo) {
     const codigo = r.respuestas.centro;
@@ -1111,11 +1142,11 @@ function abrirCentros() {
   }
   const si = CENTROS_DESTINO.filter(c => porCentro.has(c.codigo));
   const no = CENTROS_DESTINO.filter(c => !porCentro.has(c.codigo));
-  porId('soCentrosSub').textContent = `${mes ? nombreMes(mes) : 'Todos los meses'} · ${si.length} de ${CENTROS_DESTINO.length} centros hicieron solicitudes`;
+  porId('soCentrosSub').textContent = `${tituloDia(dia)} · ${si.length} de ${CENTROS_DESTINO.length} centros hicieron solicitudes`;
   porId('soCentrosSiTitulo').textContent = `Pidieron (${si.length})`;
   porId('soCentrosNoTitulo').textContent = `Sin pedido (${no.length})`;
-  porId('soCentrosSi').replaceChildren(...(si.length ? si.map((c, i) => fichaCentro(c, porCentro.get(c.codigo) ?? [], i)) : [crear('li', 'so-centros-vacio', 'Ningún centro ha pedido en este periodo.')]));
-  porId('soCentrosNo').replaceChildren(...(no.length ? no.map((c, i) => fichaCentro(c, [], si.length + i)) : [crear('li', 'so-centros-vacio', 'Todos los centros pidieron en este periodo.')]));
+  porId('soCentrosSi').replaceChildren(...(si.length ? si.map((c, i) => fichaCentro(c, porCentro.get(c.codigo) ?? [], i)) : [crear('li', 'so-centros-vacio', dia ? 'Ningún centro ha pedido este día.' : 'Ningún centro ha pedido todavía.')]));
+  porId('soCentrosNo').replaceChildren(...(no.length ? no.map((c, i) => fichaCentro(c, [], si.length + i)) : [crear('li', 'so-centros-vacio', dia ? 'Todos los centros pidieron este día.' : 'Todos los centros han pedido.')]));
   dialogoCentros.showModal();
 }
 porId('soVerCentros').addEventListener('click', abrirCentros);
@@ -1236,6 +1267,7 @@ function cargar(): Promise<void> {
 
 porId('soCentros').replaceChildren(...CENTROS_DESTINO.map(c => new Option(`${c.cd} · ${c.solicitante}`, c.codigo)));
 filtroCentro.append(...CENTROS_DESTINO.map(c => new Option(`${c.codigo} · ${c.cd}`, c.codigo)));
+filtroFecha.value = claveDia(new Date());
 mostrarVista(location.hash === '#solicitudes' ? 'solicitudes' : 'nueva');
 enlazar(campos, pintarHistorial);
 enlazar(edicion);
