@@ -318,7 +318,12 @@ export interface ResultadoT1 {
   exclusionesAtencion: FilaAtct[];
   exclusionesEspera: FilaEspera[];
 }
-export interface Mapa { cds: string[]; fechas: number[]; valores: (number | null)[][] }
+/** Mapa de calor CD × fecha, con los totales del Power BI: "regional" (total de cada día, todas sus filas), "mtd"
+ *  (total de cada CD en todo el rango) y "mtdRegional" (todo junto). */
+export interface Mapa {
+  cds: string[]; fechas: number[]; valores: (number | null)[][];
+  regional: (number | null)[]; mtd: (number | null)[]; mtdRegional: number | null;
+}
 export interface OpcionesT1 { cds: string[]; gerencias: string[]; semanas: number[]; turnos: Turno[]; desde: number | null; hasta: number | null; ultimaEspera: number | null }
 
 const promedio = (filas: readonly { horas: number }[]) => { if (!filas.length) return null; let s = 0; for (const f of filas) s += f.horas; return s / filas.length; };
@@ -417,14 +422,27 @@ export function calcularT1(datos: DatosT1, f: FiltrosT1 = {}): ResultadoT1 {
   const porOl = [...agrupar(zona, x => x.ol)].filter(([o]) => o).sort(([a], [b]) => orden(a, b)).map(([ol, g]) => ({ ol, atencion: promedio(g) }));
   const porSemana = [...agrupar(base, x => x.semana)].sort(([a], [b]) => a - b).map(([semana, g]) => ({ semana, atencion: promedio(g) }));
 
-  const mapa = (valor: (cd: string, fecha: number, at: FilaAtct[]) => number | null): Mapa => {
+  /** "delDia": valor de una celda (filas de atención de ese día); "delRango": el de todo el rango (columna MTD). */
+  const mapa = (delDia: (fecha: number, at: FilaAtct[]) => number | null, delRango: (at: FilaAtct[]) => number | null): Mapa => {
     const porCdFecha = agrupar(zona, x => `${x.cd}|${x.fecha}`);
+    const porCd = agrupar(zona, x => x.cd);
     const cdsMapa = [...new Set(zona.map(x => x.cd))].filter(Boolean).sort(orden);
     const fechasMapa = [...zonaPorFecha.keys()].sort((a, b) => a - b);
-    return { cds: cdsMapa, fechas: fechasMapa, valores: cdsMapa.map(cd => fechasMapa.map(fecha => valor(cd, fecha, porCdFecha.get(`${cd}|${fecha}`) ?? []))) };
+    return {
+      cds: cdsMapa, fechas: fechasMapa,
+      valores: cdsMapa.map(cd => fechasMapa.map(fecha => delDia(fecha, porCdFecha.get(`${cd}|${fecha}`) ?? []))),
+      // Totales como en el Power BI: fila "Regional" (todas las filas del día juntas, no el promedio de los promedios
+      // de cada CD) y columna "MTD" (todo el rango de cada CD); en la esquina, el MTD regional.
+      regional: fechasMapa.map(fecha => delDia(fecha, zonaPorFecha.get(fecha) ?? [])),
+      mtd: cdsMapa.map(cd => delRango(porCd.get(cd) ?? [])),
+      mtdRegional: delRango(zona),
+    };
   };
-  const mapaAtencion = mapa((_cd, _f, at) => promedio(at));
-  const mapaEspera = mapa((_cd, fecha, at) => (at.length ? promedio(esperaDe(at, () => true, fecha)) : null));
+  const mapaAtencion = mapa((_f, at) => promedio(at), at => promedio(at));
+  const mapaEspera = mapa(
+    (fecha, at) => (at.length ? promedio(esperaDe(at, () => true, fecha)) : null),
+    at => (at.length ? promedio(esperaDe(at, fechaOk)) : null),
+  );
 
   const detalleAtencion = [...agrupar(zona, x => `${x.fecha}|${x.placa}|${x.minutos}`).values()]
     .map(g => ({ fecha: g[0].fecha, placa: g[0].placa, minutos: g[0].minutos, horas: g.reduce((s, x) => s + x.horas, 0) }))

@@ -1,11 +1,10 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import express from 'express';
-import type { Request, RequestHandler } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
-import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import XLSX from 'xlsx';
 import { rutasExcel } from './src/server/excel.ts';
@@ -13,9 +12,11 @@ import { rutasPreventas } from './src/server/preventas.ts';
 import { rutasFormularios } from './src/server/formularios.ts';
 import { rutasSolicitudes } from './src/server/solicitudes.ts';
 import { rutasOfe, rutasT1, rutasWip } from './src/server/t1.ts';
+import { crearAcceso, type SesionUsuario } from './src/server/usuarios.ts';
 
-const { SUPABASE_URL = '', SUPABASE_PUBLISHABLE_KEY = '', JWT_SECRET = '', PORT = '3001' } = process.env;
-const variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET })
+// Se entra con cédula y contraseña (src/server/usuarios.ts); los usuarios viven en la base (SUPABASE_DB_URL).
+const { JWT_SECRET = '', PORT = '3001' } = process.env;
+const variablesFaltantes = Object.entries({ JWT_SECRET })
   .filter(([, valor]) => !valor.trim())
   .map(([nombre]) => nombre);
 
@@ -23,23 +24,12 @@ if (variablesFaltantes.length) {
   console.error(`Faltan variables de autenticación: ${variablesFaltantes.join(', ')}. Configúralas en el entorno del servidor.`);
 }
 
-// Un cliente nuevo por petición, para que las sesiones de distintos usuarios no se mezclen
-const clienteSupabase = () =>
-  createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
 const COOKIE = 'sesion';
 const DURACION_SESION = 8 * 60 * 60 * 1000; // 8 horas (una jornada)
 const isProd = process.env.NODE_ENV === 'production';
 
-// Lo que va firmado dentro de la cookie de sesión
-interface Sesion {
-  sub: string;
-  correo: string;
-  nombre: string;
-  rol: string;
-}
+// Lo que va firmado dentro de la cookie de sesión: id del usuario, cédula, nombre y rol.
+type Sesion = SesionUsuario;
 
 const app = express();
 app.use('/api/excel', express.json({ limit: '2mb' }));
@@ -64,7 +54,8 @@ const leerSesion = (req: Request): Sesion | null => {
   if (typeof token !== 'string') return null;
   try {
     const datos = jwt.verify(token, JWT_SECRET);
-    return typeof datos === 'object' ? (datos as Sesion) : null;
+    // Las sesiones del ingreso anterior (con correo) no traen cédula: ya no valen y piden entrar de nuevo.
+    return typeof datos === 'object' && typeof datos.cedula === 'string' ? (datos as Sesion) : null;
   } catch {
     return null;
   }
@@ -88,69 +79,62 @@ const limiteLogin = rateLimit({
   message: { error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' },
 });
 
-// Errores de Supabase Auth que se pueden explicar al usuario
-const ERRORES_AUTH: Partial<Record<string, [estado: number, mensaje: string]>> = {
-  invalid_credentials: [401, 'Correo o contraseña incorrectos.'],
-  email_not_confirmed: [403, 'Tu correo aún no está confirmado. Contacta con el administrador.'],
-  user_banned: [403, 'Tu usuario está desactivado. Contacta con el administrador.'],
-  over_request_rate_limit: [429, 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'],
-};
+// Registro de cuentas nuevas: máximo 5 por hora desde una misma IP.
+const limiteRegistro = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Demasiados registros desde esta red. Inténtalo más tarde.' },
+});
 
-app.post('/api/login', limiteLogin, async (req, res) => {
-  const correo = String(req.body?.correo ?? '').trim().toLowerCase();
-  const password = String(req.body?.password ?? '');
+const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15000 }) : null;
 
-  if (!correo || !password) {
-    res.status(400).json({ error: 'Escribe tu correo y contraseña.' });
-    return;
-  }
-
-  const { data, error } = await clienteSupabase().auth.signInWithPassword({ email: correo, password });
-
-  if (error) {
-    const conocido = error.code ? ERRORES_AUTH[error.code] : undefined;
-    if (conocido) {
-      res.status(conocido[0]).json({ error: conocido[1] });
-      return;
-    }
-    console.error('Error de Supabase Auth:', error.code, error.message);
-    res.status(500).json({ error: 'No se pudo iniciar sesión. Inténtalo más tarde.' });
-    return;
-  }
-
-  // El nombre y el rol se asignan con el SQL de supabase/usuarios.sql
-  const { user } = data;
-  const email = user.email ?? correo;
-  const nombre: string = user.user_metadata?.nombre || email.split('@')[0];
-  const rol: string = user.app_metadata?.rol || 'sin rol';
-
-  const sesion: Sesion = { sub: user.id, correo: email, nombre, rol };
-  const token = jwt.sign(sesion, JWT_SECRET, { expiresIn: DURACION_SESION / 1000 });
-
+const abrirSesion = (res: Response, sesion: Sesion) => {
+  const token = jwt.sign({ sub: sesion.sub, cedula: sesion.cedula, nombre: sesion.nombre, rol: sesion.rol }, JWT_SECRET, { expiresIn: DURACION_SESION / 1000 });
   res.cookie(COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: isProd,
     maxAge: DURACION_SESION,
   });
-  res.json({ nombre });
-});
+};
+const acceso = crearAcceso(dbFrescura, abrirSesion, leerSesion);
+
+// Ingreso con cédula y contraseña; registro (queda pendiente hasta que un administrador lo apruebe).
+app.post('/api/login', limiteLogin, acceso.login);
+app.post('/api/registro', limiteRegistro, acceso.registro);
+// Panel de usuarios: solo administradores (el rol se confirma en la base en cada petición).
+app.use('/api/usuarios', acceso.admin);
 
 app.post('/api/logout', (req, res) => {
   res.clearCookie(COOKIE);
   res.status(204).end();
 });
 
-app.get('/api/me', (req, res) => {
+/** Sesión válida y usuario todavía activo en la base (si lo desactivaron, la sesión se cierra). */
+async function sesionVigente(req: Request, res: Response): Promise<(Sesion & { rol: string }) | null> {
   const sesion = leerSesion(req);
+  if (!sesion) return null;
+  try {
+    const usuario = await acceso.vigente(sesion.sub);
+    if (!usuario) { res.clearCookie(COOKIE); return null; }
+    return { ...sesion, nombre: usuario.nombre, rol: usuario.rol };
+  } catch (error) {
+    // Sin base no se puede confirmar: se deja pasar con lo que dice la cookie (firmada) antes que dejar a todos afuera.
+    console.error('No se pudo confirmar la sesión:', (error as Error).message);
+    return sesion;
+  }
+}
+
+app.get('/api/me', async (req, res) => {
+  const sesion = await sesionVigente(req, res);
   if (!sesion) {
     res.status(401).json({ error: 'No has iniciado sesión.' });
     return;
   }
-  res.json({ correo: sesion.correo, nombre: sesion.nombre, rol: sesion.rol });
+  res.json({ cedula: sesion.cedula, nombre: sesion.nombre, rol: sesion.rol });
 });
-
-const dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15000 }) : null;
 app.use('/api/preventas', rutasPreventas(dbFrescura, leerSesion));
 app.use('/api/formularios', rutasFormularios(dbFrescura, leerSesion));
 app.use('/api/solicitudes', rutasSolicitudes(dbFrescura, leerSesion));
@@ -290,14 +274,21 @@ app.get('/api/consolidado/:modulo', async (req, res) => {
   }
 });
 
-// Páginas protegidas (en views/): sin sesión válida vuelven al login
-const paginaProtegida = (archivo: string): RequestHandler => (req, res) => {
-  if (!leerSesion(req)) {
+// Páginas protegidas (en views/): sin sesión válida (o con el usuario desactivado) vuelven al login.
+const paginaProtegida = (archivo: string, soloAdmin = false): RequestHandler => async (req, res) => {
+  const sesion = await sesionVigente(req, res);
+  if (!sesion) {
     res.redirect('/');
+    return;
+  }
+  if (soloAdmin && sesion.rol !== 'administrador') {
+    res.redirect('/modulos');
     return;
   }
   res.sendFile(path.join(import.meta.dirname, 'views', archivo));
 };
+
+app.get('/usuarios', paginaProtegida('usuarios.html', true));
 
 app.get('/panel', paginaProtegida('panel.html'));
 app.get('/modulos', paginaProtegida('modulos.html'));

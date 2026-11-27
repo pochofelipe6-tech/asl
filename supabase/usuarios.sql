@@ -1,36 +1,44 @@
 -- =====================================================================
---  Bavaria Transporte · Usuarios (Supabase Auth, inicio con correo)
+--  Comando Central · Usuarios (ingreso con cédula y contraseña)
 -- =====================================================================
---  1) Crea el usuario en el panel de Supabase:
---       Authentication → Users → Add user → Create new user
---       · Email y contraseña
---       · Marca "Auto Confirm User"
---  2) Ejecuta este SQL (SQL Editor → Run) para ponerle nombre y rol.
---     Roles: administrador | despachador | conductor
+--  Ya no se usa Supabase Auth (el ingreso con correo se quitó).
+--  - Cada persona se registra en la página («Regístrate») con su cédula, su nombre y la contraseña que elija.
+--  - Queda "pendiente" hasta que un administrador la aprueba en /usuarios (panel de usuarios).
+--  - Las contraseñas se guardan cifradas con scrypt (src/server/usuarios.ts); nunca en claro.
+--  La aplicación crea esta tabla sola la primera vez; este archivo sirve de referencia (se puede ejecutar varias veces).
+--
+--  Primer administrador: regístrate en la página y luego, en el proyecto:
+--     node --env-file=.env.local scripts/hacer-admin.ts <tu cédula>
 -- =====================================================================
 
-update auth.users
-set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || '{"nombre": "Andres"}',
-    raw_app_meta_data  = coalesce(raw_app_meta_data,  '{}'::jsonb) || '{"rol": "administrador"}'
-where email = 'anfemaca2003@gmail.com';
+begin;
+create table if not exists public.usuarios_acceso (
+  id uuid primary key default gen_random_uuid(),
+  cedula text not null unique,
+  nombre text not null,
+  clave text not null,
+  rol text not null default 'usuario' check (rol in ('administrador', 'usuario')),
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'activo', 'inactivo', 'rechazado')),
+  debe_cambiar boolean not null default false,
+  intentos_fallidos integer not null default 0,
+  bloqueado_hasta timestamptz,
+  ultimo_ingreso timestamptz,
+  aprobado_por text,
+  aprobado_en timestamptz,
+  creado_en timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+);
+alter table public.usuarios_acceso enable row level security;
+revoke all on public.usuarios_acceso from anon, authenticated;
+commit;
 
 
 -- =====================================================================
 --  Plantillas útiles (quita el "--" del principio para usarlas)
 -- =====================================================================
 
--- Ver los usuarios con su nombre y rol:
--- select email,
---        raw_user_meta_data->>'nombre' as nombre,
---        raw_app_meta_data->>'rol'     as rol,
---        email_confirmed_at, last_sign_in_at
--- from auth.users order by created_at;
+-- Ver los usuarios con su estado y rol:
+-- select cedula, nombre, rol, estado, ultimo_ingreso from public.usuarios_acceso order by creado_en;
 
--- Desactivar un usuario (ya no podrá entrar, pero no se borra):
--- update auth.users set banned_until = 'infinity' where email = 'correo@ejemplo.com';
-
--- Volver a activarlo:
--- update auth.users set banned_until = null where email = 'correo@ejemplo.com';
-
--- La tabla antigua public.usuarios (login por nombre de usuario) ya no se usa:
--- drop table if exists public.usuarios;
+-- Aprobar a alguien como administrador por SQL (lo mismo que scripts/hacer-admin.ts):
+-- update public.usuarios_acceso set estado = 'activo', rol = 'administrador', aprobado_en = now() where cedula = '123456789';

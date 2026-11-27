@@ -771,7 +771,8 @@ function dibujarMapa(m: MapaCalor) {
   if (!ancho) return;
   const { cds, fechas, valores } = mapa;
   const ANCHO_CD = Math.max(96, Math.max(...cds.map(cd => anchoTexto(cd, 13))) + 26);
-  const porPagina = Math.max(4, Math.floor((ancho - ANCHO_CD) / 46));
+  // La columna MTD (total de cada CD en el rango) va fija a la derecha: se le guarda su espacio.
+  const porPagina = Math.max(4, Math.floor((ancho - ANCHO_CD - 62) / 46));
   const ultimaPagina = Math.max(0, fechas.length - porPagina);
   const inicio = Math.min(Math.max(0, m.inicio ?? ultimaPagina), ultimaPagina);
   m.inicio = inicio;
@@ -782,7 +783,7 @@ function dibujarMapa(m: MapaCalor) {
   tabla.style.setProperty('--t1-ancho-cd', `${ANCHO_CD}px`);
   tabla.append(crear('caption', 'cc-oculto', `${m.nombre} en horas por CD (filas) y fecha (columnas)`));
   const colgrupo = crear('colgroup');
-  colgrupo.append(crear('col', 't1-mapa-col-cd'), ...visibles.map(() => crear('col')));
+  colgrupo.append(crear('col', 't1-mapa-col-cd'), ...visibles.map(() => crear('col')), crear('col', 't1-mapa-col-mtd'));
   tabla.append(colgrupo);
   const cabeza = tabla.createTHead();
   // Fila de meses (agrupa las columnas del mismo mes).
@@ -801,6 +802,11 @@ function dibujarMapa(m: MapaCalor) {
     th.scope = 'colgroup';
     filaMes.append(th);
   }
+  const cabezaMtd = crear('th', 't1-mapa-mtd-cabeza', 'MTD');
+  cabezaMtd.rowSpan = 2;
+  cabezaMtd.scope = 'col';
+  cabezaMtd.title = 'Total de cada CD en todo el rango elegido';
+  filaMes.append(cabezaMtd);
   const filaDia = cabeza.insertRow();
   for (const f of visibles) {
     const th = crear('th', `t1-mapa-dia${fechaDeDia(f).getUTCDay() === 0 ? ' t1-domingo' : ''}`);
@@ -809,36 +815,48 @@ function dibujarMapa(m: MapaCalor) {
     th.append(crear('small', undefined, DIA_CORTO[fechaDeDia(f).getUTCDay()].charAt(0).toUpperCase()), crear('b', undefined, String(fechaDeDia(f).getUTCDate())));
     filaDia.append(th);
   }
+  /** Celda con el color del semáforo del Power BI (tonos claros: el texto va en negro). c = fila o "regional"; f = día o "mtd". */
+  const celda = (v: number | null, c: string, f: string, j: number, extra = '') => {
+    const td = crear('td', `${v === null ? 't1-celda-vacia' : 't1-celda'}${extra}`);
+    if (v === null) td.setAttribute('aria-label', 'sin datos');
+    else {
+      td.style.background = tramoEn(m.tramos, v).color;
+      td.style.color = '#111';
+      td.textContent = horas(v);
+    }
+    td.dataset.f = f;
+    td.dataset.c = c;
+    td.style.setProperty('--j', String(j));
+    return td;
+  };
   const cuerpo = tabla.createTBody();
   cds.forEach((cd, fila) => {
     const tr = cuerpo.insertRow();
     tr.style.setProperty('--f', String(fila));
     const th = crear('th', 't1-mapa-cd', cd);
     th.scope = 'row';
-    tr.append(th);
-    visibles.forEach((f, j) => {
-      const v = valores[fila][inicio + j];
-      const td = crear('td', v === null ? 't1-celda-vacia' : 't1-celda');
-      if (v === null) { td.setAttribute('aria-label', 'sin datos'); }
-      else {
-        // Color del semáforo del Power BI (tonos claros: el texto va en negro).
-        td.style.background = tramoEn(m.tramos, v).color;
-        td.style.color = '#111';
-        td.textContent = horas(v);
-      }
-      td.dataset.f = String(inicio + j);
-      td.dataset.c = String(fila);
-      td.style.setProperty('--j', String(j));
-      tr.append(td);
-    });
+    tr.append(th, ...visibles.map((_f, j) => celda(valores[fila][inicio + j], String(fila), String(inicio + j), j)),
+      celda(mapa.mtd[fila], String(fila), 'mtd', visibles.length, ' t1-mapa-mtd'));
   });
+  // Fila "Regional" al final, como el total del Power BI: el promedio del día con todos los CD; en la esquina, el MTD regional.
+  const trRegional = tabla.createTFoot().insertRow();
+  trRegional.className = 't1-mapa-regional';
+  trRegional.style.setProperty('--f', String(cds.length));
+  const thRegional = crear('th', 't1-mapa-cd', 'Regional');
+  thRegional.scope = 'row';
+  trRegional.append(thRegional, ...visibles.map((_f, j) => celda(mapa.regional[inicio + j], 'regional', String(inicio + j), j)),
+    celda(mapa.mtdRegional, 'regional', 'mtd', visibles.length, ' t1-mapa-mtd'));
+  const rango = `del ${diaCorto(fechas[0])} al ${diaCorto(fechas[fechas.length - 1])}`;
   tabla.addEventListener('pointermove', evento => {
     const td = (evento.target as Element).closest<HTMLTableCellElement>('td[data-f]');
     if (!td) { ocultarTip(); return; }
+    const regional = td.dataset.c === 'regional';
+    const mtd = td.dataset.f === 'mtd';
     const fila = Number(td.dataset.c);
     const col = Number(td.dataset.f);
-    const v = valores[fila][col];
-    mostrarTip(`${cds[fila]} · ${fechaLarga(fechas[col])}`, [{ nombre: m.nombre, valor: horasLargo(v), clase: m.tipo === 'at' ? ATENCION.clase : ESPERA.clase, fuerte: true }], evento.clientX, evento.clientY);
+    const v = mtd ? (regional ? mapa.mtdRegional : mapa.mtd[fila]) : regional ? mapa.regional[col] : valores[fila][col];
+    const donde = regional ? 'Regional (todos los CD)' : cds[fila];
+    mostrarTip(`${donde} · ${mtd ? `MTD ${rango}` : fechaLarga(fechas[col])}`, [{ nombre: m.nombre, valor: horasLargo(v), clase: m.tipo === 'at' ? ATENCION.clase : ESPERA.clase, fuerte: true }], evento.clientX, evento.clientY);
   });
   tabla.addEventListener('pointerleave', ocultarTip);
 

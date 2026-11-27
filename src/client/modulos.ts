@@ -49,8 +49,27 @@ async function cargarUsuario() {
     if (!respuesta.ok) throw new Error();
     const usuario = await respuesta.json();
     if (nombre) nombre.textContent = usuario.nombre;
+    if (usuario.rol === 'administrador') void mostrarPanelUsuarios();
   } catch {
     if (estado) estado.textContent = 'No se pudo consultar la sesión. Recarga la página para reintentar.';
   }
+}
+/** Inicio, solo administradores: botón "Usuarios" con los registros pendientes de aprobar. */
+async function mostrarPanelUsuarios() {
+  const enlace = document.getElementById('ccUsuarios');
+  if (!enlace) return;
+  enlace.hidden = false;
+  try {
+    const respuesta = await fetch('/api/usuarios');
+    if (!respuesta.ok) return;
+    const { usuarios = [] } = await respuesta.json() as { usuarios?: { estado: string }[] };
+    const pendientes = usuarios.filter(u => u.estado === 'pendiente').length;
+    const marca = document.getElementById('ccPendientes');
+    if (marca && pendientes) {
+      marca.textContent = String(pendientes);
+      marca.hidden = false;
+      enlace.title = `${pendientes} ${pendientes === 1 ? 'registro pendiente' : 'registros pendientes'} de aprobación`;
+    }
+  } catch { /* El número es un extra: sin él, el botón sigue sirviendo. */ }
 }
 void cargarUsuario();

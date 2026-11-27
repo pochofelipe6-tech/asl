@@ -90,3 +90,12 @@
   .cc-menu .cc-boton:is(:hover,:focus-visible){transform:none}
   .cc-menu .cc-boton.cc-lanzar,.cc-menu .cc-boton.cc-golpe{animation:none}
 }
+
+/* Inicio, solo administradores: acceso al panel de usuarios (con el número de registros pendientes). */
+.cc-cuenta .cc-usuarios{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid var(--cc-amarillo);border-radius:999px;background:#000000b3;color:#fff;font-size:max(12px,.78cqw);font-weight:800;text-decoration:none}
+.cc-cuenta .cc-usuarios[hidden]{display:none}
+.cc-cuenta .cc-usuarios svg{width:16px;height:16px;fill:none;stroke:var(--cc-amarillo);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cc-cuenta .cc-usuarios:hover{background:#1a1500}
+.cc-cuenta .cc-usuarios:focus-visible{outline:3px solid var(--cc-foco);outline-offset:2px}
+.cc-pendientes{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e5484d;color:#fff;font-size:11px;font-weight:900}
+.cc-pendientes[hidden]{display:none}

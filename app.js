@@ -3,11 +3,10 @@
 // server.ts
 import path from "node:path";
 import { readFile as readFile2 } from "node:fs/promises";
-import express7 from "express";
+import express8 from "express";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
-import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import XLSX from "xlsx";
 
@@ -1517,22 +1516,358 @@ var rutasOfe = (pool, sesion) => {
   return router;
 };
 
+// src/server/usuarios.ts
+import express7 from "express";
+import { randomBytes, randomInt, scrypt as scryptConCallback, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+
+// src/shared/usuarios.ts
+var ROLES = ["administrador", "usuario"];
+var CLAVE_MIN = 8;
+var CLAVE_MAX = 72;
+var normalizarCedula = (valor) => String(valor ?? "").replace(/[\s.,\-]/g, "");
+function errorCedula(cedula) {
+  if (!cedula) return "Escribe tu n\xFAmero de c\xE9dula.";
+  if (!/^\d+$/.test(cedula)) return "La c\xE9dula solo lleva n\xFAmeros.";
+  if (cedula.length < 5 || cedula.length > 12) return "La c\xE9dula debe tener entre 5 y 12 n\xFAmeros.";
+  return null;
+}
+var normalizarNombre = (valor) => String(valor ?? "").trim().replace(/\s+/g, " ");
+function errorNombre(nombre) {
+  if (!nombre) return "Escribe tu nombre completo.";
+  if (nombre.length < 3 || nombre.length > 80) return "El nombre debe tener entre 3 y 80 caracteres.";
+  if (!/^[\p{L}][\p{L} .'\-]*$/u.test(nombre)) return "El nombre solo puede llevar letras y espacios.";
+  return null;
+}
+function errorClave(clave4, cedula = "") {
+  if (!clave4) return "Escribe una contrase\xF1a.";
+  if (clave4.length < CLAVE_MIN) return `La contrase\xF1a debe tener al menos ${CLAVE_MIN} caracteres.`;
+  if (clave4.length > CLAVE_MAX) return `La contrase\xF1a puede tener m\xE1ximo ${CLAVE_MAX} caracteres.`;
+  if (!new RegExp("\\p{L}", "u").test(clave4) || !/\d/.test(clave4)) return "La contrase\xF1a debe tener letras y n\xFAmeros.";
+  if (cedula && clave4.includes(cedula)) return "La contrase\xF1a no puede contener tu c\xE9dula.";
+  return null;
+}
+var esRol = (v) => typeof v === "string" && ROLES.includes(v);
+
+// src/server/usuarios.ts
+var scrypt = promisify(scryptConCallback);
+var SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+async function cifrarClave(clave4) {
+  const sal = randomBytes(16);
+  const hash = await scrypt(clave4.normalize("NFKC"), sal, 64, SCRYPT);
+  return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${sal.toString("base64")}$${hash.toString("base64")}`;
+}
+async function verificarClave(clave4, guardada) {
+  const partes = guardada.split("$");
+  if (partes.length !== 6 || partes[0] !== "scrypt") return false;
+  const [, N, r, p, sal, hash] = partes;
+  const esperado = Buffer.from(hash, "base64");
+  const obtenido = await scrypt(clave4.normalize("NFKC"), Buffer.from(sal, "base64"), esperado.length, { N: Number(N), r: Number(r), p: Number(p), maxmem: SCRYPT.maxmem });
+  return obtenido.length === esperado.length && timingSafeEqual(obtenido, esperado);
+}
+function claveTemporal() {
+  const letras = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz", numeros = "23456789", todos = letras + numeros;
+  const c = Array.from({ length: 10 }, () => todos[randomInt(todos.length)]);
+  c[randomInt(5)] = letras[randomInt(letras.length)];
+  c[5 + randomInt(5)] = numeros[randomInt(numeros.length)];
+  return c.join("");
+}
+var TABLA = `create table if not exists public.usuarios_acceso (
+  id uuid primary key default gen_random_uuid(),
+  cedula text not null unique,
+  nombre text not null,
+  clave text not null,
+  rol text not null default 'usuario' check (rol in ('administrador', 'usuario')),
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'activo', 'inactivo', 'rechazado')),
+  debe_cambiar boolean not null default false,
+  intentos_fallidos integer not null default 0,
+  bloqueado_hasta timestamptz,
+  ultimo_ingreso timestamptz,
+  aprobado_por text,
+  aprobado_en timestamptz,
+  creado_en timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+)`;
+var COLUMNAS_PANEL = "id, cedula, nombre, rol, estado, debe_cambiar, creado_en, ultimo_ingreso, aprobado_por, aprobado_en";
+var INCORRECTO = "C\xE9dula o contrase\xF1a incorrectas.";
+var MAX_INTENTOS = 5;
+var MINUTOS_BLOQUEO = 15;
+var VIGENCIA_MS = 6e4;
+function crearAcceso(pool, abrirSesion2, sesion) {
+  let tablaLista = null;
+  const crearTabla = (db) => tablaLista ??= (async () => {
+    const client = await db.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", ["usuarios_acceso:crear"]);
+      await client.query(TABLA);
+      await client.query("alter table public.usuarios_acceso enable row level security");
+      await client.query("revoke all on public.usuarios_acceso from anon, authenticated");
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback").catch(() => void 0);
+      tablaLista = null;
+      throw error;
+    } finally {
+      client.release();
+    }
+  })();
+  const conTabla = async (db, accion) => {
+    try {
+      return await accion();
+    } catch (error) {
+      const e = error;
+      if (e.code !== "42P01" || !String(e.message).includes("usuarios_acceso")) throw error;
+      await crearTabla(db);
+      return accion();
+    }
+  };
+  const fallo = (res, error, mensaje) => {
+    console.error("Usuarios:", error.message);
+    res.status(503).json({ error: mensaje });
+  };
+  let claveFalsa = null;
+  const falsa = () => claveFalsa ??= cifrarClave(randomBytes(12).toString("hex"));
+  const vigentes = /* @__PURE__ */ new Map();
+  async function vigente(id, fresco = false) {
+    const guardado = vigentes.get(id);
+    if (!fresco && guardado && guardado.hasta > Date.now()) return guardado.usuario;
+    if (!pool || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { rows } = await conTabla(pool, () => pool.query("select nombre, rol, estado from public.usuarios_acceso where id = $1", [id]));
+    const usuario = rows[0]?.estado === "activo" ? { nombre: String(rows[0].nombre), rol: rows[0].rol } : null;
+    vigentes.set(id, { hasta: Date.now() + VIGENCIA_MS, usuario });
+    return usuario;
+  }
+  const login = async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "El inicio de sesi\xF3n no est\xE1 disponible: falta la conexi\xF3n con la base de datos." });
+      return;
+    }
+    const cedula = normalizarCedula(req.body?.cedula);
+    const clave4 = String(req.body?.password ?? "");
+    const nueva = req.body?.nueva === void 0 || req.body?.nueva === null ? null : String(req.body.nueva);
+    if (errorCedula(cedula) || !clave4) {
+      res.status(400).json({ error: "Escribe tu c\xE9dula y tu contrase\xF1a." });
+      return;
+    }
+    try {
+      const fila = (await conTabla(pool, () => pool.query(
+        "select id, nombre, clave, rol, estado, debe_cambiar, intentos_fallidos, bloqueado_hasta from public.usuarios_acceso where cedula = $1",
+        [cedula]
+      ))).rows[0];
+      if (!fila) {
+        await verificarClave(clave4, await falsa());
+        res.status(401).json({ error: INCORRECTO });
+        return;
+      }
+      if (fila.bloqueado_hasta && new Date(fila.bloqueado_hasta).getTime() > Date.now()) {
+        const minutos = Math.max(1, Math.ceil((new Date(fila.bloqueado_hasta).getTime() - Date.now()) / 6e4));
+        res.status(429).json({ error: `Demasiados intentos fallidos con esta c\xE9dula. Espera ${minutos} ${minutos === 1 ? "minuto" : "minutos"} e int\xE9ntalo de nuevo.` });
+        return;
+      }
+      if (!await verificarClave(clave4, String(fila.clave))) {
+        const intentos = Number(fila.intentos_fallidos) + 1;
+        if (intentos >= MAX_INTENTOS) {
+          await pool.query(`update public.usuarios_acceso set intentos_fallidos = 0, bloqueado_hasta = now() + interval '${MINUTOS_BLOQUEO} minutes' where id = $1`, [fila.id]);
+        } else await pool.query("update public.usuarios_acceso set intentos_fallidos = $2 where id = $1", [fila.id, intentos]);
+        res.status(401).json({ error: INCORRECTO });
+        return;
+      }
+      const estado = fila.estado;
+      if (estado === "pendiente") {
+        res.status(403).json({ error: "Tu registro est\xE1 pendiente: un administrador debe aprobarlo antes de que puedas entrar." });
+        return;
+      }
+      if (estado === "rechazado") {
+        res.status(403).json({ error: "Tu registro no fue aprobado. Contacta con el administrador." });
+        return;
+      }
+      if (estado === "inactivo") {
+        res.status(403).json({ error: "Tu usuario est\xE1 desactivado. Contacta con el administrador." });
+        return;
+      }
+      if (fila.debe_cambiar) {
+        if (nueva === null) {
+          res.status(409).json({ code: "DEBE_CAMBIAR", error: "Tu contrase\xF1a fue restablecida. Crea una nueva para continuar." });
+          return;
+        }
+        const problema = errorClave(nueva, cedula) ?? (nueva === clave4 ? "La nueva contrase\xF1a debe ser distinta a la temporal." : null);
+        if (problema) {
+          res.status(400).json({ code: "DEBE_CAMBIAR", error: problema });
+          return;
+        }
+        await pool.query("update public.usuarios_acceso set clave = $2, debe_cambiar = false, actualizado_en = now() where id = $1", [fila.id, await cifrarClave(nueva)]);
+      }
+      await pool.query("update public.usuarios_acceso set intentos_fallidos = 0, bloqueado_hasta = null, ultimo_ingreso = now() where id = $1", [fila.id]);
+      vigentes.set(String(fila.id), { hasta: Date.now() + VIGENCIA_MS, usuario: { nombre: String(fila.nombre), rol: fila.rol } });
+      abrirSesion2(res, { sub: String(fila.id), cedula, nombre: String(fila.nombre), rol: String(fila.rol) });
+      res.json({ nombre: fila.nombre });
+    } catch (error) {
+      fallo(res, error, "No se pudo iniciar sesi\xF3n. Int\xE9ntalo m\xE1s tarde.");
+    }
+  };
+  const registro = async (req, res) => {
+    if (!pool) {
+      res.status(503).json({ error: "El registro no est\xE1 disponible: falta la conexi\xF3n con la base de datos." });
+      return;
+    }
+    const cedula = normalizarCedula(req.body?.cedula);
+    const nombre = normalizarNombre(req.body?.nombre);
+    const clave4 = String(req.body?.password ?? "");
+    const problema = errorCedula(cedula) ?? errorNombre(nombre) ?? errorClave(clave4, cedula);
+    if (problema) {
+      res.status(400).json({ error: problema });
+      return;
+    }
+    try {
+      const hash = await cifrarClave(clave4);
+      const { rows } = await conTabla(pool, () => pool.query(
+        "insert into public.usuarios_acceso (cedula, nombre, clave) values ($1, $2, $3) on conflict (cedula) do nothing returning id",
+        [cedula, nombre, hash]
+      ));
+      if (!rows[0]) {
+        res.status(409).json({ error: "Esa c\xE9dula ya est\xE1 registrada. Si olvidaste tu contrase\xF1a, pide al administrador que la restablezca." });
+        return;
+      }
+      res.status(201).json({ mensaje: "Registro enviado. Cuando un administrador lo apruebe podr\xE1s entrar con tu c\xE9dula y tu contrase\xF1a." });
+    } catch (error) {
+      fallo(res, error, "No se pudo registrar. Int\xE9ntalo m\xE1s tarde.");
+    }
+  };
+  const admin = express7.Router();
+  admin.use(async (req, res, next) => {
+    const s = sesion(req);
+    if (!s) {
+      res.status(401).json({ error: "Inicia sesi\xF3n para administrar usuarios." });
+      return;
+    }
+    if (req.method !== "GET" && req.get("sec-fetch-site") === "cross-site") {
+      res.status(403).json({ error: "Abre la aplicaci\xF3n para hacer cambios." });
+      return;
+    }
+    if (!pool) {
+      res.status(503).json({ error: "Falta la conexi\xF3n con la base de datos." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      const yo = await vigente(s.sub, true);
+      if (yo?.rol !== "administrador") {
+        res.status(403).json({ error: "Solo un administrador puede administrar usuarios." });
+        return;
+      }
+      res.locals.admin = { ...s, nombre: yo.nombre };
+      next();
+    } catch (error) {
+      fallo(res, error, "No se pudo comprobar tu sesi\xF3n.");
+    }
+  });
+  admin.get("/", async (_req, res) => {
+    try {
+      const { rows } = await conTabla(pool, () => pool.query(
+        `select ${COLUMNAS_PANEL} from public.usuarios_acceso order by (estado = 'pendiente') desc, creado_en desc`
+      ));
+      res.json({ usuarios: rows });
+    } catch (error) {
+      fallo(res, error, "No se pudieron consultar los usuarios.");
+    }
+  });
+  admin.post("/:id", async (req, res) => {
+    const id = String(req.params.id);
+    const accion = String(req.body?.accion ?? "");
+    const rol = req.body?.rol;
+    const yo = res.locals.admin;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      res.status(404).json({ error: "Ese usuario no existe." });
+      return;
+    }
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", ["usuarios_acceso:cambios"]);
+      const fila = (await client.query(`select ${COLUMNAS_PANEL} from public.usuarios_acceso where id = $1 for update`, [id])).rows[0];
+      if (!fila) {
+        await client.query("rollback");
+        res.status(404).json({ error: "Ese usuario no existe." });
+        return;
+      }
+      const resultado = await aplicar(client, fila, accion, rol, yo);
+      if ("error" in resultado) {
+        await client.query("rollback");
+        res.status(resultado.estado).json({ error: resultado.error });
+        return;
+      }
+      await client.query("commit");
+      vigentes.delete(id);
+      res.json(resultado);
+    } catch (error) {
+      await client.query("rollback").catch(() => void 0);
+      fallo(res, error, "No se pudo guardar el cambio. Int\xE9ntalo de nuevo.");
+    } finally {
+      client.release();
+    }
+  });
+  async function aplicar(db, u, accion, rol, yo) {
+    const esYo = u.id === yo.sub;
+    const otrosAdmins = async () => Number((await db.query(
+      "select count(*)::int as n from public.usuarios_acceso where rol = 'administrador' and estado = 'activo' and id <> $1",
+      [u.id]
+    )).rows[0].n);
+    const dejaSinAdmins = async () => u.rol === "administrador" && u.estado === "activo" && await otrosAdmins() === 0;
+    const guardar = async (sql, valores = []) => (await db.query(`update public.usuarios_acceso set ${sql}, actualizado_en = now() where id = $1 returning ${COLUMNAS_PANEL}`, [u.id, ...valores])).rows[0];
+    const no = (error, estado = 409) => ({ error, estado });
+    switch (accion) {
+      case "aprobar":
+        if (!esRol(rol)) return no("Elige el rol del usuario.", 400);
+        if (u.estado !== "pendiente" && u.estado !== "rechazado") return no("Este usuario ya fue aprobado.");
+        return { usuario: await guardar("estado = 'activo', rol = $2, aprobado_por = $3, aprobado_en = now()", [rol, `${yo.nombre} (${yo.cedula})`]) };
+      case "rechazar":
+        if (u.estado !== "pendiente") return no("Solo se puede rechazar un registro pendiente.");
+        return { usuario: await guardar("estado = 'rechazado'") };
+      case "desactivar":
+        if (esYo) return no("No puedes desactivarte a ti mismo.");
+        if (u.estado !== "activo") return no("Este usuario no est\xE1 activo.");
+        if (await dejaSinAdmins()) return no("Es el \xFAnico administrador activo: aprueba o nombra otro antes de desactivarlo.");
+        return { usuario: await guardar("estado = 'inactivo'") };
+      case "activar":
+        if (u.estado !== "inactivo") return no("Este usuario no est\xE1 desactivado.");
+        return { usuario: await guardar("estado = 'activo'") };
+      case "rol":
+        if (!esRol(rol)) return no("Elige un rol v\xE1lido.", 400);
+        if (esYo) return no("No puedes cambiar tu propio rol.");
+        if (u.estado !== "activo" && u.estado !== "inactivo") return no("Primero aprueba el registro.");
+        if (rol !== "administrador" && await dejaSinAdmins()) return no("Es el \xFAnico administrador activo: nombra otro antes de quitarle el rol.");
+        return { usuario: await guardar("rol = $2", [rol]) };
+      case "restablecer": {
+        if (u.estado === "pendiente" || u.estado === "rechazado") return no("Primero aprueba el registro.");
+        const temporal = claveTemporal();
+        const usuario = await guardar("clave = $2, debe_cambiar = true, intentos_fallidos = 0, bloqueado_hasta = null", [await cifrarClave(temporal)]);
+        return { usuario, temporal };
+      }
+      case "eliminar":
+        if (u.estado !== "pendiente" && u.estado !== "rechazado") return no("Solo se borran registros pendientes o rechazados; a un usuario aprobado se le desactiva.");
+        await db.query("delete from public.usuarios_acceso where id = $1", [u.id]);
+        return { usuario: null };
+      default:
+        return no("Acci\xF3n desconocida.", 400);
+    }
+  }
+  return { login, registro, admin, vigente };
+}
+
 // server.ts
-var { SUPABASE_URL = "", SUPABASE_PUBLISHABLE_KEY = "", JWT_SECRET = "", PORT = "3001" } = process.env;
-var variablesFaltantes = Object.entries({ SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
+var { JWT_SECRET = "", PORT = "3001" } = process.env;
+var variablesFaltantes = Object.entries({ JWT_SECRET }).filter(([, valor]) => !valor.trim()).map(([nombre]) => nombre);
 if (variablesFaltantes.length) {
   console.error(`Faltan variables de autenticaci\xF3n: ${variablesFaltantes.join(", ")}. Config\xFAralas en el entorno del servidor.`);
 }
-var clienteSupabase = () => createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false }
-});
 var COOKIE = "sesion";
 var DURACION_SESION = 8 * 60 * 60 * 1e3;
 var isProd = process.env.NODE_ENV === "production";
-var app = express7();
-app.use("/api/excel", express7.json({ limit: "2mb" }));
-app.use("/api/preventas", express7.json({ limit: "20mb" }));
-app.use(express7.json());
+var app = express8();
+app.use("/api/excel", express8.json({ limit: "2mb" }));
+app.use("/api/preventas", express8.json({ limit: "20mb" }));
+app.use(express8.json());
 app.use(cookieParser());
 app.use("/api", (_req, res, next) => {
   if (variablesFaltantes.length) {
@@ -1551,7 +1886,7 @@ var leerSesion = (req) => {
   if (typeof token !== "string") return null;
   try {
     const datos = jwt.verify(token, JWT_SECRET);
-    return typeof datos === "object" ? datos : null;
+    return typeof datos === "object" && typeof datos.cedula === "string" ? datos : null;
   } catch {
     return null;
   }
@@ -1563,7 +1898,7 @@ app.get("/", (req, res) => {
   }
   res.sendFile(path.join(import.meta.dirname, "public", "index.html"));
 });
-app.use(express7.static(path.join(import.meta.dirname, "public")));
+app.use(express8.static(path.join(import.meta.dirname, "public")));
 var limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1e3,
   limit: 10,
@@ -1572,57 +1907,54 @@ var limiteLogin = rateLimit({
   legacyHeaders: false,
   message: { error: "Demasiados intentos. Espera unos minutos e int\xE9ntalo de nuevo." }
 });
-var ERRORES_AUTH = {
-  invalid_credentials: [401, "Correo o contrase\xF1a incorrectos."],
-  email_not_confirmed: [403, "Tu correo a\xFAn no est\xE1 confirmado. Contacta con el administrador."],
-  user_banned: [403, "Tu usuario est\xE1 desactivado. Contacta con el administrador."],
-  over_request_rate_limit: [429, "Demasiados intentos. Espera unos minutos e int\xE9ntalo de nuevo."]
-};
-app.post("/api/login", limiteLogin, async (req, res) => {
-  const correo = String(req.body?.correo ?? "").trim().toLowerCase();
-  const password = String(req.body?.password ?? "");
-  if (!correo || !password) {
-    res.status(400).json({ error: "Escribe tu correo y contrase\xF1a." });
-    return;
-  }
-  const { data, error } = await clienteSupabase().auth.signInWithPassword({ email: correo, password });
-  if (error) {
-    const conocido = error.code ? ERRORES_AUTH[error.code] : void 0;
-    if (conocido) {
-      res.status(conocido[0]).json({ error: conocido[1] });
-      return;
-    }
-    console.error("Error de Supabase Auth:", error.code, error.message);
-    res.status(500).json({ error: "No se pudo iniciar sesi\xF3n. Int\xE9ntalo m\xE1s tarde." });
-    return;
-  }
-  const { user } = data;
-  const email = user.email ?? correo;
-  const nombre = user.user_metadata?.nombre || email.split("@")[0];
-  const rol = user.app_metadata?.rol || "sin rol";
-  const sesion = { sub: user.id, correo: email, nombre, rol };
-  const token = jwt.sign(sesion, JWT_SECRET, { expiresIn: DURACION_SESION / 1e3 });
+var limiteRegistro = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Demasiados registros desde esta red. Int\xE9ntalo m\xE1s tarde." }
+});
+var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
+var abrirSesion = (res, sesion) => {
+  const token = jwt.sign({ sub: sesion.sub, cedula: sesion.cedula, nombre: sesion.nombre, rol: sesion.rol }, JWT_SECRET, { expiresIn: DURACION_SESION / 1e3 });
   res.cookie(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: isProd,
     maxAge: DURACION_SESION
   });
-  res.json({ nombre });
-});
+};
+var acceso = crearAcceso(dbFrescura, abrirSesion, leerSesion);
+app.post("/api/login", limiteLogin, acceso.login);
+app.post("/api/registro", limiteRegistro, acceso.registro);
+app.use("/api/usuarios", acceso.admin);
 app.post("/api/logout", (req, res) => {
   res.clearCookie(COOKIE);
   res.status(204).end();
 });
-app.get("/api/me", (req, res) => {
+async function sesionVigente(req, res) {
   const sesion = leerSesion(req);
+  if (!sesion) return null;
+  try {
+    const usuario = await acceso.vigente(sesion.sub);
+    if (!usuario) {
+      res.clearCookie(COOKIE);
+      return null;
+    }
+    return { ...sesion, nombre: usuario.nombre, rol: usuario.rol };
+  } catch (error) {
+    console.error("No se pudo confirmar la sesi\xF3n:", error.message);
+    return sesion;
+  }
+}
+app.get("/api/me", async (req, res) => {
+  const sesion = await sesionVigente(req, res);
   if (!sesion) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
     return;
   }
-  res.json({ correo: sesion.correo, nombre: sesion.nombre, rol: sesion.rol });
+  res.json({ cedula: sesion.cedula, nombre: sesion.nombre, rol: sesion.rol });
 });
-var dbFrescura = process.env.SUPABASE_DB_URL ? new pg.Pool({ connectionString: process.env.SUPABASE_DB_URL, max: 3, connectionTimeoutMillis: 15e3 }) : null;
 app.use("/api/preventas", rutasPreventas(dbFrescura, leerSesion));
 app.use("/api/formularios", rutasFormularios(dbFrescura, leerSesion));
 app.use("/api/solicitudes", rutasSolicitudes(dbFrescura, leerSesion));
@@ -1820,13 +2152,19 @@ app.get("/api/consolidado/:modulo", async (req, res) => {
     res.status(500).json({ error: "No se pudo consultar el consolidado." });
   }
 });
-var paginaProtegida = (archivo) => (req, res) => {
-  if (!leerSesion(req)) {
+var paginaProtegida = (archivo, soloAdmin = false) => async (req, res) => {
+  const sesion = await sesionVigente(req, res);
+  if (!sesion) {
     res.redirect("/");
+    return;
+  }
+  if (soloAdmin && sesion.rol !== "administrador") {
+    res.redirect("/modulos");
     return;
   }
   res.sendFile(path.join(import.meta.dirname, "views", archivo));
 };
+app.get("/usuarios", paginaProtegida("usuarios.html", true));
 app.get("/panel", paginaProtegida("panel.html"));
 app.get("/modulos", paginaProtegida("modulos.html"));
 app.get("/preventas", paginaProtegida("preventas.html"));

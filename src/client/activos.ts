@@ -481,32 +481,36 @@ const columnasPorCd = (r: ResumenActivos, refs: readonly Referencia[]): Columna[
   [...r.porCd].map(([cd, fila]) => ({ etiqueta: cd, titulo: cd, valores: refs.map(ref => fila.cantidades[ref.clave]) }))
     .sort((a, b) => totalDe(b) - totalDe(a) || a.etiqueta.localeCompare(b.etiqueta, 'es'));
 
-function columnasPorDia(r: ResumenActivos, refs: readonly Referencia[]): Columna[] {
-  const dias = [...r.porDia.keys()].sort();
-  if (!dias.length) return [];
-  // Días seguidos, del primero al último con conteos: los días sin conteo quedan como hueco.
-  return diasEntre(dias[0], dias[dias.length - 1]).map(dia => {
+/** Todos los días del mes (hasta hoy si es el mes en curso): los días sin conteo quedan como hueco. */
+function columnasPorDia(r: ResumenActivos, refs: readonly Referencia[], desde: string, hasta: string): Columna[] {
+  if (!r.porDia.size) return [];
+  return diasEntre(desde, hasta).map(dia => {
     const fila = r.porDia.get(dia);
     return { etiqueta: diaCorto(dia), titulo: `${nombreDia(dia)}, ${fecha(dia)}${fila ? '' : ' · sin conteos'}`, valores: refs.map(ref => fila?.cantidades[ref.clave] ?? 0) };
   });
 }
 
-function pintarGraficos(r: ResumenActivos) {
+/** Mes de la tendencia diaria: el de la fecha final del filtro; del día 1 al último (o hasta hoy, si es el mes en curso). */
+function mesDeTendencia() {
+  const mes = filtro.hasta.slice(0, 7);
+  const h = hoy();
+  return { mes, desde: `${mes}-01`, hasta: finDeMes(mes) > h ? h : finDeMes(mes) };
+}
+
+function pintarGraficos(r: ResumenActivos, rMes: ResumenActivos) {
   const cds = r.porCd.size;
   const enCds = `${plural(cds, 'CD', 'CD')} · de mayor a menor`;
   ponerColumnas(graficos.cdEstibas, columnasPorCd(r, ESTIBAS), enCds);
   ponerColumnas(graficos.cdCajas, columnasPorCd(r, CAJAS), enCds);
   ponerColumnas(graficos.cdIsotanques, columnasPorCd(r, ISOTANQUES), enCds);
   ponerColumnas(graficos.cdHl, columnasPorCd(r, [HL]), enCds);
-  const dias = r.porDia.size;
-  const enDias = plural(dias, 'día con conteos', 'días con conteos');
-  ponerColumnas(graficos.diaEstibas, columnasPorDia(r, ESTIBAS), enDias);
-  ponerColumnas(graficos.diaCajas, columnasPorDia(r, CAJAS), enDias);
-  ponerColumnas(graficos.diaIsotanques, columnasPorDia(r, ISOTANQUES), enDias);
-  ponerColumnas(graficos.diaHl, columnasPorDia(r, [HL]), enDias);
-  // Con un solo día, los gráficos por día muestran una sola columna: se invita a ampliar el rango.
-  porId('aaDiaNota').hidden = dias !== 1;
-  if (dias === 1) porId('aaDiaNotaTexto').textContent = filtro.desde === filtro.hasta ? 'El rango elegido es un solo día, así que cada gráfico muestra una sola columna.' : 'En este rango solo hay conteos de un día.';
+  // Tendencia diaria: todo el mes, sin importar los días elegidos; solo cambia al cambiar de mes (o de CD).
+  const { mes, desde, hasta } = mesDeTendencia();
+  const enDias = `${mayuscula(formatoMes.format(fechaDe(`${mes}-01`)))} · ${plural(rMes.porDia.size, 'día con conteos', 'días con conteos')}`;
+  ponerColumnas(graficos.diaEstibas, columnasPorDia(rMes, ESTIBAS, desde, hasta), enDias);
+  ponerColumnas(graficos.diaCajas, columnasPorDia(rMes, CAJAS, desde, hasta), enDias);
+  ponerColumnas(graficos.diaIsotanques, columnasPorDia(rMes, ISOTANQUES, desde, hasta), enDias);
+  ponerColumnas(graficos.diaHl, columnasPorDia(rMes, [HL], desde, hasta), enDias);
 }
 
 // ---------- Tabla por CD ----------
@@ -637,7 +641,6 @@ for (const boton of document.querySelectorAll<HTMLButtonElement>('.aa-atajo')) {
   boton.addEventListener('click', () => { aplicarAtajo(boton.dataset.atajo as Atajo); pintar(); });
 }
 porId('aaActualizar').addEventListener('click', () => void cargar());
-porId('aaDiaSemana').addEventListener('click', () => { aplicarAtajo('semana'); pintar(); });
 porId('aaVacioUltimo').addEventListener('click', () => { aplicarAtajo('ultimo'); pintar(); });
 porId('aaVacioTodos').addEventListener('click', () => {
   filtro.cd = '';
@@ -700,7 +703,8 @@ function pintar() {
   pintarDona(donas.estibas, r.total);
   pintarDona(donas.cajas, r.total);
   pintarDona(donas.isotanques, r.total);
-  pintarGraficos(r);
+  const { desde, hasta } = mesDeTendencia();
+  pintarGraficos(r, resumirActivos(registros, { desde, hasta, cd: filtro.cd }));
   pintarTabla(r);
 }
 

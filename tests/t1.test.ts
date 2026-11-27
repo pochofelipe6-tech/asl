@@ -189,3 +189,13 @@ test('ESPERA también se junta por fecha', async () => {
     assert.deepEqual(filasEspera(juntos).map(f => f.placa), ['AAA111', 'ZZZ999', 'CCC333', 'GGG777']);
   } finally { cerrar(); }
 });
+
+test('mapa de calor: fila Regional y columna MTD como los totales del Power BI', () => {
+  const m = calcularT1(datos(), { desde: dia('2026-11-01'), hasta: dia('2026-11-30') }).mapaAtencion;
+  assert.deepEqual(m.cds, ['Galapa', 'Monteria']);
+  // Regional del 2/11: todas las filas del día (1,5 + 1 + 2,5) / 3, no el promedio de los promedios de cada CD.
+  assert.equal(m.regional[m.fechas.indexOf(dia('2026-11-02'))], (1.5 + 1 + 2.5) / 3);
+  assert.equal(m.regional[m.fechas.indexOf(dia('2026-11-03'))], 1);
+  assert.deepEqual(m.mtd, [1.25, (2.5 + 1) / 2], 'MTD: todo el rango de cada CD');
+  assert.equal(m.mtdRegional, (1.5 + 1 + 2.5 + 1) / 4, 'en la esquina, todo junto');
+});

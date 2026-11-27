@@ -299,6 +299,15 @@ dt.t1-tip-total,dt.t1-tip-total+dd{padding-top:5px;border-top:1px solid var(--t1
 .t1-mapa{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:2px;background:var(--t1-card);color:var(--t1-texto);font-size:11.5px}
 .t1-mapa-col-cd{width:var(--t1-ancho-cd,120px)}
 .t1-mapa th{font-weight:700}
+/* Fila "Regional" (total del día, como en el Power BI): separada un poco y en negrita. */
+.t1-mapa-regional>*{border-top:5px solid var(--t1-card);background-clip:padding-box}
+.t1-mapa-regional th{font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.t1-mapa-regional td.t1-celda{font-weight:900;box-shadow:inset 0 0 0 2px #00000026}
+/* Columna "MTD" (total de cada CD en el rango, como en el Power BI): fija a la derecha, separada y en negrita. */
+.t1-mapa-col-mtd{width:58px}
+.t1-mapa .t1-mapa-mtd,.t1-mapa .t1-mapa-mtd-cabeza{border-left:6px solid var(--t1-card);background-clip:padding-box}
+.t1-mapa td.t1-mapa-mtd.t1-celda{font-weight:900;box-shadow:inset 0 0 0 2px #00000026}
+.t1-mapa-mtd-cabeza{color:var(--t1-texto);font-size:12px;font-weight:900;letter-spacing:.06em;vertical-align:bottom;padding-bottom:4px}
 .t1-mapa-esquina{padding:0 10px;color:var(--t1-suave);font-size:11.5px;text-align:left;vertical-align:bottom;letter-spacing:.06em;text-transform:uppercase}
 .t1-mapa-mes{height:22px;padding:0 6px;border-bottom:1px solid var(--t1-borde);color:var(--t1-suave);font-size:11.5px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t1-mapa-dia{height:34px;padding:2px 0;color:var(--t1-suave);text-align:center;line-height:1.15}
@@ -366,7 +375,7 @@ dt.t1-tip-total,dt.t1-tip-total+dd{padding-top:5px;border-top:1px solid var(--t1
   .t1-linea{animation:t1-trazar 1.1s cubic-bezier(.45,0,.2,1) both .15s}
   .t1-puntos,.t1-cifra{animation:t1-aparecer .4s ease both;animation-delay:calc(var(--i,0) * 35ms + 600ms)}
   .t1-quieto :is(.t1-barra,.t1-barra-v,.t1-linea,.t1-puntos,.t1-cifra){animation:none}
-  .t1-mapa tbody tr{animation:t1-fila .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 25ms + 80ms)}
+  .t1-mapa :is(tbody,tfoot) tr{animation:t1-fila .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 25ms + 80ms)}
   .t1-tabla-paginada tbody tr{animation:t1-fila .35s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--f,0) * 18ms)}
   .t1-boton:hover,.t1-boton-sec:hover{transform:translateY(-1px)}
 }

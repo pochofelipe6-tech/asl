@@ -202,8 +202,6 @@ dt.aa-tip-total,dt.aa-tip-total+dd{padding-top:5px;border-top:1px solid var(--aa
 .aa-tabla-mini .aa-total{font-weight:800}
 
 /* ---------- Por día ---------- */
-.aa-dia-nota{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:10px 12px 10px 16px;border:1px solid #ffd10059;border-radius:14px;background:var(--aa-suave-amarillo);color:var(--aa-texto);font-size:13.5px;font-weight:600}
-.aa-dia-nota .aa-boton-sec{min-height:34px;background:var(--aa-card)}
 
 /* ---------- Sin conteos ---------- */
 .aa-vacio{display:flex;flex-direction:column;align-items:center;gap:8px;padding:44px 24px;text-align:center}

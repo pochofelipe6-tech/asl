@@ -1,0 +1,50 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" type="image/png" sizes="32x32" href="/img/comando/favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="/img/comando/favicon-64.png"><link rel="apple-touch-icon" href="/img/comando/apple-touch-icon.png"><title>Usuarios · Comando Central</title><script>try { document.documentElement.dataset.tema = localStorage.getItem('frescura-tema') || 'oscuro'; } catch (_) {}</script><link rel="stylesheet" href="/modulos.css"><link rel="stylesheet" href="/control-design.css"><link rel="stylesheet" href="/preventas.css"><link rel="stylesheet" href="/comando.css"><link rel="stylesheet" href="/activos.css"><link rel="stylesheet" href="/usuarios.css"><script type="module" src="/js/modulos.js"></script><script type="module" src="/js/usuarios.js"></script></head><body class="pv-page aa-page us-page">
+<header class="header pv-header"><a class="brand" href="/modulos"><img class="cc-logo" src="/img/comando/logo-comando.png" alt="Comando Central · Team WH North Regional"><span><strong>TORRE CONTROL</strong><small>Regional Norte</small></span></a>
+<div class="account"><a class="cc-boton-inicio" href="/modulos"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h4.5v-6h4v6h4.5V10"/></svg>Inicio</a><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span class="theme-bulb" aria-hidden="true"><svg viewBox="0 0 32 32"><g class="bulb-rays"><path d="M16 1v3M5.4 5.5l2.1 2.1M1.5 15h3M26.5 15h3M24.5 7.6l2.1-2.1"/></g><path class="bulb-glass" d="M10 20c0-1.8-2.4-3.1-2.4-6.7a8.4 8.4 0 0 1 16.8 0C24.4 16.9 22 18.2 22 20z"/><path class="bulb-base" d="M10.5 23h11M11.5 26h9M14 29h4"/><path class="bulb-filament" d="M13 20v-5l3 2 3-2v5"/></svg></span><span id="themeLabel">Modo claro</span></button><span class="pv-user"><svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5v-1a7 7 0 0 1 14 0v1"/></svg><span id="userName">Usuario</span></span><button class="logout" id="logout" type="button">Cerrar sesión</button></div></header><p id="sessionStatus" class="session-status" role="status"></p>
+<main class="preventa-app pv-anim aa-app us-app">
+<section class="pv-hero aa-hero" aria-labelledby="usTituloPagina"><h1 id="usTituloPagina">Administrar <em>usuarios</em></h1><p class="us-hero-texto">Aprueba los registros nuevos, asigna roles, desactiva cuentas y restablece contraseñas. Se entra con cédula y contraseña.</p></section>
+
+<!-- Pestañas por estado y búsqueda. Por defecto se abren los pendientes (si hay). -->
+<section class="aa-filtros us-filtros" aria-label="Filtros de usuarios">
+<div class="aa-atajos us-pestanas" role="group" aria-label="Estado">
+<button type="button" class="aa-atajo" data-estado="pendiente" aria-pressed="false">Pendientes <span class="us-cuenta" id="usCuentaPendiente">0</span></button>
+<button type="button" class="aa-atajo" data-estado="activo" aria-pressed="false">Activos <span class="us-cuenta us-cuenta-suave" id="usCuentaActivo">0</span></button>
+<button type="button" class="aa-atajo" data-estado="inactivo" aria-pressed="false">Desactivados <span class="us-cuenta us-cuenta-suave" id="usCuentaInactivo">0</span></button>
+<button type="button" class="aa-atajo" data-estado="rechazado" aria-pressed="false">Rechazados <span class="us-cuenta us-cuenta-suave" id="usCuentaRechazado">0</span></button>
+<button type="button" class="aa-atajo" data-estado="todos" aria-pressed="false">Todos</button>
+</div>
+<label class="aa-campo us-buscar"><span class="aa-etiqueta">Buscar</span><input id="usBuscar" type="search" placeholder="Cédula o nombre" autocomplete="off"></label>
+<button type="button" class="aa-boton-sec" id="usActualizar">Actualizar</button>
+</section>
+
+<section class="aa-card us-card" aria-labelledby="usTitulo">
+<div class="aa-card-cabeza"><span class="aa-circulo" aria-hidden="true"><svg class="aa-ico" viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M21 20v-1.5a4 4 0 0 0-3-3.9M15.5 4.1a3.5 3.5 0 0 1 0 6.8"/></svg></span><div><h3 id="usTitulo">Usuarios</h3><p id="usSub"></p></div></div>
+<p id="usMensaje" class="us-mensaje" role="status" hidden></p>
+<div class="aa-tabla-caja us-tabla-caja" role="region" tabindex="0" aria-labelledby="usTitulo"><table class="aa-tabla us-tabla">
+<thead><tr><th scope="col">Cédula</th><th scope="col">Nombre</th><th scope="col">Estado</th><th scope="col">Rol</th><th scope="col">Registro</th><th scope="col">Último ingreso</th><th scope="col" class="us-th-acciones">Acciones</th></tr></thead>
+<tbody id="usCuerpo"></tbody></table></div>
+<p id="usVacio" class="us-vacio" hidden></p>
+</section>
+
+<section class="aa-card us-ayuda" aria-labelledby="usAyudaTitulo">
+<h3 id="usAyudaTitulo">Cómo funciona</h3>
+<ul>
+<li><b>Registro:</b> cada persona entra a la página, toca «Regístrate» y escribe su cédula, su nombre y la contraseña que quiera. Queda <b>pendiente</b> y no puede entrar hasta que la apruebes aquí.</li>
+<li><b>Roles:</b> <b>Administrador</b> ve todos los módulos y administra usuarios; <b>Usuario</b> ve todos los módulos.</li>
+<li><b>¿Olvidó su contraseña?</b> Toca «Restablecer contraseña»: verás una contraseña temporal para entregarle. Al entrar con ella, deberá crear la suya.</li>
+<li><b>Desactivar</b> le quita el acceso de inmediato (su sesión abierta se cierra en menos de un minuto); se puede volver a activar.</li>
+</ul>
+</section>
+</main>
+
+<!-- Ventana para confirmar acciones y para mostrar la contraseña temporal. -->
+<dialog id="usDialogo" class="us-dialogo" aria-labelledby="usDialogoTitulo">
+<form method="dialog">
+<h3 id="usDialogoTitulo"></h3>
+<p id="usDialogoTexto"></p>
+<div id="usTemporal" class="us-temporal" hidden><code id="usTemporalClave"></code><button type="button" class="aa-boton-sec" id="usCopiar">Copiar</button></div>
+<div class="us-dialogo-botones"><button type="submit" value="no" class="aa-boton-sec" id="usDialogoNo">Cancelar</button><button type="submit" value="si" class="aa-boton" id="usDialogoSi">Confirmar</button></div>
+</form>
+</dialog>
+<footer>BAVARIA · TORRE CONTROL · REGIONAL NORTE</footer>
+</body></html>

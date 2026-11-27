@@ -9,8 +9,9 @@
     // El formulario debe seguir siendo seguro si el modulo no llega a cargar.
     (() => {
       const url = new URL(location.href);
-      if (url.searchParams.has('password') || url.searchParams.has('correo')) {
+      if (url.searchParams.has('password') || url.searchParams.has('cedula') || url.searchParams.has('correo')) {
         url.searchParams.delete('password');
+        url.searchParams.delete('cedula');
         url.searchParams.delete('correo');
         history.replaceState(null, '', url.pathname + url.search + url.hash);
       }
@@ -79,6 +80,10 @@
     <symbol id="i-user" viewBox="0 0 24 24">
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
     </symbol>
+    <symbol id="i-id" viewBox="0 0 24 24">
+      <rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11.5" r="2.2"/><path d="M4.8 16.2c.7-1.4 1.8-2.1 3.2-2.1s2.5.7 3.2 2.1M14 10h5M14 13.5h4"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   </svg>
 
 
@@ -100,20 +105,21 @@
         <span class="rule" aria-hidden="true"></span>
       </div>
 
-      <h1>Iniciar <span class="resalte">sesión</span></h1>
-      <p class="subtitle">Ingresa a tu cuenta para continuar en la plataforma.</p>
+      <h1 id="titulo">Iniciar <span class="resalte">sesión</span></h1>
+      <p class="subtitle" id="subtitulo">Ingresa con tu número de cédula y tu contraseña.</p>
 
       <div class="alert" id="alert" role="alert"></div>
 
       <noscript><p class="alert show">Activa JavaScript para iniciar sesión.</p></noscript>
+      <!-- Ingreso con cédula y contraseña. Si el administrador restableció la contraseña, se pide crear una nueva. -->
       <form id="form" method="post" action="/api/login" novalidate>
         <div class="field">
-          <label class="sr-only" for="correo">Correo electrónico</label>
+          <label class="sr-only" for="cedula">Número de cédula</label>
           <div class="input-wrap">
-            <svg class="ico input-icon" aria-hidden="true"><use href="#i-mail"/></svg>
-            <input id="correo" name="correo" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Correo electrónico" required autofocus>
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-id"/></svg>
+            <input id="cedula" name="cedula" type="text" inputmode="numeric" autocomplete="username" spellcheck="false" placeholder="Número de cédula" required autofocus>
           </div>
-          <div class="error" id="correo-error"></div>
+          <div class="error" id="cedula-error"></div>
         </div>
 
         <div class="field">
@@ -136,10 +142,82 @@
           </div>
         </div>
 
+        <!-- Solo con contraseña temporal: la persona crea la suya. -->
+        <div id="bloqueNueva" hidden>
+          <div class="field">
+            <label class="sr-only" for="nueva">Nueva contraseña</label>
+            <div class="input-wrap">
+              <svg class="ico input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+              <input id="nueva" class="con-ojo" type="password" autocomplete="new-password" placeholder="Nueva contraseña">
+              <button type="button" class="eye" data-para="nueva" aria-label="Mostrar contraseña">
+                <svg class="ico eye-on" aria-hidden="true"><use href="#i-eye"/></svg>
+                <svg class="ico eye-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+              </button>
+            </div>
+            <div class="error" id="nueva-error"></div>
+          </div>
+          <div class="field">
+            <label class="sr-only" for="nuevaConfirmar">Repite la nueva contraseña</label>
+            <div class="input-wrap">
+              <svg class="ico input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+              <input id="nuevaConfirmar" type="password" autocomplete="new-password" placeholder="Repite la nueva contraseña">
+            </div>
+            <div class="error" id="nuevaConfirmar-error"></div>
+          </div>
+          <p class="reglas">Mínimo 8 caracteres, con letras y números.</p>
+        </div>
+
         <button type="submit" class="btn-primary" id="submitBtn">
           <svg class="ico" aria-hidden="true"><use href="#i-login"/></svg>
           <span id="submitLabel">Entrar</span>
         </button>
+        <p class="cambiar-modo">¿Aún no tienes cuenta? <button type="button" class="enlace" id="irRegistro">Regístrate</button></p>
+      </form>
+
+      <!-- Registro: queda pendiente hasta que un administrador lo apruebe. -->
+      <form id="formRegistro" novalidate hidden>
+        <div class="field">
+          <label class="sr-only" for="regCedula">Número de cédula</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-id"/></svg>
+            <input id="regCedula" type="text" inputmode="numeric" autocomplete="username" spellcheck="false" placeholder="Número de cédula" required>
+          </div>
+          <div class="error" id="regCedula-error"></div>
+        </div>
+        <div class="field">
+          <label class="sr-only" for="regNombre">Nombre completo</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-user"/></svg>
+            <input id="regNombre" type="text" autocomplete="name" autocapitalize="words" placeholder="Nombre completo" required>
+          </div>
+          <div class="error" id="regNombre-error"></div>
+        </div>
+        <div class="field">
+          <label class="sr-only" for="regClave">Contraseña</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+            <input id="regClave" class="con-ojo" type="password" autocomplete="new-password" placeholder="Crea una contraseña" required>
+            <button type="button" class="eye" data-para="regClave" aria-label="Mostrar contraseña">
+              <svg class="ico eye-on" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico eye-off" aria-hidden="true"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+          <div class="error" id="regClave-error"></div>
+        </div>
+        <div class="field">
+          <label class="sr-only" for="regConfirmar">Repite la contraseña</label>
+          <div class="input-wrap">
+            <svg class="ico input-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+            <input id="regConfirmar" type="password" autocomplete="new-password" placeholder="Repite la contraseña" required>
+          </div>
+          <div class="error" id="regConfirmar-error"></div>
+        </div>
+        <p class="reglas">Mínimo 8 caracteres, con letras y números.</p>
+        <button type="submit" class="btn-primary" id="registroBtn">
+          <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+          <span id="registroLabel">Crear cuenta</span>
+        </button>
+        <p class="cambiar-modo">¿Ya tienes cuenta? <button type="button" class="enlace" id="irIngreso">Inicia sesión</button></p>
       </form>
 
       <div class="help">
