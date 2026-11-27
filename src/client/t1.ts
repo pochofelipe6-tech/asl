@@ -144,12 +144,19 @@ const ESPERA: Serie = { nombre: 'Espera', clase: 't1-c-es' };
 /** En las tendencias van los colores del Power BI: atención azul claro y espera azul oscuro. */
 const ATENCION_TENDENCIA: Serie = { ...ATENCION, clase: 't1-c-at t1-pbi' };
 const ESPERA_TENDENCIA: Serie = { ...ESPERA, clase: 't1-c-es t1-pbi' };
+/** Por día de semana y por turno, como el Power BI: atención gris y espera celeste. */
+const ATENCION_COLUMNAS: Serie = { ...ATENCION, clase: 't1-c-at t1-pbi-col' };
+const ESPERA_COLUMNAS: Serie = { ...ESPERA, clase: 't1-c-es t1-pbi-col' };
+/** FTCT por CD, como el Power BI: una sola barra gris por CD. */
+const FTCT: Serie = { nombre: 'FTCT', clase: 't1-c-ftct' };
 interface Categoria {
   clave: string; etiqueta: string; titulo: string; valores: (number | null)[];
   /** Posición en el eje (días de Excel) para las líneas por fecha. */
   x?: number;
   /** Total que manda el motor (FTCT) cuando las partes van apiladas. */
   total?: number | null;
+  /** Filas de más para la ventanita (p. ej. la atención y la espera que forman el FTCT). */
+  notas?: FilaTip[];
 }
 interface Grafico {
   caja: HTMLElement; subtitulo: HTMLElement | null; nombre: string; forma: 'linea' | 'barras' | 'columnas';
@@ -161,16 +168,19 @@ interface Grafico {
   alto: number;
   /** Líneas de meta (rojas punteadas) que cruzan el gráfico de líneas. */
   metas: Meta[];
+  /** false si las metas van sin su nombre escrito junto a la línea (como en el Power BI). */
+  nombresMeta: boolean;
   /** Colores por valor (semáforo): cada barra toma el color del primer tramo cuyo tope no alcanza. */
   semaforo: Tramo[];
 }
-interface Meta { nombre: string; valor: number }
+/** "discontinua": rayas largas (la línea constante por defecto del Power BI); si no, punteada. */
+interface Meta { nombre: string; valor: number; estilo?: 'discontinua' }
 /** Un tramo de un semáforo: aplica a los valores menores que "hasta" (o hasta ese valor inclusive, si "incluido"). */
 interface Tramo { hasta: number; incluido?: boolean; clase: string; color: string; nombre: string }
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], series: Serie[], encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, series, apilado: false, categorias: [], encabezado, totalNombre: 'Total',
-    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, alto: 0, foco: 0, metas: [], semaforo: [], ...extra,
+    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, alto: 0, foco: 0, metas: [], nombresMeta: true, semaforo: [], ...extra,
   };
 }
 /** Metas de las tendencias diaria y mensual (horas). */
@@ -229,12 +239,13 @@ const graficos: Record<string, Grafico> = {
   mensual: nuevoGrafico('t1GMensual', null, 'Tendencia mensual de atención y espera', 'linea', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Mes', { metas: METAS_T1 }),
   cdAtencion: nuevoGrafico('t1GCdAt', 't1GCdAtS', 'Tiempo de atención por CD', 'barras', [ATENCION], 'CD', { dimension: 'cds', semaforo: SEMAFORO_ATENCION }),
   cdEspera: nuevoGrafico('t1GCdEs', 't1GCdEsS', 'Tiempo de espera por CD', 'barras', [ESPERA], 'CD', { dimension: 'cds', semaforo: SEMAFORO_ESPERA }),
-  cdFtct: nuevoGrafico('t1GCdFt', 't1GCdFtS', 'FTCT por CD', 'barras', [ATENCION, ESPERA], 'CD', { dimension: 'cds', apilado: true, totalNombre: 'FTCT' }),
-  diaSemana: nuevoGrafico('t1GDiaSem', 't1GDiaSemS', 'Atención y espera promedio por día de semana', 'columnas', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Día', { metas: METAS_T1 }),
-  turno: nuevoGrafico('t1GTurno', null, 'Atención y espera promedio por turno', 'columnas', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Turno', { dimension: 'turnos', metas: METAS_T1 }),
+  cdFtct: nuevoGrafico('t1GCdFt', 't1GCdFtS', 'FTCT por CD', 'barras', [FTCT], 'CD', { dimension: 'cds' }),
+  // En el Power BI, estas dos metas y la semanal van sin nombre junto a la línea.
+  diaSemana: nuevoGrafico('t1GDiaSem', 't1GDiaSemS', 'Atención y espera promedio por día de semana', 'columnas', [ATENCION_COLUMNAS, ESPERA_COLUMNAS], 'Día', { metas: METAS_T1, nombresMeta: false }),
+  turno: nuevoGrafico('t1GTurno', null, 'Atención y espera promedio por turno', 'columnas', [ATENCION_COLUMNAS, ESPERA_COLUMNAS], 'Turno', { dimension: 'turnos', metas: METAS_T1, nombresMeta: false }),
   gerencia: nuevoGrafico('t1GGer', 't1GGerS', 'Tiempo de atención por gerencia', 'barras', [ATENCION], 'Gerencia', { dimension: 'gerencias', semaforo: SEMAFORO_ATENCION }),
   ol: nuevoGrafico('t1GOl', null, 'Tiempo de atención por OL', 'columnas', [ATENCION], 'OL', { semaforo: SEMAFORO_OL }),
-  semana: nuevoGrafico('t1GSem', 't1GSemS', 'Tendencia semanal de atención', 'columnas', [ATENCION], 'Semana', { semaforo: SEMAFORO_SEMANA, metas: [METAS_T1[0]] }),
+  semana: nuevoGrafico('t1GSem', 't1GSemS', 'Tendencia semanal de atención', 'columnas', [ATENCION], 'Semana', { semaforo: SEMAFORO_SEMANA, metas: [{ ...METAS_T1[0], estilo: 'discontinua' }], nombresMeta: false }),
 };
 
 /** Marcas "redondas" del eje de horas (0; 0,5; 1; 1,5…): unas 4 o 5. */
@@ -261,7 +272,7 @@ function filasTip(g: Grafico, c: Categoria): FilaTip[] {
     return { nombre: s.nombre, valor: horasLargo(v), clase: claseDe(g, k, v), fuerte: g.series.length === 1 };
   });
   if (g.apilado) filas.push({ nombre: g.totalNombre, valor: horasLargo(c.total ?? null), fuerte: true });
-  return filas;
+  return [...filas, ...(c.notas ?? [])];
 }
 function textoCategoria(g: Grafico, c: Categoria): string {
   const partes = g.series.map((s, k) => `${s.nombre} ${c.valores[k] === null ? 'sin datos' : `${horas(c.valores[k])} horas`}`);
@@ -294,7 +305,7 @@ function leyendaDe(g: Grafico): HTMLElement | null {
   }
   for (const m of g.metas) {
     const li = crear('li');
-    li.append(crear('i', 't1-muestra t1-muestra-meta'), `${m.nombre} (${cifraEje(m.valor)})`);
+    li.append(crear('i', `t1-muestra t1-muestra-meta${m.estilo === 'discontinua' ? ' t1-muestra-discontinua' : ''}`), `${m.nombre} (${cifraEje(m.valor)})`);
     lista.append(li);
   }
   return lista;
@@ -435,7 +446,7 @@ function dibujarColumnas(g: Grafico, ancho: number, extra = 0): SVGSVGElement {
   const etiquetasEje = marcas.map(cifraEje);
   const IZQUIERDA = Math.round(Math.max(...etiquetasEje.map(t => anchoTexto(t))) + 14);
   // Con metas, a la derecha queda espacio para su nombre (así no tapa ninguna columna).
-  const nombresMeta = g.metas.map(m => m.nombre.toUpperCase());
+  const nombresMeta = g.nombresMeta ? g.metas.map(m => m.nombre.toUpperCase()) : [];
   const DERECHA = nombresMeta.length ? Math.round(Math.max(...nombresMeta.map(t => anchoTexto(t, 11))) + 12) : 8;
   const ARRIBA = 22;
   const largo = Math.max(60, ancho - IZQUIERDA - DERECHA);
@@ -497,11 +508,12 @@ function dibujarColumnas(g: Grafico, ancho: number, extra = 0): SVGSVGElement {
     columnas.push(grupo);
     svg.append(grupo);
   });
-  // Metas: línea roja punteada por encima de las columnas (como en el Power BI), con el nombre a la derecha.
+  // Metas: línea roja por encima de las columnas (como en el Power BI); el nombre a la derecha, si el gráfico lo lleva.
   g.metas.forEach((m, k) => {
     const y = yDe(m.valor);
-    svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + 4, y1: y, y2: y, class: 't1-meta' }));
-    svg.append(nodo('text', { x: ancho - DERECHA + 8, y, 'dominant-baseline': 'central', class: 't1-meta-texto' }, nombresMeta[k]));
+    const clase = `t1-meta${m.estilo === 'discontinua' ? ' t1-meta-discontinua' : ''}`;
+    svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + (nombresMeta.length ? 4 : 0), y1: y, y2: y, class: clase }));
+    if (nombresMeta[k]) svg.append(nodo('text', { x: ancho - DERECHA + 8, y, 'dominant-baseline': 'central', class: 't1-meta-texto' }, nombresMeta[k]));
   });
   conTeclado(g, svg, n, i => (columnas[i] as SVGGElement & { mostrar?: () => void }).mostrar?.(), () => { svg.classList.remove('t1-enfoque'); columnas.forEach(col => col.classList.remove('t1-activa')); }, true);
   return svg;
@@ -1342,7 +1354,11 @@ function pintarGraficos(r: ResultadoT1, rCd: ResultadoT1, rGer: ResultadoT1, rTu
     `${plural(rCd.porCd.length, 'CD', 'CD')} · de mayor a menor`);
   ponerCategorias(graficos.cdEspera, [...rCd.porCd].sort(porValor(c => c.espera)).map(c => ({ clave: c.cd, etiqueta: c.cd, titulo: c.cd, valores: [c.espera] })),
     `${plural(rCd.porCd.length, 'CD', 'CD')} · de mayor a menor`);
-  ponerCategorias(graficos.cdFtct, [...rCd.porCd].sort(porValor(c => c.ftct)).map(c => ({ clave: c.cd, etiqueta: c.cd, titulo: c.cd, valores: [c.atencion, c.espera], total: c.ftct })),
+  ponerCategorias(graficos.cdFtct, [...rCd.porCd].sort(porValor(c => c.ftct)).map(c => ({
+    clave: c.cd, etiqueta: c.cd, titulo: c.cd, valores: [c.ftct],
+    // La barra es solo el FTCT (como el Power BI); la ventanita muestra de qué está hecho.
+    notas: [{ nombre: 'Atención', valor: horasLargo(c.atencion) }, { nombre: 'Espera', valor: horasLargo(c.espera) }],
+  })),
     'Atención + espera · de mayor a menor');
 
   ponerCategorias(graficos.diaSemana, r.porDiaSemana.map(d => ({ clave: String(d.dia), etiqueta: mayuscula(DIA_CORTO[d.dia]), titulo: mayuscula(DIAS_SEMANA[d.dia]), valores: [d.atencion, d.espera] })),

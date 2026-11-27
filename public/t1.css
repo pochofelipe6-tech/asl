@@ -217,6 +217,12 @@ html[data-tema="claro"] .t1-kpis-compactas .t1-kpi{border-color:transparent;back
 /* Tendencias diaria y mensual como en el Power BI: atención azul claro, espera azul oscuro, cifra en cada punto. */
 .t1-pbi{--t1-at:#118dff;--t1-es:#8d9cff}
 html[data-tema="claro"] .t1-pbi{--t1-es:#12239e}
+/* Por día de semana y por turno (Power BI): atención gris (blanco del tema −20 %) y espera celeste (#118DFF +60 %).
+   FTCT por CD: una barra gris. La meta semanal es la línea constante por defecto del Power BI: discontinua. */
+.t1-pbi-col{--t1-at:#cccccc;--t1-es:#a0d1ff}
+.t1-c-ftct{--c:#cccccc}
+.t1-meta-discontinua{stroke-dasharray:8 5;stroke-linecap:butt}
+.t1-muestra-meta.t1-muestra-discontinua{border-top-style:dashed}
 .t1-svg-linea .t1-linea{stroke-width:2.6}
 .t1-cifra-punto{font-size:10.5px;paint-order:stroke;stroke:var(--t1-card);stroke-width:3px;stroke-linejoin:round}
 .t1-svg-linea .t1-eje-x{fill:var(--t1-texto);font-weight:700}
