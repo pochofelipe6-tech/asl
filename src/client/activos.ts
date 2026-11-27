@@ -514,10 +514,27 @@ function pintarGraficos(r: ResumenActivos) {
 const COLUMNAS_TABLA = [...ESTIBAS, ...CAJAS, ...ISOTANQUES, { clave: 'necesidad_isotanques', nombre: 'Necesidad de isotanques', corto: 'Necesidad' }, HL] as const;
 const FIN_GRUPO = new Set(['estibas_c', 'cajas_225cc_x38', 'necesidad_isotanques']);
 
-function celdasDe(fila: HTMLTableRowElement, c: Cantidades) {
+/** Ícono lleno (ubicación del CD o gota de HL) para la tabla por CD. */
+function iconoTabla(cual: 'pin' | 'gota'): SVGSVGElement {
+  const svg = nodo('svg', { viewBox: '0 0 24 24', class: 'aa-ico aa-ico-lleno', 'aria-hidden': 'true' });
+  if (cual === 'pin') {
+    svg.append(nodo('path', { d: 'M12 21.5s-7-6-7-11.6a7 7 0 0 1 14 0c0 5.6-7 11.6-7 11.6z' }), nodo('circle', { class: 'aa-ico-hueco', cx: 12, cy: 9.8, r: 2.6 }));
+  } else svg.append(nodo('path', { d: 'M12 3.2s6.2 6.6 6.2 11a6.2 6.2 0 0 1-12.4 0c0-4.4 6.2-11 6.2-11Z' }));
+  return svg;
+}
+
+/** Celdas de cantidades de una fila; en la de total, los HL van en una píldora negra con su gota. */
+function celdasDe(fila: HTMLTableRowElement, c: Cantidades, total = false) {
   for (const col of COLUMNAS_TABLA) {
     const v = c[col.clave];
-    const td = crear('td', `num${FIN_GRUPO.has(col.clave) ? ' aa-fin-grupo' : ''}${v ? '' : ' aa-cero'}`, col.clave === 'hl_pendientes_verter' ? cifraHl(v) : cifra(v));
+    const hl = col.clave === 'hl_pendientes_verter';
+    const texto = hl ? cifraHl(v) : cifra(v);
+    const td = crear('td', `num${FIN_GRUPO.has(col.clave) ? ' aa-fin-grupo' : ''}${v ? '' : ' aa-cero'}${hl ? ' aa-td-hl' : ''}`, total && hl ? undefined : texto);
+    if (total && hl) {
+      const pildora = crear('span', 'aa-hl-total');
+      pildora.append(iconoTabla('gota'), crear('b', undefined, texto));
+      td.append(pildora);
+    }
     fila.append(td);
   }
 }
@@ -529,16 +546,21 @@ function pintarTabla(r: ResumenActivos) {
     fila.style.setProperty('--f', String(i));
     const th = crear('th', 'aa-td-cd');
     th.scope = 'row';
-    th.append(crear('b', undefined, cd), crear('small', undefined, plural(f.conteos, 'conteo', 'conteos')));
+    const nombre = crear('span', 'aa-cd-nombre');
+    nombre.append(crear('b', undefined, cd), crear('small', undefined, plural(f.conteos, 'conteo', 'conteos')));
+    th.append(iconoTabla('pin'), nombre);
     fila.append(th);
     celdasDe(fila, f.cantidades);
     return fila;
   }));
   const pie = crear('tr');
-  const th = crear('th', 'aa-td-cd', 'Total');
+  const th = crear('th', 'aa-td-cd');
   th.scope = 'row';
+  const sigma = crear('span', 'aa-sigma', 'Σ');
+  sigma.setAttribute('aria-hidden', 'true');
+  th.append(sigma, 'Total');
   pie.append(th);
-  celdasDe(pie, r.total);
+  celdasDe(pie, r.total, true);
   porId('aaTablaPie').replaceChildren(pie);
   porId('aaTablaSub').textContent = `${textoPeriodo(filtro.desde, filtro.hasta)} · ${plural(filas.length, 'CD', 'CD')} · suma de ${plural(r.conteos, 'conteo', 'conteos')}`;
   const faltan = filtro.cd ? [] : CDS_REGIONAL_NORTE.filter(cd => !r.porCd.has(cd));

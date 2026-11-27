@@ -295,3 +295,50 @@ html[data-tema="claro"] .aa-page{--aa-dorado:#e0a800}
   .aa-kpi-img{width:64px;height:64px}
   .aa-card{padding:14px}
 }
+
+/* ---------- Tabla "Inventario por CD" ----------
+   Encabezado oscuro con un ícono amarillo por grupo (estibas, estibas plásticas, isotanques); CD y HL en amarillo.
+   Filas con la ubicación en amarillo junto a cada CD, cifras centradas y la fila de total amarilla con Σ y los HL
+   en una píldora negra. Solo esta tabla: las de "Ver tabla" de cada gráfico siguen igual. */
+.aa-page{--aa-tc-cabeza:#000000;--aa-tc-sub:#232428;--aa-tc-linea:#ffffff1f}
+html[data-tema="claro"] .aa-page{--aa-tc-cabeza:#161616;--aa-tc-sub:#2c2c2c}
+.aa-tabla.aa-tabla-cd{min-width:940px;font-size:12.5px}
+.aa-tabla.aa-tabla-cd th,.aa-tabla.aa-tabla-cd td{padding:6px 10px}
+.aa-tabla.aa-tabla-cd .num{text-align:center}
+.aa-tabla-cd .aa-ico-lleno{fill:currentColor;stroke:none}
+.aa-th-con-ico{display:inline-flex;align-items:center;gap:7px}
+.aa-th-con-ico .aa-ico{flex:none;width:16px;height:16px}
+/* Encabezado */
+.aa-tabla.aa-tabla-cd thead th{background:var(--aa-tc-sub);color:#fff;font-size:11px;font-weight:700;text-align:center;vertical-align:middle;border-left:1px solid var(--aa-tc-linea)}
+.aa-tabla.aa-tabla-cd thead tr:first-child th{padding:9px 10px;background:var(--aa-tc-cabeza)}
+.aa-tabla.aa-tabla-cd thead .aa-grupo{border-bottom:0;border-left:2px solid var(--aa-card);font-size:11.5px;font-weight:800;letter-spacing:.06em}
+.aa-tabla.aa-tabla-cd thead .aa-grupo .aa-ico{color:#ffd100}
+.aa-tabla.aa-tabla-cd thead .aa-fin-grupo{border-right:0}
+.aa-tabla.aa-tabla-cd thead tr:last-child th:first-child{border-left:2px solid var(--aa-card)}
+.aa-tabla.aa-tabla-cd thead tr:last-child th:nth-child(4),.aa-tabla.aa-tabla-cd thead tr:last-child th:nth-child(9){border-left:2px solid var(--aa-card)}
+.aa-tabla.aa-tabla-cd thead tr:first-child :is(.aa-th-cd,.aa-th-hl){background:linear-gradient(#ffd100,#f5c400);color:#111;font-size:12px;font-weight:800;border-left:0}
+.aa-tabla.aa-tabla-cd thead .aa-th-cd{text-align:left}
+.aa-tabla.aa-tabla-cd thead .aa-th-hl{min-width:120px;border-left:2px solid var(--aa-card);white-space:nowrap;line-height:1.2}
+.aa-tabla.aa-tabla-cd thead .aa-th-hl .aa-th-con-ico{text-align:left}
+.aa-th-cd .aa-ico-hueco{fill:#ffd100}
+/* Cuerpo */
+.aa-tabla.aa-tabla-cd tbody td{border-left:1px solid var(--aa-borde)}
+.aa-tabla.aa-tabla-cd tbody td.aa-td-hl{border-left:2px solid var(--aa-borde)}
+.aa-tabla.aa-tabla-cd .aa-fin-grupo{border-right:0}
+.aa-tabla.aa-tabla-cd tbody tr > :nth-child(5),.aa-tabla.aa-tabla-cd tbody tr > :nth-child(10){border-left:2px solid var(--aa-borde)}
+.aa-tabla-cd .aa-td-cd{display:table-cell;min-width:150px}
+.aa-tabla-cd tbody .aa-td-cd{padding-left:8px}
+.aa-tabla-cd tbody .aa-td-cd > .aa-ico{width:17px;height:17px;margin-right:6px;vertical-align:middle;color:#ffc400}
+.aa-tabla-cd tbody .aa-ico-hueco{fill:var(--aa-card)}
+.aa-cd-nombre{display:inline-block;vertical-align:middle}
+.aa-tabla-cd .aa-cd-nombre b{font-size:12.5px;line-height:1.15}
+.aa-tabla-cd .aa-cd-nombre small{margin-top:0;font-size:10.5px;line-height:1.15}
+/* Total */
+.aa-tabla.aa-tabla-cd tfoot th,.aa-tabla.aa-tabla-cd tfoot td{padding:7px 10px;border-top:0;border-left:0;background:#ffd100;color:#111;font-weight:800}
+.aa-tabla.aa-tabla-cd tfoot td.aa-cero{color:#111}
+.aa-tabla-cd tfoot .aa-td-cd{padding-left:8px}
+.aa-sigma{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:9px;border-radius:6px;background:#e5b611;color:#111;font-size:14px;font-weight:900;vertical-align:middle}
+.aa-tabla.aa-tabla-cd tfoot td.aa-td-hl{padding:4px 6px}
+.aa-hl-total{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:100%;padding:6px 12px;border-radius:10px;background:#111;color:#fff;box-sizing:border-box}
+.aa-hl-total .aa-ico{width:15px;height:15px;color:#ffd100}
+.aa-hl-total b{font-size:14px;font-weight:800}
