@@ -135,7 +135,7 @@ addEventListener('scroll', ocultarTip, { passive: true });
 interface Dona { caja: HTMLElement; refs: readonly Referencia[]; unidad: string; nombre: string }
 const donas = {
   estibas: { caja: porId('aaDonaEstibas'), refs: ESTIBAS, unidad: 'estibas', nombre: 'Estibas por tipo' },
-  cajas: { caja: porId('aaDonaCajas'), refs: CAJAS, unidad: 'cajas', nombre: 'Cajas plásticas por referencia' },
+  cajas: { caja: porId('aaDonaCajas'), refs: CAJAS, unidad: 'estibas plásticas', nombre: 'Estibas plásticas por referencia' },
   isotanques: { caja: porId('aaDonaIsotanques'), refs: ISOTANQUES, unidad: 'isotanques', nombre: 'Isotanques' },
 } satisfies Record<string, Dona>;
 
@@ -225,11 +225,11 @@ function nuevoGrafico(caja: string, subtitulo: string, nombre: string, tipo: Gra
 }
 const graficos: Record<string, Grafico> = {
   cdEstibas: nuevoGrafico('aaGCdEst', 'aaGCdEstS', 'Estibas por CD y tipo', 'cd', ESTIBAS, 'estibas'),
-  cdCajas: nuevoGrafico('aaGCdCaj', 'aaGCdCajS', 'Cajas plásticas por CD y referencia', 'cd', CAJAS, 'cajas'),
+  cdCajas: nuevoGrafico('aaGCdCaj', 'aaGCdCajS', 'Estibas plásticas por CD y referencia', 'cd', CAJAS, 'estibas plásticas'),
   cdIsotanques: nuevoGrafico('aaGCdIso', 'aaGCdIsoS', 'Isotanques por CD', 'cd', ISOTANQUES, 'isotanques'),
   cdHl: nuevoGrafico('aaGCdHl', 'aaGCdHlS', 'HL pendientes por verter por CD', 'cd', [HL], 'HL', cifraHl),
   diaEstibas: nuevoGrafico('aaGDiaEst', 'aaGDiaEstS', 'Estibas por día y tipo', 'dia', ESTIBAS, 'estibas'),
-  diaCajas: nuevoGrafico('aaGDiaCaj', 'aaGDiaCajS', 'Cajas plásticas por día y referencia', 'dia', CAJAS, 'cajas'),
+  diaCajas: nuevoGrafico('aaGDiaCaj', 'aaGDiaCajS', 'Estibas plásticas por día y referencia', 'dia', CAJAS, 'estibas plásticas'),
   diaIsotanques: nuevoGrafico('aaGDiaIso', 'aaGDiaIsoS', 'Isotanques por día', 'dia', ISOTANQUES, 'isotanques'),
   diaHl: nuevoGrafico('aaGDiaHl', 'aaGDiaHlS', 'HL pendientes por verter por día', 'dia', [HL], 'HL', cifraHl),
 };
@@ -659,7 +659,7 @@ function pintarVacio(r: ResumenActivos) {
   const botonUltimo = porId<HTMLButtonElement>('aaVacioUltimo');
   porId('aaVacioTitulo').textContent = sinNada ? 'Aún no hay conteos de inventario' : 'Sin conteos en este periodo';
   porId('aaVacioTexto').textContent = sinNada
-    ? 'Los conteos se registran en Control de inventarios. Apenas un CD envíe el primero, aquí verás las estibas, cajas plásticas e isotanques.'
+    ? 'Los conteos se registran en Control de inventarios. Apenas un CD envíe el primero, aquí verás las estibas, estibas plásticas e isotanques.'
     : `${filtro.cd ? `${filtro.cd} no tiene` : 'No hay'} conteos ${enElPeriodo(filtro.desde, filtro.hasta)}.${ultimo ? ` El último fue el ${fecha(ultimo)}.` : filtro.cd ? ` ${filtro.cd} aún no ha enviado ninguno.` : ''}`;
   botonUltimo.hidden = !ultimo || (filtro.desde === ultimo && filtro.hasta === ultimo);
   if (ultimo) botonUltimo.textContent = `Ver el ${fecha(ultimo)}`;

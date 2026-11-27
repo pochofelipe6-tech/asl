@@ -76,7 +76,7 @@ test('las cajas vacías (null) valen 0 y los totales suman lo que dice el Power 
   assert.equal(totalCajas(c), 70);
   assert.equal(totalIsotanques(c), 10);
   assert.deepEqual(ESTIBAS.map(e => e.corto), ['Tipo A', 'Tipo B', 'Tipo C']);
-  assert.deepEqual(CAJAS.map(e => e.nombre), ['Cajas plásticas 250', 'Cajas plásticas 330', 'Cajas plásticas 750', 'Cajas plásticas 1000', 'Cajas plásticas 225']);
+  assert.deepEqual(CAJAS.map(e => e.nombre), ['Estibas plásticas 250', 'Estibas plásticas 330', 'Estibas plásticas 750', 'Estibas plásticas 1000', 'Estibas plásticas 225']);
 });
 
 test('los HL con decimales se suman sin errores de redondeo', () => {

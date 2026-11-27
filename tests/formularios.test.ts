@@ -15,7 +15,7 @@ test('el formulario conserva las 13 preguntas del Microsoft Form con claves úni
   const ids = preguntasDe(formulario).map(p => p.id);
   assert.equal(ids.length, 13);
   assert.equal(new Set(ids).size, ids.length);
-  assert.deepEqual(formulario.secciones.map(s => s.titulo), ['Centro De Distribución', 'Información de estibas', 'Información de HL bloqueados', 'Información de cajas plásticas']);
+  assert.deepEqual(formulario.secciones.map(s => s.titulo), ['Centro De Distribución', 'Información de estibas', 'Información de HL bloqueados', 'Información de estibas plásticas']);
 });
 
 test('normaliza números, acepta coma decimal en HL y deja vacías las cajas opcionales', () => {

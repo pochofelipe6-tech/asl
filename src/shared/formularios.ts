@@ -51,7 +51,7 @@ export const FORMULARIOS: readonly Formulario[] = [
   {
     id: 'control-inventarios',
     titulo: 'Control de inventarios - Regional Norte',
-    descripcion: 'Seguimiento al inventario de estibas, isotanques y cajas plásticas',
+    descripcion: 'Seguimiento al inventario de estibas, isotanques y estibas plásticas',
     secciones: [
       {
         titulo: 'Centro De Distribución',
@@ -82,15 +82,15 @@ export const FORMULARIOS: readonly Formulario[] = [
         ],
       },
       {
-        titulo: 'Información de cajas plásticas',
+        titulo: 'Información de estibas plásticas',
         descripcion: EN_UNIDADES,
         sumable: true,
         preguntas: [
-          { id: 'cajas_330cc_x30', titulo: 'Cantidad de cajas plásticas 330cc x 30', corto: '330cc x 30', ...UNIDADES },
-          { id: 'cajas_750cc_x16', titulo: 'Cantidad de cajas plásticas 750cc x 16', corto: '750cc x 16', ...UNIDADES },
-          { id: 'cajas_1000cc_x13', titulo: 'Cantidad de cajas plásticas 1000cc x 13', corto: '1000cc x 13', ...UNIDADES },
-          { id: 'cajas_250cc_x38', titulo: 'Cantidad de cajas plásticas 250cc x 38', corto: '250cc x 38', ...UNIDADES },
-          { id: 'cajas_225cc_x38', titulo: 'Cantidad de cajas plásticas 225cc x 38', corto: '225cc x 38', ...UNIDADES },
+          { id: 'cajas_330cc_x30', titulo: 'Cantidad de estibas plásticas 330cc x 30', corto: '330cc x 30', ...UNIDADES },
+          { id: 'cajas_750cc_x16', titulo: 'Cantidad de estibas plásticas 750cc x 16', corto: '750cc x 16', ...UNIDADES },
+          { id: 'cajas_1000cc_x13', titulo: 'Cantidad de estibas plásticas 1000cc x 13', corto: '1000cc x 13', ...UNIDADES },
+          { id: 'cajas_250cc_x38', titulo: 'Cantidad de estibas plásticas 250cc x 38', corto: '250cc x 38', ...UNIDADES },
+          { id: 'cajas_225cc_x38', titulo: 'Cantidad de estibas plásticas 225cc x 38', corto: '225cc x 38', ...UNIDADES },
         ],
       },
     ],

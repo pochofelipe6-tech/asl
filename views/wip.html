@@ -42,7 +42,6 @@
      usabilidad por CD; la matriz CD × día a lo ancho; y abajo gerencia, OL y semana. -->
 <div id="wipTablero" class="t1-tablero wip-compacto">
 <h2 class="cc-oculto">Usabilidad WIP: gráficos y tablas</h2>
-<p class="t1-pista">Toca una columna del gráfico por CD para filtrar toda la página por ese CD; vuelve a tocarla para quitarlo.</p>
 <div class="t1-graficos wip-fila-a">
 <article class="t1-card t1-anima" style="--i:5" aria-labelledby="wipTCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="wipTCdT">Seguimiento usabilidad WIP por CD</h3><p id="wipTCdS"></p></div></div><div id="wipTCd" class="t1-tabla-zona"></div></article>
 <div class="wip-pila">
@@ -54,7 +53,7 @@
 </div>
 <div class="t1-graficos wip-fila-b">
 <article class="t1-card t1-anima" style="--i:8" aria-labelledby="wipTDiaT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 9.5V20"/></svg></span><div><h3 id="wipTDiaT">DTs y usabilidad por día</h3><p id="wipTDiaS"></p></div></div><div id="wipTDia" class="t1-tabla-zona"></div></article>
-<article class="t1-card t1-anima" style="--i:9" aria-labelledby="wipGCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="wipGCdT">% Usabilidad WIP por CD</h3><p id="wipGCdS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="cd" aria-pressed="false">Ver tabla</button></div><div id="wipGCd" class="t1-grafico"></div></article>
+<article class="t1-card t1-anima" style="--i:9" aria-labelledby="wipGCdT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M6 20V11M12 20V5M18 20v-6"/></svg></span><div><h3 id="wipGCdT">% Usabilidad WIP por CD</h3><p id="wipGCdS"></p></div><button type="button" class="t1-ver-tabla" data-grafico="cd" aria-pressed="false">Ver tabla</button></div><div id="wipGCd" class="t1-grafico t1-llena"></div></article>
 </div>
 <article class="t1-card t1-anima" style="--i:10" aria-labelledby="wipMapaT"><div class="t1-card-cabeza wip-mapa-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><div><h3 id="wipMapaT">Usabilidad por CD y día</h3><p id="wipMapaS"></p></div><div class="wip-medida" role="group" aria-label="Usabilidad que muestra el mapa"><div id="wipMapaMedida" class="t1-chips"></div></div></div><div id="wipMapa" class="t1-mapa-caja"></div></article>
 <div class="t1-graficos wip-fila-d">
@@ -64,14 +63,7 @@
 </div>
 </div>
 
-<!-- Carga de datos: Data WIP.xlsx. -->
-<section id="wipDatos" class="t1-seccion" aria-labelledby="wipDatosTitulo">
-<h2 id="wipDatosTitulo" class="t1-seccion-titulo"><span>Datos cargados</span></h2>
-<div class="t1-card t1-datos wip-datos t1-anima" style="--i:14">
-<div class="t1-archivo" id="wipArchivoCaja"><span class="t1-archivo-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 12.5l6 5M15 12.5l-6 5"/></svg></span><div><p class="t1-archivo-tipo">Data WIP · estados de los DTs por CD y día</p><strong class="t1-archivo-nombre">Sin cargar</strong><p class="t1-archivo-detalle"></p><p class="t1-archivo-quien"></p></div></div>
-<div class="t1-datos-subir"><button type="button" id="wipSubirAbajo" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><p>Acepta Data WIP.xlsx (columnas Fecha, CD, los estados de 0. Pendiente a 8. Finalizado y Total DTs). Cada archivo reemplaza los datos anteriores.</p></div>
-</div>
-</section>
+<!-- Carga de datos (botón "Subir Excel" de arriba): Data WIP.xlsx. -->
 <input id="wipArchivo" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 </main>
 <div id="wipTip" class="t1-tip" aria-hidden="true" hidden></div>

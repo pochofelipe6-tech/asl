@@ -156,6 +156,8 @@ interface Grafico {
   /** Si tiene dimensión, un clic en una barra filtra la página por ella. */
   dimension: Dimension | null; seleccion: Set<string>;
   vacio: string; enTabla: boolean; ancho: number; foco: number;
+  /** Alto de la caja al dibujarlo (los que llenan su tarjeta se redibujan si cambia). */
+  alto: number;
   /** Líneas de meta (rojas punteadas) que cruzan el gráfico de líneas. */
   metas: Meta[];
   /** Colores por valor (semáforo): cada barra toma el color del primer tramo cuyo tope no alcanza. */
@@ -167,7 +169,7 @@ interface Tramo { hasta: number; incluido?: boolean; clase: string; color: strin
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], series: Serie[], encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, series, apilado: false, categorias: [], encabezado, totalNombre: 'Total',
-    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, metas: [], semaforo: [], ...extra,
+    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, alto: 0, foco: 0, metas: [], semaforo: [], ...extra,
   };
 }
 /** Metas de las tendencias diaria y mensual (horas). */
@@ -351,12 +353,13 @@ function etiquetaAccesible(g: Grafico, unidad: string, ayuda: string): string {
   return `${g.nombre}, en horas. ${n === 1 ? `Un ${unidad}` : `${n} ${unidad}s`}. ${ayuda} ${g.categorias.slice(0, 16).map(c => textoCategoria(g, c)).join('. ')}`;
 }
 
-/** Barras horizontales (por CD y por gerencia); apiladas para el FTCT. El valor va en la punta de cada barra. */
-function dibujarBarras(g: Grafico, ancho: number): SVGSVGElement {
+/** Barras horizontales (por CD y por gerencia); apiladas para el FTCT. El valor va en la punta de cada barra.
+ *  "extra": alto que sobra en la tarjeta; las filas se separan para llenarlo (con tope). */
+function dibujarBarras(g: Grafico, ancho: number, extra = 0): SVGSVGElement {
   const n = g.categorias.length;
   // Tablero compacto (como el Power BI): filas bajas.
-  const FILA = n > 9 ? 20 : 30;
-  const GROSOR = n > 9 ? 13 : 18;
+  const FILA = Math.min(n > 9 ? 26 : 44, (n > 9 ? 20 : 30) + extra / Math.max(1, n));
+  const GROSOR = n > 9 ? 13 : Math.round(Math.min(24, Math.max(18, FILA * 0.55)));
   const IZQUIERDA = Math.round(Math.min(ancho * 0.42, Math.max(...g.categorias.map(c => anchoTexto(c.etiqueta, 12.5))) + 22));
   const DERECHA = 46;
   const ARRIBA = 4;
@@ -417,8 +420,9 @@ function dibujarBarras(g: Grafico, ancho: number): SVGSVGElement {
   return svg;
 }
 
-/** Columnas (una serie o dos lado a lado). El valor va sobre cada columna si cabe. */
-function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
+/** Columnas (una serie o dos lado a lado). El valor va sobre cada columna si cabe.
+ *  "extra": alto que sobra en la tarjeta; las columnas crecen para llenarlo (con tope). */
+function dibujarColumnas(g: Grafico, ancho: number, extra = 0): SVGSVGElement {
   const n = g.categorias.length;
   // Una serie sin ningún dato (la espera en noviembre) no ocupa lugar: la otra queda centrada.
   const activas = g.series.map((_, s) => s).filter(s => !sinSerie(g, s));
@@ -436,7 +440,7 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
   const largo = Math.max(60, ancho - IZQUIERDA - DERECHA);
   const hueco = largo / n;
   const grosor = Math.max(3, Math.min(24, (hueco * 0.72 - 2 * (k - 1)) / k));
-  const ALTO = Math.round(Math.min(210, Math.max(140, ancho * 0.24)));
+  const ALTO = Math.round(Math.min(210, Math.max(140, ancho * 0.24)) + Math.min(extra, 160));
   const ABAJO = 30;
   const base = ARRIBA + ALTO;
   const altoTotal = base + ABAJO;
@@ -656,9 +660,26 @@ function dibujar(g: Grafico, animar = true) {
   if (!hayDatos(g)) { g.caja.replaceChildren(crear('p', 't1-grafico-vacio', g.vacio)); return; }
   if (g.enTabla) { g.caja.replaceChildren(tablaDe(g)); return; }
   if (!ancho) return; // Oculto: se dibuja al mostrarse (ResizeObserver).
-  const svg = g.forma === 'linea' ? dibujarLinea(g, ancho) : g.forma === 'barras' ? dibujarBarras(g, ancho) : dibujarColumnas(g, ancho);
+  const trazar = (extra: number) => g.forma === 'linea' ? dibujarLinea(g, ancho) : g.forma === 'barras' ? dibujarBarras(g, ancho, extra) : dibujarColumnas(g, ancho, extra);
+  const svg = trazar(0);
   const leyenda = leyendaDe(g);
   g.caja.replaceChildren(...(leyenda ? [leyenda, svg] : [svg]));
+  // Turno y gerencia: la fila la estiran las tablas de detalle; el gráfico crece hasta llenar su tarjeta (sin hueco abajo).
+  if (g.caja.classList.contains('t1-llena')) {
+    const sobra = sobraAbajo(g, svg);
+    if (sobra > 2) svg.replaceWith(trazar(sobra));
+    g.alto = g.caja.clientHeight;
+  }
+}
+
+/** Alto libre bajo el gráfico, si una tarjeta fija de su misma fila (tabla, exclusiones) la estira. Entre dos
+ *  gráficos que se llenan no se mide: uno sostendría al otro y la fila ya no volvería a encogerse. */
+function sobraAbajo(g: Grafico, svg: SVGSVGElement): number {
+  const tarjeta = g.caja.closest<HTMLElement>('.t1-card');
+  const fila = tarjeta?.parentElement;
+  if (!tarjeta || !fila) return 0;
+  const conFija = [...fila.children].some(t => t !== tarjeta && t instanceof HTMLElement && t.offsetTop === tarjeta.offsetTop && !t.querySelector('.t1-llena'));
+  return conFija ? Math.floor(g.caja.getBoundingClientRect().bottom - svg.getBoundingClientRect().bottom) : 0;
 }
 
 function ponerCategorias(g: Grafico, categorias: Categoria[], subtitulo?: string) {
@@ -672,7 +693,11 @@ for (const g of Object.values(graficos)) {
   let cuadro = 0;
   new ResizeObserver(() => {
     cancelAnimationFrame(cuadro);
-    cuadro = requestAnimationFrame(() => { if (Math.floor(g.caja.clientWidth) !== g.ancho) dibujar(g, false); });
+    cuadro = requestAnimationFrame(() => {
+      // Los que llenan su tarjeta también se redibujan si la fila cambió de alto.
+      const altoCambio = g.caja.classList.contains('t1-llena') && !!g.caja.querySelector(':scope > svg') && Math.abs(g.caja.clientHeight - g.alto) > 2;
+      if (Math.floor(g.caja.clientWidth) !== g.ancho || altoCambio) dibujar(g, false);
+    });
   }).observe(g.caja);
 }
 for (const boton of document.querySelectorAll<HTMLButtonElement>('.t1-ver-tabla')) {
@@ -1366,9 +1391,9 @@ function pintarExclusiones(r: ResultadoT1) {
   porId('t1ExclEsCuenta').textContent = plural(es, 'fila', 'filas');
   porId('t1ExclAtCuenta').classList.toggle('t1-alerta', at > 0);
   porId('t1ExclEsCuenta').classList.toggle('t1-alerta', es > 0);
-  porId('t1ExclAtNota').textContent = `con atención mayor que ${horas(UMBRAL_EXCLUSION_ATENCION)} h`;
+  porId('t1ExclAtNota').textContent = `de más de ${horas(UMBRAL_EXCLUSION_ATENCION)} h`;
   const ue = opciones?.ultimaEspera ?? null;
-  porId('t1ExclEsNota').textContent = !es && esperaFaltante() && ue !== null ? `sin espera en este rango (llega al ${fecha(ue)})` : `con espera mayor que ${horas(UMBRAL_EXCLUSION_ESPERA)} h`;
+  porId('t1ExclEsNota').textContent = !es && esperaFaltante() && ue !== null ? `sin espera en este rango (llega al ${fecha(ue)})` : `de más de ${horas(UMBRAL_EXCLUSION_ESPERA)} h`;
   porId<HTMLButtonElement>('t1ExclAt').disabled = !at;
   porId<HTMLButtonElement>('t1ExclEs').disabled = !es;
 }
@@ -1384,10 +1409,11 @@ function pintar() {
   pintarResumen(r);
   pintarAviso();
   pintarTarjetas(r);
-  pintarGraficos(r, rCd, rGer, rTur);
-  pintarMapas(r);
+  // Tablas y exclusiones antes que los gráficos: turno y gerencia miden el alto de su fila, que lo ponen las tablas.
   pintarTablas(r);
   pintarExclusiones(r);
+  pintarGraficos(r, rCd, rGer, rTur);
+  pintarMapas(r);
 }
 
 let temporizador = 0;
@@ -1449,17 +1475,16 @@ porId('t1ExclEs').addEventListener('click', () => {
 
 // ---------- Carga de datos ----------
 
+/** Fechas de los datos junto a "Subir Excel"; el detalle de cada archivo (filas, quién y cuándo) va al pasar el mouse. */
 function pintarCargas() {
-  for (const tipo of ['atct', 'espera'] as const) {
-    const c = cargas[tipo];
-    const caja = porId(tipo === 'atct' ? 't1ArchivoAtct' : 't1ArchivoEspera');
-    caja.classList.toggle('t1-archivo-falta', !c);
-    caja.querySelector('.t1-archivo-nombre')!.textContent = c ? c.archivo : 'Sin cargar';
-    caja.querySelector('.t1-archivo-detalle')!.textContent = c ? `${plural(c.filas, 'fila', 'filas')} · del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}` : `Sube ${NOMBRE_TIPO[tipo]}.xlsx para ver ${tipo === 'atct' ? 'la atención' : 'la espera'}.`;
-    caja.querySelector('.t1-archivo-quien')!.textContent = c ? `Subido por ${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}` : '';
-  }
   const fuente = porId('t1HeroDatos');
   fuente.textContent = [cargas.atct && `ATCT al ${fecha(diaDeIso(cargas.atct.hasta))}`, cargas.espera && `ESPERA al ${fecha(diaDeIso(cargas.espera.hasta))}`].filter(Boolean).join(' · ') || 'Sin datos cargados';
+  fuente.title = (['atct', 'espera'] as const).map(tipo => {
+    const c = cargas[tipo];
+    return c
+      ? `${c.archivo}: ${plural(c.filas, 'fila', 'filas')}, del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}. Subido por ${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}`
+      : `${NOMBRE_TIPO[tipo]}.xlsx: sin cargar`;
+  }).join('\n');
 }
 
 /** Copia de los datos en el navegador: se vuelven a descargar solo cuando alguien sube un archivo nuevo. */
@@ -1555,7 +1580,7 @@ function ponerDentro() {
 const entradaArchivo = porId<HTMLInputElement>('t1Archivo');
 const progreso = porId('t1Progreso');
 const progresoTexto = porId('t1ProgresoTexto');
-const botonesSubir = ['t1Subir', 't1SubirAbajo', 't1VacioSubir', 't1AvisoSubir'].map(id => porId<HTMLButtonElement>(id));
+const botonesSubir = ['t1Subir', 't1VacioSubir', 't1AvisoSubir'].map(id => porId<HTMLButtonElement>(id));
 let subiendo = false;
 
 function avance(texto: string, tipo: '' | 'ok' | 'error' = '') {

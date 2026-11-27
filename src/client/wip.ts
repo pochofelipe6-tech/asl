@@ -19,11 +19,11 @@ const sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)');
 const cifra = (n: number) => n.toLocaleString('es-CO', { maximumFractionDigits: 0 });
 const formatoPct = new Intl.NumberFormat('es-CO', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const formatoPctEje = new Intl.NumberFormat('es-CO', { style: 'percent', maximumFractionDigits: 1 });
-const formatoUnDecimal = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 /** Porcentaje con 1 decimal ("97,1 %"), o "—" si no hay dato (usabilidad vacía). */
 const pct = (n: number | null | undefined) => (n == null || !Number.isFinite(n) ? '—' : formatoPct.format(n));
 /** Porcentaje corto para las celdas del mapa ("97,1"; "100" si es completo). */
-const pctCelda = (n: number) => { const t = formatoUnDecimal.format(n * 100); return t === '100,0' ? '100' : t; };
+/** Celda del mapa por CD y día: porcentaje entero, como el Power BI ("91 %"); la ventanita lleva el decimal. */
+const pctCelda = (n: number) => `${Math.round(n * 100)} %`;
 const formatoFecha = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
 const fecha = (dia: number) => formatoFecha.format(fechaDeDia(dia));
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -184,15 +184,19 @@ interface Grafico {
   /** Alto del área de las líneas: proporción del ancho y tope en píxeles. */
   proporcion: number; altoMax: number;
   vacio: string; enTabla: boolean; ancho: number; foco: number;
+  /** Alto de la caja al dibujarlo (los que llenan su tarjeta se redibujan si cambia). */
+  alto: number;
   /** Columnas (o puntos) en verde o rojo según la meta de usabilidad. */
   semaforo: boolean;
+  /** Cifra sobre cada columna en porcentaje entero ("99 %"), como el Power BI. */
+  entera: boolean;
   /** Líneas de meta (verdes punteadas, como en el Power BI). */
   metas: { nombre: string; valor: number }[];
 }
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], formato: Formato, series: Serie[], encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, formato, series, categorias: [], encabezado,
-    dimension: null, seleccion: new Set(), leyenda: true, proporcion: 0.3, altoMax: 290, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, semaforo: false, metas: [], ...extra,
+    dimension: null, seleccion: new Set(), leyenda: true, proporcion: 0.3, altoMax: 290, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, alto: 0, foco: 0, semaforo: false, entera: false, metas: [], ...extra,
   };
 }
 const graficos: Record<string, Grafico> = {
@@ -200,8 +204,8 @@ const graficos: Record<string, Grafico> = {
   dia: nuevoGrafico('wipGDia', 'wipGDiaS', 'Seguimiento usabilidad de WIP por día', 'linea', 'pct', MEDIDAS.map(m => SERIES_USO[m.clave]), 'Fecha', { leyenda: false, proporcion: 0.2, altoMax: 200, metas: [{ nombre: 'Meta 100 %', valor: 1 }] }),
   dts: nuevoGrafico('wipGDts', 'wipGDtsS', 'Seguimiento cargue de DTs por día', 'linea', 'cifra', [FINALIZADOS, TOTAL_DTS], 'Fecha', { proporcion: 0.19, altoMax: 185 }),
   cd: nuevoGrafico('wipGCd', 'wipGCdS', 'Porcentaje de usabilidad WIP por CD', 'columnas', 'pct', [WIP], 'CD', { dimension: 'cds', altoMax: 215, semaforo: true }),
-  gerencia: nuevoGrafico('wipGGer', 'wipGGerS', 'Porcentaje de usabilidad WIP por gerencia', 'columnas', 'pct', [WIP], 'Gerencia', { semaforo: true }),
-  ol: nuevoGrafico('wipGOl', null, 'Porcentaje de usabilidad WIP por OL', 'columnas', 'pct', [WIP], 'OL', { semaforo: true }),
+  gerencia: nuevoGrafico('wipGGer', 'wipGGerS', 'Porcentaje de usabilidad WIP por gerencia', 'columnas', 'pct', [WIP], 'Gerencia', { semaforo: true, entera: true }),
+  ol: nuevoGrafico('wipGOl', null, 'Porcentaje de usabilidad WIP por OL', 'columnas', 'pct', [WIP], 'OL', { semaforo: true, entera: true }),
   semana: nuevoGrafico('wipGSem', 'wipGSemS', 'Porcentaje de usabilidad WIP por semana', 'linea', 'pct', [WIP], 'Semana', { proporcion: 0.24, altoMax: 175, semaforo: true }),
 };
 
@@ -312,8 +316,9 @@ function etiquetaAccesible(g: Grafico, unidad: string, ayuda: string): string {
   return `${g.nombre}, ${medida}. ${n === 1 ? `Un ${unidad}` : `${n} ${unidad}s`}. ${ayuda} ${g.categorias.slice(0, 16).map(c => textoCategoria(g, c)).join('. ')}`;
 }
 
-/** Columnas de una serie (por CD, gerencia y OL). El valor va sobre cada columna si cabe; si los nombres no caben, se inclinan. */
-function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
+/** Columnas de una serie (por CD, gerencia y OL). El valor va sobre cada columna si cabe; si los nombres no caben, se inclinan.
+ *  "extra": alto que sobra en la tarjeta; las columnas crecen para llenarlo (con tope). */
+function dibujarColumnas(g: Grafico, ancho: number, extra = 0): SVGSVGElement {
   const n = g.categorias.length;
   const maximo = Math.max(...g.categorias.flatMap(c => c.valores).map(v => v ?? 0));
   const marcas = marcasEje(g.formato === 'pct' ? Math.max(1, maximo) : maximo * 1.05);
@@ -325,7 +330,7 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
   const largo = Math.max(60, ancho - IZQUIERDA - DERECHA);
   const hueco = largo / n;
   const grosor = Math.max(3, Math.min(40, hueco * 0.56));
-  const ALTO = Math.round(Math.min(g.altoMax, Math.max(140, ancho * 0.22)));
+  const ALTO = Math.round(Math.min(g.altoMax, Math.max(140, ancho * 0.22)) + Math.min(extra, 220));
   // Nombres: derechos si caben; si no, inclinados 40° (y si aun así se pisan, uno sí y otro no).
   const masAncha = Math.max(...g.categorias.map(c => anchoTexto(c.etiqueta)));
   const inclinar = masAncha + 10 > hueco;
@@ -343,7 +348,9 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
     svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA, y1: y, y2: y, class: m ? 't1-guia' : 't1-base' }));
     svg.append(nodo('text', { x: IZQUIERDA - 8, y, 'text-anchor': 'end', 'dominant-baseline': 'central', class: 't1-eje' }, etiquetasEje[i]));
   });
-  const caben = g.categorias.every(c => c.valores.every(v => v === null || anchoTexto(valorDe(g, v), 11) <= hueco - 4));
+  // Cifra sobre la columna: entera ("99 %") en gerencia y OL, como el Power BI; la ventanita y la tabla llevan el decimal.
+  const cifraCol = (v: number) => (g.entera ? pctEntero(v) : valorDe(g, v));
+  const caben = g.categorias.every(c => c.valores.every(v => v === null || anchoTexto(cifraCol(v), 11) <= hueco - 4));
   const columnas: SVGGElement[] = [];
   g.categorias.forEach((c, i) => {
     const centro = IZQUIERDA + hueco * (i + 0.5);
@@ -360,7 +367,7 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
         barra.append(nodo('path', { class: `t1-parte ${claseDe(g, 0, v)}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
         grupo.append(barra);
       }
-      if (caben) grupo.append(nodo('text', { x: centro, y: yDe(v) - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col' }, valorDe(g, v)));
+      if (caben) grupo.append(nodo('text', { x: centro, y: yDe(v) - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col' }, cifraCol(v)));
     } else if (caben) {
       grupo.append(nodo('text', { x: centro, y: base - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col t1-cifra-nula' }, '—'));
     }
@@ -565,9 +572,26 @@ function dibujar(g: Grafico, animar = true) {
   if (!hayDatos(g)) { g.caja.replaceChildren(crear('p', 't1-grafico-vacio', g.vacio)); return; }
   if (g.enTabla) { g.caja.replaceChildren(tablaDe(g)); return; }
   if (!ancho) return; // Oculto: se dibuja al mostrarse (ResizeObserver).
-  const svg = g.forma === 'linea' ? dibujarLinea(g, ancho) : usarBarras(g, ancho) ? dibujarBarras(g, ancho) : dibujarColumnas(g, ancho);
+  const columnas = g.forma === 'columnas' && !usarBarras(g, ancho);
+  const svg = g.forma === 'linea' ? dibujarLinea(g, ancho) : columnas ? dibujarColumnas(g, ancho) : dibujarBarras(g, ancho);
   const leyenda = leyendaDe(g);
   g.caja.replaceChildren(...(leyenda ? [leyenda, svg] : [svg]));
+  // Por CD: la fila la estira la tabla por día, más alta; las columnas crecen hasta llenar la tarjeta (sin hueco abajo).
+  if (columnas && g.caja.classList.contains('t1-llena')) {
+    const sobra = sobraAbajo(g, svg);
+    if (sobra > 2) svg.replaceWith(dibujarColumnas(g, ancho, sobra));
+    g.alto = g.caja.clientHeight;
+  }
+}
+
+/** Alto libre bajo el gráfico, si una tarjeta fija de su misma fila (una tabla) la estira. Entre dos gráficos que se
+ *  llenan no se mide: uno sostendría al otro y la fila ya no volvería a encogerse. */
+function sobraAbajo(g: Grafico, svg: SVGSVGElement): number {
+  const tarjeta = g.caja.closest<HTMLElement>('.t1-card');
+  const fila = tarjeta?.parentElement;
+  if (!tarjeta || !fila) return 0;
+  const conFija = [...fila.children].some(t => t !== tarjeta && t instanceof HTMLElement && t.offsetTop === tarjeta.offsetTop && !t.querySelector('.t1-llena'));
+  return conFija ? Math.floor(g.caja.getBoundingClientRect().bottom - svg.getBoundingClientRect().bottom) : 0;
 }
 
 function ponerCategorias(g: Grafico, categorias: Categoria[], subtitulo?: string, animar = true) {
@@ -581,7 +605,11 @@ for (const g of Object.values(graficos)) {
   let cuadro = 0;
   new ResizeObserver(() => {
     cancelAnimationFrame(cuadro);
-    cuadro = requestAnimationFrame(() => { if (Math.floor(g.caja.clientWidth) !== g.ancho) dibujar(g, false); });
+    cuadro = requestAnimationFrame(() => {
+      // Los que llenan su tarjeta también se redibujan si la fila cambió de alto (p. ej. otra página de la tabla).
+      const altoCambio = g.caja.classList.contains('t1-llena') && !!g.caja.querySelector(':scope > svg') && Math.abs(g.caja.clientHeight - g.alto) > 2;
+      if (Math.floor(g.caja.clientWidth) !== g.ancho || altoCambio) dibujar(g, false);
+    });
   }).observe(g.caja);
 }
 for (const boton of document.querySelectorAll<HTMLButtonElement>('.t1-ver-tabla')) {
@@ -717,6 +745,8 @@ function pintarTablaDia(r: ResultadoWip) {
   const ir = (pagina: number, accion: string) => {
     paginaDia = pagina;
     pintarTablaDia(r);
+    // La última página puede tener menos días: el gráfico por CD de al lado se vuelve a medir con la tabla nueva.
+    dibujar(graficos.cd, false);
     zona.querySelector<HTMLButtonElement>(`[data-accion="${accion}"]:not(:disabled)`)?.focus({ preventScroll: true });
   };
   const pie = crear('div', 't1-paginas wip-dia-paginas');
@@ -1117,9 +1147,10 @@ function pintar() {
   resultado = r;
   pintarResumen(r);
   pintarTarjetas(r);
-  pintarGraficos(r);
+  // Tablas antes que los gráficos: el de CD mide el alto de su fila, que lo pone la tabla por día.
   pintarTablaCd(r, rSinCd);
   pintarTablaDia(r);
+  pintarGraficos(r);
   pintarMapa(r);
 }
 
@@ -1148,13 +1179,9 @@ function pintarAvisoCd() {
 
 // ---------- Carga de datos ----------
 
+/** Archivo cargado (nombre, filas, quién y cuándo), junto al botón "Subir Excel". */
 function pintarCarga() {
-  const caja = porId('wipArchivoCaja');
   const c = carga;
-  caja.classList.toggle('t1-archivo-falta', !c);
-  caja.querySelector('.t1-archivo-nombre')!.textContent = c ? c.archivo : 'Sin cargar';
-  caja.querySelector('.t1-archivo-detalle')!.textContent = c ? `${plural(c.filas, 'fila', 'filas')} · del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}` : 'Sube Data WIP.xlsx para ver la usabilidad.';
-  caja.querySelector('.t1-archivo-quien')!.textContent = c ? `Subido por ${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}` : '';
   porId('wipHeroDatos').textContent = c
     ? `Datos cargados: ${c.archivo} · ${plural(c.filas, 'fila', 'filas')} del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))} · subido por ${c.usuario_nombre || 'sin nombre'} el ${formatoMomento.format(new Date(c.creado_en))}`
     : 'Sin datos cargados';
@@ -1252,7 +1279,7 @@ function cargar(): Promise<void> {
 const entradaArchivo = porId<HTMLInputElement>('wipArchivo');
 const progreso = porId('wipProgreso');
 const progresoTexto = porId('wipProgresoTexto');
-const botonesSubir = ['wipSubir', 'wipSubirAbajo', 'wipVacioSubir'].map(id => porId<HTMLButtonElement>(id));
+const botonesSubir = ['wipSubir', 'wipVacioSubir'].map(id => porId<HTMLButtonElement>(id));
 let subiendo = false;
 
 function avance(texto: string, tipo: '' | 'ok' | 'error' = '') {

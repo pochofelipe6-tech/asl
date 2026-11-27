@@ -1108,7 +1108,7 @@ function lineaDeTiempo(info: InfoCd[], inicio: Date, esHoy: boolean, resaltar: (
   return tarjeta;
 }
 
-// ---------- Tablero de una categoría (Estibas, Cajas plásticas): encabezado con foto, cifras, gráfico, detalle e indicadores ----------
+// ---------- Tablero de una categoría (Estibas, Estibas plásticas): encabezado con foto, cifras, gráfico, detalle e indicadores ----------
 
 interface ConfigTablero {
   titulo: string;
@@ -1142,16 +1142,16 @@ const TABLEROS: Partial<Record<ClaveParte, ConfigTablero>> = {
     archivo: 'Estibas',
   },
   cajas: {
-    titulo: 'Información de cajas plásticas',
+    titulo: 'Información de estibas plásticas',
     subtitulo: 'Resumen general y distribución por referencia',
-    etiquetaTotal: 'Cajas plásticas en la regional',
-    unidad: 'cajas',
+    etiquetaTotal: 'Estibas plásticas en la regional',
+    unidad: 'estibas plásticas',
     series: SERIES.cajas,
-    graficoTitulo: 'Cajas plásticas por CD',
+    graficoTitulo: 'Estibas plásticas por CD',
     graficoDetalle: 'Unidades por referencia en cada CD',
     distribucion: 'Distribución por referencia',
     participacion: 'lider',
-    archivo: 'Cajas_plasticas',
+    archivo: 'Estibas_plasticas',
   },
 };
 const TRAZOS_TABLERO = {
@@ -1772,14 +1772,14 @@ const idsDe = (i: number) => formulario.secciones[i].preguntas.map(p => p.id);
 const CIFRAS = [
   { etiqueta: 'Estibas totales', icono: PARTES[1].icono, ids: idsDe(1) },
   { etiqueta: 'HL por verter', icono: PARTES[2].icono, ids: ['hl_pendientes_verter'] },
-  { etiqueta: 'Cajas totales', icono: PARTES[3].icono, ids: idsDe(3) },
+  { etiqueta: 'Estibas plásticas totales', icono: PARTES[3].icono, ids: idsDe(3) },
 ];
 const BLOQUES = [
   { nombre: 'Estibas', icono: PARTES[1].icono, seccion: formulario.secciones[1] },
   { nombre: 'HL bloqueados', icono: PARTES[2].icono, seccion: formulario.secciones[2] },
-  { nombre: 'Cajas plásticas', icono: PARTES[3].icono, seccion: formulario.secciones[3] },
+  { nombre: 'Estibas plásticas', icono: PARTES[3].icono, seccion: formulario.secciones[3] },
 ];
-/** Suma de unas preguntas como texto, o null si nadie llenó ninguna (las cajas son opcionales). */
+/** Suma de unas preguntas como texto, o null si nadie llenó ninguna (las estibas plásticas son opcionales). */
 const totalTexto = (r: Registro, ids: readonly string[]) => ids.some(id => typeof r.respuestas[id] === 'number') ? cifra(suma(r, ids)) : null;
 
 const sinTildes = (texto: string) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
@@ -1827,7 +1827,7 @@ function cifraFila(r: Registro, c: (typeof CIFRAS)[number]): HTMLLIElement {
   return item;
 }
 
-/** Detalle completo de un reporte: Estibas, HL bloqueados y Cajas plásticas con todos sus valores. */
+/** Detalle completo de un reporte: Estibas, HL bloqueados y Estibas plásticas con todos sus valores. */
 function detalleRespuesta(r: Registro, id: string): HTMLElement {
   const detalle = crear('div', 'rs-detalle');
   detalle.id = id;

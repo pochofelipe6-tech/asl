@@ -434,10 +434,12 @@ dt.t1-tip-total,dt.t1-tip-total+dd{padding-top:5px;border-top:1px solid var(--t1
 .t1-compacto .t1-flecha{width:30px;height:30px}
 /* Exclusiones en columna angosta: cada tipo con su botón debajo. */
 .t1-compacto .t1-exclusiones .t1-card-cabeza{align-items:flex-start}
-.t1-compacto .t1-excl{flex-direction:column;align-items:stretch;gap:8px;padding:12px}
-.t1-compacto .t1-excl .t1-boton{justify-content:center;width:100%}
+/* Más baja que las tablas de detalle de al lado: así no estira la fila ni deja hueco blanco en las demás tarjetas. */
+.t1-compacto .t1-excl-lista{gap:8px}
+.t1-compacto .t1-excl{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}
+.t1-compacto .t1-excl .t1-boton{justify-content:center;width:100%;min-height:34px}
 .t1-compacto .t1-excl-cuenta{font-size:20px}
-.t1-compacto .t1-nota{font-size:12px}
+.t1-compacto .t1-nota{margin-top:10px;font-size:12px;line-height:1.4}
 
 @media(max-width:1500px){
   .t1-fila-cd{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -209,7 +209,7 @@ function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, fo
 const graficos: Record<string, Grafico> = {
   turno: nuevoGrafico('ofeGTurno', null, 'Seguimiento por turno', 'columnas', [enPosicion(RALENTI, 1), enPosicion(CARGA, 2), enPosicion(MOVIMIENTO, 3)], PROMEDIO_HORAS, 'Turno', { dimension: 'turnos' }),
   dia: nuevoGrafico('ofeGDia', 'ofeGDiaS', '% Encendido, movimiento y carga por día', 'linea', [enPosicion(P_ENCENDIDO, 1), enPosicion(P_MOVIMIENTO, 2), enPosicion(P_CARGA, 3)], PORCENTAJE, 'Fecha'),
-  maquinaRalenti: nuevoGrafico('ofeGMaqRal', 'ofeGMaqRalS', 'Tiempo ralentí por máquina', 'barras', [enPosicion(RALENTI, 1)], SUMA_HORAS, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD', metas: [{ nombre: 'Meta 1 h', valor: 1 }] }),
+  maquinaRalenti: nuevoGrafico('ofeGMaqRal', 'ofeGMaqRalS', 'Tiempo ralentí por máquina', 'barras', [enPosicion(RALENTI, 1)], SUMA_HORAS, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD' }),
   maquinaOfe: nuevoGrafico('ofeGMaqOfe', 'ofeGMaqOfeS', '% OFE por máquina', 'barras', [enPosicion(OFE, 1)], PORCENTAJE, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD' }),
   gerencia: nuevoGrafico('ofeGGer', 'ofeGGerS', 'Tiempo ralentí por gerencia', 'columnas', [enPosicion(RALENTI, 1)], SUMA_HORAS, 'Gerencia', { igualarA: porId('ofeTCd') }),
 };
@@ -1274,15 +1274,11 @@ function recalcular(espera = 140) {
 
 // ---------- Carga de datos ----------
 
+/** Archivo cargado (nombre, filas, fechas, quién y cuándo), junto al botón "Subir Excel". */
 function pintarCarga() {
   const c = carga;
-  const caja = porId('ofeArchivo');
-  caja.classList.toggle('t1-archivo-falta', !c);
   const rango = c ? `del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}` : '';
   const quien = c ? `${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}` : '';
-  caja.querySelector('.t1-archivo-nombre')!.textContent = c ? c.archivo : 'Sin cargar';
-  caja.querySelector('.t1-archivo-detalle')!.textContent = c ? `${plural(c.filas, 'fila', 'filas')} · ${rango}` : 'Sube Data FMS.xlsx para ver el uso de los montacargas.';
-  caja.querySelector('.t1-archivo-quien')!.textContent = c ? `Subido por ${quien}` : '';
   const fuente = porId('ofeHeroDatos');
   if (!c) { fuente.textContent = 'Sin datos cargados'; return; }
   fuente.replaceChildren(crear('strong', undefined, 'Datos cargados: '), `${c.archivo} · ${plural(c.filas, 'fila', 'filas')} · ${rango} · subido por ${quien}`);
@@ -1447,7 +1443,7 @@ function ponerDentro() {
 const entradaArchivo = porId<HTMLInputElement>('ofeArchivoEntrada');
 const progreso = porId('ofeProgreso');
 const progresoTexto = porId('ofeProgresoTexto');
-const botonesSubir = ['ofeSubir', 'ofeSubirAbajo', 'ofeVacioSubir'].map(id => porId<HTMLButtonElement>(id));
+const botonesSubir = ['ofeSubir', 'ofeVacioSubir'].map(id => porId<HTMLButtonElement>(id));
 let subiendo = false;
 
 function avance(texto: string, tipo: '' | 'ok' | 'error' = '') {

@@ -1,4 +1,4 @@
-// Inventario activos: suma de los conteos del formulario "Control de inventarios" (estibas, cajas plásticas,
+// Inventario activos: suma de los conteos del formulario "Control de inventarios" (estibas, estibas plásticas,
 // isotanques y HL pendientes por verter), igual que la página "Inventario activos" del Power BI.
 // Regla para no inflar las cifras: si un CD envía varios conteos el MISMO día, cuenta solo el último de ese día
 // (a veces se corrige reenviando el formulario). Los conteos de días distintos sí se suman, como en el Power BI.
@@ -21,11 +21,11 @@ export const ESTIBAS: readonly Referencia[] = [
   { clave: 'estibas_c', nombre: 'Estibas tipo C', corto: 'Tipo C' },
 ];
 export const CAJAS: readonly Referencia[] = [
-  { clave: 'cajas_250cc_x38', nombre: 'Cajas plásticas 250', corto: '250' },
-  { clave: 'cajas_330cc_x30', nombre: 'Cajas plásticas 330', corto: '330' },
-  { clave: 'cajas_750cc_x16', nombre: 'Cajas plásticas 750', corto: '750' },
-  { clave: 'cajas_1000cc_x13', nombre: 'Cajas plásticas 1000', corto: '1000' },
-  { clave: 'cajas_225cc_x38', nombre: 'Cajas plásticas 225', corto: '225' },
+  { clave: 'cajas_250cc_x38', nombre: 'Estibas plásticas 250', corto: '250' },
+  { clave: 'cajas_330cc_x30', nombre: 'Estibas plásticas 330', corto: '330' },
+  { clave: 'cajas_750cc_x16', nombre: 'Estibas plásticas 750', corto: '750' },
+  { clave: 'cajas_1000cc_x13', nombre: 'Estibas plásticas 1000', corto: '1000' },
+  { clave: 'cajas_225cc_x38', nombre: 'Estibas plásticas 225', corto: '225' },
 ];
 export const ISOTANQUES: readonly Referencia[] = [
   { clave: 'isotanques_llenos', nombre: 'Isotanques llenos', corto: 'Llenos' },

@@ -475,7 +475,7 @@ var FORMULARIOS = [
   {
     id: "control-inventarios",
     titulo: "Control de inventarios - Regional Norte",
-    descripcion: "Seguimiento al inventario de estibas, isotanques y cajas pl\xE1sticas",
+    descripcion: "Seguimiento al inventario de estibas, isotanques y estibas pl\xE1sticas",
     secciones: [
       {
         titulo: "Centro De Distribuci\xF3n",
@@ -506,15 +506,15 @@ var FORMULARIOS = [
         ]
       },
       {
-        titulo: "Informaci\xF3n de cajas pl\xE1sticas",
+        titulo: "Informaci\xF3n de estibas pl\xE1sticas",
         descripcion: EN_UNIDADES,
         sumable: true,
         preguntas: [
-          { id: "cajas_330cc_x30", titulo: "Cantidad de cajas pl\xE1sticas 330cc x 30", corto: "330cc x 30", ...UNIDADES },
-          { id: "cajas_750cc_x16", titulo: "Cantidad de cajas pl\xE1sticas 750cc x 16", corto: "750cc x 16", ...UNIDADES },
-          { id: "cajas_1000cc_x13", titulo: "Cantidad de cajas pl\xE1sticas 1000cc x 13", corto: "1000cc x 13", ...UNIDADES },
-          { id: "cajas_250cc_x38", titulo: "Cantidad de cajas pl\xE1sticas 250cc x 38", corto: "250cc x 38", ...UNIDADES },
-          { id: "cajas_225cc_x38", titulo: "Cantidad de cajas pl\xE1sticas 225cc x 38", corto: "225cc x 38", ...UNIDADES }
+          { id: "cajas_330cc_x30", titulo: "Cantidad de estibas pl\xE1sticas 330cc x 30", corto: "330cc x 30", ...UNIDADES },
+          { id: "cajas_750cc_x16", titulo: "Cantidad de estibas pl\xE1sticas 750cc x 16", corto: "750cc x 16", ...UNIDADES },
+          { id: "cajas_1000cc_x13", titulo: "Cantidad de estibas pl\xE1sticas 1000cc x 13", corto: "1000cc x 13", ...UNIDADES },
+          { id: "cajas_250cc_x38", titulo: "Cantidad de estibas pl\xE1sticas 250cc x 38", corto: "250cc x 38", ...UNIDADES },
+          { id: "cajas_225cc_x38", titulo: "Cantidad de estibas pl\xE1sticas 225cc x 38", corto: "225cc x 38", ...UNIDADES }
         ]
       }
     ]

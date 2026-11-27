@@ -43,7 +43,6 @@
      % por día | % OFE por máquina; horas por CD | ralentí por gerencia. -->
 <div id="ofeTablero" class="t1-tablero ofe-compacto">
 <h2 class="cc-oculto">Uso de los montacargas: gráficos y tablas</h2>
-<p class="t1-pista">Toca un turno o la barra de una máquina para filtrar toda la página; vuelve a tocarla para quitar el filtro.</p>
 <div class="t1-graficos ofe-fila-1">
 <article class="t1-card t1-anima" style="--i:5" aria-labelledby="ofeGTurnoT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><h3 id="ofeGTurnoT">Seguimiento por turno (h)</h3><p id="ofeGTurnoS">Promedio de horas de cada montacargas por turno</p></div><button type="button" class="t1-ver-tabla" data-grafico="turno" aria-pressed="false">Ver tabla</button></div><div id="ofeGTurno" class="t1-grafico"></div></article>
 <article class="t1-card t1-anima" style="--i:6" aria-labelledby="ofeGComposicionT"><div class="t1-card-cabeza"><span class="t1-circulo" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5H12z"/><path d="M15 3.9A8.5 8.5 0 0 1 20.1 9H15z"/></svg></span><div><h3 id="ofeGComposicionT">Composición de horas</h3><p id="ofeGComposicionS"></p></div></div><div id="ofeGComposicion" class="t1-grafico ofe-dona-zona"></div></article>
@@ -59,14 +58,7 @@
 </div>
 </div>
 
-<!-- Carga de datos: Data FMS.xlsx (hoja "Data FMS"). -->
-<section id="ofeDatos" class="t1-seccion" aria-labelledby="ofeDatosTitulo">
-<h2 id="ofeDatosTitulo" class="t1-seccion-titulo"><span>Datos cargados</span></h2>
-<div class="t1-card t1-datos ofe-datos t1-anima" style="--i:12">
-<div class="t1-archivo" id="ofeArchivo"><span class="t1-archivo-icono" aria-hidden="true"><svg class="t1-ico" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 12.5l6 5M15 12.5l-6 5"/></svg></span><div><p class="t1-archivo-tipo">Data FMS · uso de montacargas</p><strong class="t1-archivo-nombre">Sin cargar</strong><p class="t1-archivo-detalle"></p><p class="t1-archivo-quien"></p></div></div>
-<div class="t1-datos-subir"><button type="button" id="ofeSubirAbajo" class="t1-boton"><svg class="t1-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19.5h14"/></svg>Subir Excel</button><p>Acepta Data FMS.xlsx (hoja «Data FMS»). Cada archivo reemplaza los datos anteriores.</p></div>
-</div>
-</section>
+<!-- Carga de datos (botón "Subir Excel" de arriba): Data FMS.xlsx (hoja "Data FMS"). -->
 <input id="ofeArchivoEntrada" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 </main>
 <!-- Lista de montacargas: el CD y la placa de cada registro de Data FMS salen de aquí (por el chasis). Se agregan y corrigen sin salir de la página. -->
