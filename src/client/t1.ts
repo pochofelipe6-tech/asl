@@ -140,6 +140,9 @@ addEventListener('scroll', ocultarTip, { passive: true });
 interface Serie { nombre: string; clase: string }
 const ATENCION: Serie = { nombre: 'Atención', clase: 't1-c-at' };
 const ESPERA: Serie = { nombre: 'Espera', clase: 't1-c-es' };
+/** En las tendencias van los colores del Power BI: atención azul claro y espera azul oscuro. */
+const ATENCION_TENDENCIA: Serie = { ...ATENCION, clase: 't1-c-at t1-pbi' };
+const ESPERA_TENDENCIA: Serie = { ...ESPERA, clase: 't1-c-es t1-pbi' };
 interface Categoria {
   clave: string; etiqueta: string; titulo: string; valores: (number | null)[];
   /** Posición en el eje (días de Excel) para las líneas por fecha. */
@@ -153,24 +156,82 @@ interface Grafico {
   /** Si tiene dimensión, un clic en una barra filtra la página por ella. */
   dimension: Dimension | null; seleccion: Set<string>;
   vacio: string; enTabla: boolean; ancho: number; foco: number;
+  /** Líneas de meta (rojas punteadas) que cruzan el gráfico de líneas. */
+  metas: Meta[];
+  /** Colores por valor (semáforo): cada barra toma el color del primer tramo cuyo tope no alcanza. */
+  semaforo: Tramo[];
 }
+interface Meta { nombre: string; valor: number }
+/** Un tramo de un semáforo: aplica a los valores menores que "hasta" (o hasta ese valor inclusive, si "incluido"). */
+interface Tramo { hasta: number; incluido?: boolean; clase: string; color: string; nombre: string }
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], series: Serie[], encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, series, apilado: false, categorias: [], encabezado, totalNombre: 'Total',
-    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, ...extra,
+    dimension: null, seleccion: new Set(), vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, metas: [], semaforo: [], ...extra,
   };
 }
+/** Metas de las tendencias diaria y mensual (horas). */
+const METAS_T1: Meta[] = [{ nombre: 'Meta BU', valor: 1.66 }, { nombre: 'Meta Liga', valor: 0.5 }];
+// Semáforos: los mismos rangos y colores del formato condicional del Power BI "Seguimiento ATCT" (horas).
+// Se compara el valor exacto, no la cifra redondeada que se ve.
+const VERDE = { clase: 't1-sem-verde', color: '#49F84C' };
+const AMARILLO = { clase: 't1-sem-amarillo', color: '#EEF74F' };
+const ROJO = { clase: 't1-sem-rojo', color: '#F83F3F' };
+/** Atención por CD y por gerencia. */
+const SEMAFORO_ATENCION: Tramo[] = [
+  { hasta: 1.42, ...VERDE, nombre: 'Menos de 1,42' },
+  { hasta: 1.67, ...AMARILLO, nombre: '1,42 a 1,66' },
+  { hasta: Infinity, ...ROJO, nombre: '1,67 o más' },
+];
+/** Espera por CD. */
+const SEMAFORO_ESPERA: Tramo[] = [
+  { hasta: 0.5, incluido: true, ...VERDE, nombre: 'Hasta 0,5' },
+  { hasta: Infinity, ...ROJO, nombre: 'Más de 0,5' },
+];
+/** Atención por OL. */
+const SEMAFORO_OL: Tramo[] = [
+  { hasta: 1.25, ...VERDE, nombre: 'Menos de 1,25' },
+  { hasta: Infinity, ...ROJO, nombre: '1,25 o más' },
+];
+/** Tendencia semanal de atención. */
+const SEMAFORO_SEMANA: Tramo[] = [
+  { hasta: 1.66, incluido: true, ...VERDE, nombre: 'Hasta 1,66' },
+  { hasta: Infinity, ...ROJO, nombre: 'Más de 1,66' },
+];
+/** Mapas de calor (celdas) y columna de horas de las tablas de detalle: tonos propios de cada tabla en el Power BI. */
+const MAPA_ATENCION: Tramo[] = [
+  { hasta: 1.41, incluido: true, ...VERDE, color: '#88F661', nombre: 'Hasta 1,41' },
+  { hasta: 1.66, incluido: true, ...AMARILLO, color: '#F7F975', nombre: 'Más de 1,41 a 1,66' },
+  { hasta: Infinity, ...ROJO, color: '#F66969', nombre: 'Más de 1,66' },
+];
+const MAPA_ESPERA: Tramo[] = [
+  { hasta: 0.5, ...VERDE, color: '#88F661', nombre: 'Menos de 0,5' },
+  { hasta: Infinity, ...ROJO, color: '#F66969', nombre: '0,5 o más' },
+];
+const DETALLE_ATENCION: Tramo[] = [
+  { hasta: 1.42, ...VERDE, color: '#9DF84E', nombre: 'Menos de 1,42' },
+  { hasta: 1.67, ...AMARILLO, color: '#E8D166', nombre: '1,42 a 1,66' },
+  { hasta: Infinity, ...ROJO, color: '#F63131', nombre: '1,67 o más' },
+];
+const DETALLE_ESPERA: Tramo[] = [
+  { hasta: 0.56, ...VERDE, color: '#5BFA60', nombre: 'Menos de 0,56' },
+  { hasta: Infinity, ...ROJO, color: '#F24141', nombre: '0,56 o más' },
+];
+const tramoEn = (tramos: Tramo[], v: number) => tramos.find(t => (t.incluido ? v <= t.hasta : v < t.hasta)) ?? tramos[tramos.length - 1];
+/** Clase de color de una barra o columna: la del semáforo si el gráfico lo tiene (una sola serie), o la de su serie. */
+const claseDe = (g: Grafico, k: number, v: number | null) =>
+  (g.semaforo.length && !g.apilado && g.series.length === 1 && v !== null ? tramoEn(g.semaforo, v).clase : g.series[k].clase);
 const graficos: Record<string, Grafico> = {
-  diaria: nuevoGrafico('t1GDiaria', 't1GDiariaS', 'Tendencia diaria de atención y espera', 'linea', [ATENCION, ESPERA], 'Fecha'),
-  mensual: nuevoGrafico('t1GMensual', null, 'Tendencia mensual de atención y espera', 'linea', [ATENCION, ESPERA], 'Mes'),
-  cdAtencion: nuevoGrafico('t1GCdAt', 't1GCdAtS', 'Tiempo de atención por CD', 'barras', [ATENCION], 'CD', { dimension: 'cds' }),
-  cdEspera: nuevoGrafico('t1GCdEs', 't1GCdEsS', 'Tiempo de espera por CD', 'barras', [ESPERA], 'CD', { dimension: 'cds' }),
+  diaria: nuevoGrafico('t1GDiaria', 't1GDiariaS', 'Tendencia diaria de atención y espera', 'linea', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Fecha', { metas: METAS_T1 }),
+  mensual: nuevoGrafico('t1GMensual', null, 'Tendencia mensual de atención y espera', 'linea', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Mes', { metas: METAS_T1 }),
+  cdAtencion: nuevoGrafico('t1GCdAt', 't1GCdAtS', 'Tiempo de atención por CD', 'barras', [ATENCION], 'CD', { dimension: 'cds', semaforo: SEMAFORO_ATENCION }),
+  cdEspera: nuevoGrafico('t1GCdEs', 't1GCdEsS', 'Tiempo de espera por CD', 'barras', [ESPERA], 'CD', { dimension: 'cds', semaforo: SEMAFORO_ESPERA }),
   cdFtct: nuevoGrafico('t1GCdFt', 't1GCdFtS', 'FTCT por CD', 'barras', [ATENCION, ESPERA], 'CD', { dimension: 'cds', apilado: true, totalNombre: 'FTCT' }),
-  diaSemana: nuevoGrafico('t1GDiaSem', 't1GDiaSemS', 'Atención y espera promedio por día de semana', 'columnas', [ATENCION, ESPERA], 'Día'),
-  turno: nuevoGrafico('t1GTurno', null, 'Atención y espera promedio por turno', 'columnas', [ATENCION, ESPERA], 'Turno', { dimension: 'turnos' }),
-  gerencia: nuevoGrafico('t1GGer', 't1GGerS', 'Tiempo de atención por gerencia', 'barras', [ATENCION], 'Gerencia', { dimension: 'gerencias' }),
-  ol: nuevoGrafico('t1GOl', null, 'Tiempo de atención por OL', 'columnas', [ATENCION], 'OL'),
-  semana: nuevoGrafico('t1GSem', 't1GSemS', 'Tendencia semanal de atención', 'columnas', [ATENCION], 'Semana'),
+  diaSemana: nuevoGrafico('t1GDiaSem', 't1GDiaSemS', 'Atención y espera promedio por día de semana', 'columnas', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Día', { metas: METAS_T1 }),
+  turno: nuevoGrafico('t1GTurno', null, 'Atención y espera promedio por turno', 'columnas', [ATENCION_TENDENCIA, ESPERA_TENDENCIA], 'Turno', { dimension: 'turnos', metas: METAS_T1 }),
+  gerencia: nuevoGrafico('t1GGer', 't1GGerS', 'Tiempo de atención por gerencia', 'barras', [ATENCION], 'Gerencia', { dimension: 'gerencias', semaforo: SEMAFORO_ATENCION }),
+  ol: nuevoGrafico('t1GOl', null, 'Tiempo de atención por OL', 'columnas', [ATENCION], 'OL', { semaforo: SEMAFORO_OL }),
+  semana: nuevoGrafico('t1GSem', 't1GSemS', 'Tendencia semanal de atención', 'columnas', [ATENCION], 'Semana', { semaforo: SEMAFORO_SEMANA, metas: [METAS_T1[0]] }),
 };
 
 /** Marcas "redondas" del eje de horas (0; 0,5; 1; 1,5…): unas 4 o 5. */
@@ -192,7 +253,10 @@ const totalDe = (g: Grafico, c: Categoria) => (g.apilado ? (c.total ?? null) : c
 const sinSerie = (g: Grafico, k: number) => g.categorias.every(c => c.valores[k] === null);
 
 function filasTip(g: Grafico, c: Categoria): FilaTip[] {
-  const filas: FilaTip[] = g.series.map((s, k) => ({ nombre: s.nombre, valor: horasLargo(c.valores[k]), clase: s.clase, fuerte: g.series.length === 1 }));
+  const filas: FilaTip[] = g.series.map((s, k) => {
+    const v = c.valores[k];
+    return { nombre: s.nombre, valor: horasLargo(v), clase: claseDe(g, k, v), fuerte: g.series.length === 1 };
+  });
   if (g.apilado) filas.push({ nombre: g.totalNombre, valor: horasLargo(c.total ?? null), fuerte: true });
   return filas;
 }
@@ -207,13 +271,27 @@ function pistaDe(g: Grafico, c: Categoria): string | undefined {
 }
 
 function leyendaDe(g: Grafico): HTMLElement | null {
-  if (g.series.length < 2) return null;
+  const conSemaforo = g.semaforo.length > 0 && g.series.length === 1;
+  if (!conSemaforo && g.series.length < 2 && !g.metas.length) return null;
   const lista = crear('ul', 't1-leyenda');
   lista.setAttribute('aria-label', 'Convenciones');
-  for (const [k, s] of g.series.entries()) {
+  if (conSemaforo) {
+    for (const t of g.semaforo) {
+      const li = crear('li');
+      li.append(crear('i', `t1-muestra ${t.clase}`), t.nombre);
+      lista.append(li);
+    }
+  } else if (g.series.length > 1) {
+    for (const [k, s] of g.series.entries()) {
+      const li = crear('li');
+      li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
+      if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
+      lista.append(li);
+    }
+  }
+  for (const m of g.metas) {
     const li = crear('li');
-    li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
-    if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
+    li.append(crear('i', 't1-muestra t1-muestra-meta'), `${m.nombre} (${cifraEje(m.valor)})`);
     lista.append(li);
   }
   return lista;
@@ -311,9 +389,9 @@ function dibujarBarras(g: Grafico, ancho: number): SVGSVGElement {
       const w = (v / tope) * largo;
       if (k === ultima) {
         const r = Math.min(4, GROSOR / 2, w);
-        barra.append(nodo('path', { class: `t1-parte ${g.series[k].clase}`, d: `M${x} ${top}H${x + w - r}a${r} ${r} 0 0 1 ${r} ${r}V${top + GROSOR - r}a${r} ${r} 0 0 1 ${-r} ${r}H${x}z` }));
+        barra.append(nodo('path', { class: `t1-parte ${claseDe(g, k, partes[k])}`, d: `M${x} ${top}H${x + w - r}a${r} ${r} 0 0 1 ${r} ${r}V${top + GROSOR - r}a${r} ${r} 0 0 1 ${-r} ${r}H${x}z` }));
       } else if (w > 2) {
-        barra.append(nodo('rect', { class: `t1-parte ${g.series[k].clase}`, x, y: top, width: w - 2, height: GROSOR }));
+        barra.append(nodo('rect', { class: `t1-parte ${claseDe(g, k, partes[k])}`, x, y: top, width: w - 2, height: GROSOR }));
       }
       x += w;
     });
@@ -346,11 +424,14 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
   const activas = g.series.map((_, s) => s).filter(s => !sinSerie(g, s));
   const k = Math.max(1, activas.length);
   const maximo = Math.max(...g.categorias.flatMap(c => c.valores).map(v => v ?? 0));
-  const marcas = marcasEje(maximo * 1.05);
+  // El eje llega al menos hasta la meta más alta, para que siempre se vea.
+  const marcas = marcasEje(Math.max(maximo, ...g.metas.map(m => m.valor)) * 1.05);
   const tope = marcas[marcas.length - 1];
   const etiquetasEje = marcas.map(cifraEje);
   const IZQUIERDA = Math.round(Math.max(...etiquetasEje.map(t => anchoTexto(t))) + 14);
-  const DERECHA = 8;
+  // Con metas, a la derecha queda espacio para su nombre (así no tapa ninguna columna).
+  const nombresMeta = g.metas.map(m => m.nombre.toUpperCase());
+  const DERECHA = nombresMeta.length ? Math.round(Math.max(...nombresMeta.map(t => anchoTexto(t, 11))) + 12) : 8;
   const ARRIBA = 22;
   const largo = Math.max(60, ancho - IZQUIERDA - DERECHA);
   const hueco = largo / n;
@@ -364,7 +445,8 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
   const saltar = Math.max(1, Math.ceil((masAncha + 10) / hueco));
   const filtra = !!g.dimension;
   const svg = nodo('svg', { width: ancho, height: altoTotal, viewBox: `0 0 ${ancho} ${altoTotal}`, class: `t1-svg${filtra ? ' t1-filtra' : ''}${g.seleccion.size ? ' t1-con-seleccion' : ''}`, tabindex: 0, role: 'img' });
-  svg.setAttribute('aria-label', etiquetaAccesible(g, 'grupo', `Usa las flechas para leer cada uno${filtra ? ' y Enter para filtrar la página' : ''}.`));
+  const textoMetas = g.metas.map(m => ` ${m.nombre}: ${cifraEje(m.valor)} horas.`).join('');
+  svg.setAttribute('aria-label', etiquetaAccesible(g, 'grupo', `Usa las flechas para leer cada uno${filtra ? ' y Enter para filtrar la página' : ''}.${textoMetas}`));
   marcas.forEach((m, i) => {
     const y = yDe(m);
     svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA, y1: y, y2: y, class: m ? 't1-guia' : 't1-base' }));
@@ -388,7 +470,7 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
       if (alto > 0.5) {
         const r = Math.min(4, grosor / 2, alto);
         const barra = nodo('g', { class: 't1-barra-v' });
-        barra.append(nodo('path', { class: `t1-parte ${g.series[s].clase}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
+        barra.append(nodo('path', { class: `t1-parte ${claseDe(g, s, v)}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
         grupo.append(barra);
       }
       if (caben) grupo.append(nodo('text', { x: x + grosor / 2, y: yDe(v) - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col' }, horas(v)));
@@ -410,77 +492,133 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
     columnas.push(grupo);
     svg.append(grupo);
   });
+  // Metas: línea roja punteada por encima de las columnas (como en el Power BI), con el nombre a la derecha.
+  g.metas.forEach((m, k) => {
+    const y = yDe(m.valor);
+    svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + 4, y1: y, y2: y, class: 't1-meta' }));
+    svg.append(nodo('text', { x: ancho - DERECHA + 8, y, 'dominant-baseline': 'central', class: 't1-meta-texto' }, nombresMeta[k]));
+  });
   conTeclado(g, svg, n, i => (columnas[i] as SVGGElement & { mostrar?: () => void }).mostrar?.(), () => { svg.classList.remove('t1-enfoque'); columnas.forEach(col => col.classList.remove('t1-activa')); }, true);
   return svg;
 }
 
-/** Líneas de 2 px con un punto por día o mes; una línea vertical sigue al puntero y la ventanita lee las dos series. */
+/** Curva suave que pasa exactamente por cada punto sin pasarse de ellos (curva monótona), como la línea suavizada del Power BI. */
+function curvaSuave(p: [number, number][]): string {
+  const n = p.length;
+  const f = (v: number) => v.toFixed(1);
+  if (n === 1) return `M${f(p[0][0])} ${f(p[0][1])}`;
+  const s = p.slice(0, -1).map(([x, y], i) => (p[i + 1][1] - y) / (p[i + 1][0] - x || 1));
+  const m: number[] = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++) {
+    const h0 = p[i][0] - p[i - 1][0];
+    const h1 = p[i + 1][0] - p[i][0];
+    const media = (s[i - 1] * h1 + s[i] * h0) / (h0 + h1 || 1);
+    m[i] = (Math.sign(s[i - 1]) + Math.sign(s[i])) * Math.min(Math.abs(s[i - 1]), Math.abs(s[i]), 0.5 * Math.abs(media)) || 0;
+  }
+  m[0] = n > 2 ? (3 * s[0] - m[1]) / 2 : s[0];
+  m[n - 1] = n > 2 ? (3 * s[n - 2] - m[n - 2]) / 2 : s[0];
+  let d = `M${f(p[0][0])} ${f(p[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const dx = (p[i + 1][0] - p[i][0]) / 3;
+    d += `C${f(p[i][0] + dx)} ${f(p[i][1] + dx * m[i])} ${f(p[i + 1][0] - dx)} ${f(p[i + 1][1] - dx * m[i + 1])} ${f(p[i + 1][0])} ${f(p[i + 1][1])}`;
+  }
+  return d;
+}
+
+/** Tendencias como en el Power BI: líneas suavizadas, escala ajustada a los datos y a las metas (no arranca en cero),
+ *  la cifra de cada punto y las metas de lado a lado. Una línea vertical sigue al puntero y la ventanita lee las dos series. */
 function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
   const n = g.categorias.length;
   const valores = g.categorias.flatMap(c => c.valores).filter((v): v is number => v !== null);
-  const marcas = marcasEje(Math.max(...valores) * 1.05);
-  const tope = marcas[marcas.length - 1];
-  const etiquetasEje = marcas.map(cifraEje);
-  const IZQUIERDA = Math.round(Math.max(...etiquetasEje.map(t => anchoTexto(t))) + 14);
-  const DERECHA = 42;
-  const ARRIBA = 14;
-  const ALTO = Math.round(Math.min(200, Math.max(150, ancho * 0.2)));
-  const ABAJO = 30;
-  const base = ARRIBA + ALTO;
-  const altoTotal = base + ABAJO;
+  const todos = [...valores, ...g.metas.map(m => m.valor)];
+  let minimo = Math.min(...todos);
+  let maximo = Math.max(...todos);
+  if (maximo - minimo < 0.2) { const medio = (maximo + minimo) / 2; minimo = medio - 0.1; maximo = medio + 0.1; }
+  const nombresMeta = g.metas.map(m => m.nombre.toUpperCase());
+  // A la izquierda va solo el nombre de cada meta (el Power BI no muestra el eje de horas: cada punto lleva su cifra).
+  const IZQUIERDA = Math.round(nombresMeta.length ? Math.max(...nombresMeta.map(t => anchoTexto(t, 11))) + 10 : 14);
+  const DERECHA = 22;
+  const ARRIBA = 24; // cabe la cifra del punto más alto
+  const ALTO = Math.round(Math.min(290, Math.max(210, ancho * 0.29)));
+  const base = ARRIBA + ALTO + 22; // y la del punto más bajo
+  const altoTotal = base + 24;
   const largo = Math.max(60, ancho - IZQUIERDA - DERECHA);
-  const yDe = (v: number) => base - (v / tope) * ALTO;
+  const yDe = (v: number) => ARRIBA + ((maximo - v) / (maximo - minimo)) * ALTO;
   const continuo = n > 1 && g.categorias.every(c => c.x !== undefined);
   const x0 = g.categorias[0].x ?? 0;
   const x1 = g.categorias[n - 1].x ?? 0;
-  const xDe = (i: number) => (continuo ? IZQUIERDA + 10 + ((g.categorias[i].x! - x0) / (x1 - x0)) * (largo - 20) : IZQUIERDA + (largo / n) * (i + 0.5));
+  const xDe = (i: number) => (continuo ? IZQUIERDA + 12 + ((g.categorias[i].x! - x0) / (x1 - x0)) * (largo - 24) : IZQUIERDA + (largo / n) * (i + 0.5));
   const svg = nodo('svg', { width: ancho, height: altoTotal, viewBox: `0 0 ${ancho} ${altoTotal}`, class: 't1-svg t1-svg-linea', tabindex: 0, role: 'img' });
-  svg.setAttribute('aria-label', etiquetaAccesible(g, 'punto', 'Usa las flechas izquierda y derecha para leer cada uno.'));
-  marcas.forEach((m, i) => {
-    const y = yDe(m);
-    svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + 8, y1: y, y2: y, class: m ? 't1-guia' : 't1-base' }));
-    svg.append(nodo('text', { x: IZQUIERDA - 8, y, 'text-anchor': 'end', 'dominant-baseline': 'central', class: 't1-eje' }, etiquetasEje[i]));
+  const textoMetas = g.metas.map(m => ` ${m.nombre}: ${cifraEje(m.valor)} horas.`).join('');
+  svg.setAttribute('aria-label', etiquetaAccesible(g, 'punto', `Usa las flechas izquierda y derecha para leer cada uno.${textoMetas}`));
+  // Lugares ya ocupados (puntos y textos), para que ninguna cifra tape a otra.
+  const ocupados: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  const choca = (r: (typeof ocupados)[number]) => ocupados.some(o => r.x0 < o.x1 && o.x0 < r.x1 && r.y0 < o.y1 && o.y0 < r.y1);
+  // Metas: línea roja punteada de lado a lado, con el nombre encima a la izquierda.
+  const textosMeta = g.metas.map((m, k) => {
+    const y = yDe(m.valor);
+    svg.append(nodo('line', { x1: 0, x2: ancho, y1: y, y2: y, class: 't1-meta' }));
+    ocupados.push({ x0: 0, x1: anchoTexto(nombresMeta[k], 11) + 4, y0: y - 16, y1: y - 2 });
+    return nodo('text', { x: 2, y: y - 5, class: 't1-meta-texto' }, nombresMeta[k]);
   });
   const caben = Math.max(2, Math.floor(largo / (Math.max(...g.categorias.map(c => anchoTexto(c.etiqueta))) + 16)));
   const saltar = Math.max(1, Math.ceil(n / caben));
   g.categorias.forEach((c, i) => {
-    if (i % saltar === 0) svg.append(nodo('text', { x: xDe(i), y: base + 18, 'text-anchor': 'middle', class: 't1-eje t1-eje-x' }, c.etiqueta));
+    if (i % saltar === 0) svg.append(nodo('text', { x: xDe(i), y: base + 16, 'text-anchor': 'middle', class: 't1-eje t1-eje-x' }, c.etiqueta));
   });
   const conPuntos = n <= 45;
-  const cifrasFinales: number[] = [];
   g.series.forEach((s, k) => {
-    let d = '';
-    let abierto = false;
-    const aislados: number[] = [];
+    // Tramos seguidos (un día sin dato corta la línea).
+    const tramos: [number, number][][] = [];
+    let tramo: [number, number][] | null = null;
     g.categorias.forEach((c, i) => {
       const v = c.valores[k];
-      if (v === null) { abierto = false; return; }
-      const solo = (i === 0 || g.categorias[i - 1].valores[k] === null) && (i === n - 1 || g.categorias[i + 1].valores[k] === null);
-      if (solo) aislados.push(i);
-      d += `${abierto ? 'L' : 'M'}${xDe(i).toFixed(1)} ${yDe(v).toFixed(1)}`;
-      abierto = true;
+      if (v === null) { tramo = null; return; }
+      if (!tramo) { tramo = []; tramos.push(tramo); }
+      tramo.push([xDe(i), yDe(v)]);
     });
-    if (!d) return;
-    svg.append(nodo('path', { d, class: `t1-linea ${s.clase}`, pathLength: 1 }));
+    if (!tramos.length) return;
+    svg.append(nodo('path', { d: tramos.map(curvaSuave).join(''), class: `t1-linea ${s.clase}`, pathLength: 1 }));
     const puntos = nodo('g', { class: 't1-puntos' });
-    g.categorias.forEach((c, i) => {
-      const v = c.valores[k];
-      if (v === null || (!conPuntos && !aislados.includes(i))) return;
-      puntos.append(nodo('circle', { cx: xDe(i), cy: yDe(v), r: 4, class: `t1-punto ${s.clase}` }));
-    });
-    svg.append(puntos);
-    // Cifra al final de cada línea (si no choca con la otra).
-    let ultimo = -1;
-    for (let i = n - 1; i >= 0; i--) if (g.categorias[i].valores[k] !== null) { ultimo = i; break; }
-    const y = yDe(g.categorias[ultimo].valores[k]!);
-    if (!cifrasFinales.some(u => Math.abs(u - y) < 15)) {
-      cifrasFinales.push(y);
-      svg.append(nodo('text', { x: xDe(ultimo) + 8, y, 'dominant-baseline': 'central', class: 't1-cifra t1-cifra-final' }, horas(g.categorias[ultimo].valores[k])));
+    for (const t of tramos) {
+      for (const [x, y] of t) {
+        if (!conPuntos && t.length > 1) continue;
+        puntos.append(nodo('circle', { cx: x, cy: y, r: 4, class: `t1-punto ${s.clase}` }));
+        ocupados.push({ x0: x - 4, x1: x + 4, y0: y - 4, y1: y + 4 });
+      }
     }
+    svg.append(puntos);
   });
-  const cruz = nodo('line', { x1: 0, x2: 0, y1: ARRIBA - 4, y2: base, class: 't1-cruz', visibility: 'hidden' });
+  // Cifra de cada punto: primero los picos y los valles; arriba o abajo según la forma de la línea y la otra serie.
+  const candidatos: { i: number; v: number; realce: number; arriba: boolean }[] = [];
+  g.series.forEach((_, k) => g.categorias.forEach((c, i) => {
+    const v = c.valores[k];
+    if (v === null) return;
+    const vecinos = [g.categorias[i - 1]?.valores[k], g.categorias[i + 1]?.valores[k]].filter((w): w is number => w != null);
+    const media = vecinos.length ? vecinos.reduce((a, b) => a + b, 0) / vecinos.length : v;
+    const cercana = c.valores.find((w, j) => j !== k && w !== null && Math.abs(yDe(w) - yDe(v)) < 34);
+    const arriba = cercana != null ? v >= cercana : v >= media;
+    candidatos.push({ i, v, realce: Math.abs(v - media), arriba });
+  }));
+  candidatos.sort((a, b) => b.realce - a.realce);
+  const cifras = nodo('g', { class: 't1-cifras-puntos' });
+  for (const { i, v, arriba } of candidatos) {
+    const x = xDe(i);
+    const y = yDe(v);
+    const texto = horas(v);
+    const medio = anchoTexto(texto, 10.5) / 2 + 2;
+    for (const lado of [arriba, !arriba]) {
+      const r = { x0: x - medio, x1: x + medio, y0: lado ? y - 20 : y + 6, y1: lado ? y - 6 : y + 20 };
+      if (r.y0 < 0 || r.y1 > base + 4 || choca(r)) continue;
+      ocupados.push(r);
+      cifras.append(nodo('text', { x, y: (r.y0 + r.y1) / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central', class: 't1-cifra t1-cifra-punto', style: `--i:${i}` }, texto));
+      break;
+    }
+  }
+  svg.append(cifras, ...textosMeta);
+  const cruz = nodo('line', { x1: 0, x2: 0, y1: ARRIBA - 14, y2: base, class: 't1-cruz', visibility: 'hidden' });
   const focos = g.series.map(s => nodo('circle', { r: 5, class: `t1-punto t1-punto-foco ${s.clase}`, visibility: 'hidden' }));
-  const captura = nodo('rect', { x: IZQUIERDA, y: ARRIBA - 8, width: largo, height: ALTO + 8, class: 't1-captura' });
+  const captura = nodo('rect', { x: IZQUIERDA, y: 0, width: largo, height: base, class: 't1-captura' });
   svg.append(cruz, ...focos, captura);
   const mostrar = (i: number, cx?: number, cy?: number) => {
     const c = g.categorias[i];
@@ -550,49 +688,24 @@ for (const boton of document.querySelectorAll<HTMLButtonElement>('.t1-ver-tabla'
 
 // ---------- Mapas de calor (CD × fecha) ----------
 
-interface MapaCalor { caja: HTMLElement; subtitulo: HTMLElement; nombre: string; tipo: 'at' | 'es'; mapa: Mapa | null; inicio: number | null; ancho: number; fechasClave: string }
+interface MapaCalor { caja: HTMLElement; subtitulo: HTMLElement; nombre: string; tipo: 'at' | 'es'; tramos: Tramo[]; mapa: Mapa | null; inicio: number | null; ancho: number; fechasClave: string }
 const mapas: MapaCalor[] = [
-  { caja: porId('t1MapaAt'), subtitulo: porId('t1MapaAtS'), nombre: 'Atención promedio', tipo: 'at', mapa: null, inicio: null, ancho: 0, fechasClave: '' },
-  { caja: porId('t1MapaEs'), subtitulo: porId('t1MapaEsS'), nombre: 'Espera promedio', tipo: 'es', mapa: null, inicio: null, ancho: 0, fechasClave: '' },
+  { caja: porId('t1MapaAt'), subtitulo: porId('t1MapaAtS'), nombre: 'Atención promedio', tipo: 'at', tramos: MAPA_ATENCION, mapa: null, inicio: null, ancho: 0, fechasClave: '' },
+  { caja: porId('t1MapaEs'), subtitulo: porId('t1MapaEsS'), nombre: 'Espera promedio', tipo: 'es', tramos: MAPA_ESPERA, mapa: null, inicio: null, ancho: 0, fechasClave: '' },
 ];
 
-// Colores en OKLab: la escala va de un tono cercano al fondo (poco tiempo) a uno intenso (mucho tiempo).
-type Lab = [number, number, number];
-const aLineal = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const aSrgb = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-function rgbDe(hex: string): [number, number, number] {
-  const h = hex.trim().replace('#', '');
-  return [0, 2, 4].map(i => aLineal(parseInt(h.slice(i, i + 2), 16) / 255)) as [number, number, number];
-}
-function aLab(hex: string): Lab {
-  const [r, g, b] = rgbDe(hex);
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-function deLab([L, A, B]: Lab): [number, number, number] {
-  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
-  const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
-  const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
-  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s]
-    .map(c => Math.min(1, Math.max(0, c))) as [number, number, number];
-}
-const hexDe = (rgb: [number, number, number]) => `#${rgb.map(c => Math.round(aSrgb(c) * 255).toString(16).padStart(2, '0')).join('')}`;
-const luminancia = ([r, g, b]: [number, number, number]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
-/** Escala de 3 puntos (bajo, medio, alto) leída de las variables del tema actual. */
-function escala(tipo: 'at' | 'es'): (t: number) => { fondo: string; texto: string } {
-  const estilos = getComputedStyle(document.body);
-  const puntos = [0, 1, 2].map(i => aLab(estilos.getPropertyValue(`--t1-mapa-${tipo}-${i}`) || '#888888'));
-  return t => {
-    const u = Math.min(1, Math.max(0, t)) * 2;
-    const [a, b] = u <= 1 ? [puntos[0], puntos[1]] : [puntos[1], puntos[2]];
-    const f = u <= 1 ? u : u - 1;
-    const rgb = deLab([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]);
-    // Texto negro o blanco, el que más contraste tenga con la celda.
-    const y = luminancia(rgb);
-    return { fondo: hexDe(rgb), texto: (y + 0.05) / 0.05 >= 1.05 / (y + 0.05) ? '#000000' : '#ffffff' };
-  };
+/** Convenciones de un semáforo con colores fijos (mapas de calor y tablas). */
+function leyendaTramos(tramos: Tramo[], unidad: string): HTMLElement {
+  const lista = crear('ul', 't1-leyenda t1-leyenda-tramos');
+  lista.setAttribute('aria-label', 'Convenciones de colores');
+  for (const t of tramos) {
+    const li = crear('li');
+    const muestra = crear('i', 't1-muestra');
+    muestra.style.background = t.color;
+    li.append(muestra, `${t.nombre} ${unidad}`);
+    lista.append(li);
+  }
+  return lista;
 }
 
 function vacioMapaEspera(): Node {
@@ -626,11 +739,6 @@ function dibujarMapa(m: MapaCalor) {
   m.inicio = inicio;
   const visibles = fechas.slice(inicio, inicio + porPagina);
 
-  // Escala: del menor valor al percentil 95 (un valor muy alto no apaga el resto); por encima, color máximo.
-  const todos = valores.flat().filter((v): v is number => v !== null).sort((a, b) => a - b);
-  const minimo = todos[0];
-  const maximo = Math.max(minimo + 0.05, todos[Math.min(todos.length - 1, Math.floor(todos.length * 0.95))]);
-  const color = escala(m.tipo);
 
   const tabla = crear('table', 't1-mapa');
   tabla.style.setProperty('--t1-ancho-cd', `${ANCHO_CD}px`);
@@ -675,9 +783,9 @@ function dibujarMapa(m: MapaCalor) {
       const td = crear('td', v === null ? 't1-celda-vacia' : 't1-celda');
       if (v === null) { td.setAttribute('aria-label', 'sin datos'); }
       else {
-        const c = color((v - minimo) / (maximo - minimo));
-        td.style.background = c.fondo;
-        td.style.color = c.texto;
+        // Color del semáforo del Power BI (tonos claros: el texto va en negro).
+        td.style.background = tramoEn(m.tramos, v).color;
+        td.style.color = '#111';
         td.textContent = horas(v);
       }
       td.dataset.f = String(inicio + j);
@@ -699,12 +807,7 @@ function dibujarMapa(m: MapaCalor) {
   const partes: Node[] = [];
   // Escala de color y, si no caben todos los días, flechas para pasar de página.
   const pie = crear('div', 't1-mapa-pie');
-  const leyenda = crear('div', 't1-escala');
-  const muestra = crear('span', 't1-escala-barra');
-  muestra.style.background = `linear-gradient(90deg,${[0, 0.25, 0.5, 0.75, 1].map(t => color(t).fondo).join(',')})`;
-  leyenda.append(crear('span', undefined, `${horas(minimo)} h`), muestra, crear('span', undefined, `${maximo < todos[todos.length - 1] ? '≥ ' : ''}${horas(maximo)} h`));
-  leyenda.setAttribute('aria-label', `Escala: de ${horas(minimo)} a ${horas(maximo)} horas; más oscuro${document.documentElement.dataset.tema === 'claro' ? '' : ' (más claro en el tema oscuro)'} es más tiempo.`);
-  pie.append(leyenda);
+  pie.append(leyendaTramos(m.tramos, 'h'));
   if (fechas.length > porPagina) {
     const nav = crear('div', 't1-mapa-nav');
     const anterior = crear('button', 't1-flecha');
@@ -742,12 +845,14 @@ for (const m of mapas) {
     cuadro = requestAnimationFrame(() => { if (Math.floor(m.caja.clientWidth) !== m.ancho) dibujarMapa(m); });
   }).observe(m.caja);
 }
-// Los colores del mapa salen del tema: al cambiarlo se vuelven a pintar.
-new MutationObserver(() => { for (const m of mapas) dibujarMapa(m); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] });
 
 // ---------- Tablas con páginas ----------
 
-interface Columna<T> { titulo: string; num?: boolean; texto: (f: T) => string; extra?: (f: T) => string; orden: (a: T, b: T) => number; primero?: 1 | -1 }
+interface Columna<T> {
+  titulo: string; num?: boolean; texto: (f: T) => string; extra?: (f: T) => string; orden: (a: T, b: T) => number; primero?: 1 | -1;
+  /** Fondo de la celda según el valor (formato condicional del Power BI). */
+  color?: (f: T) => string | null;
+}
 interface Tabla<T> {
   nombre: string; columnas: Columna<T>[]; filas: T[]; placa: (f: T) => string; vacio: string;
   pagina: number; orden: { col: number; dir: 1 | -1 } | null; buscar: string;
@@ -841,6 +946,8 @@ function pintarTabla<T>(t: Tabla<T>) {
         if (k === 0) (celda as HTMLTableCellElement).scope = 'row';
         const extra = col.extra?.(f);
         if (extra) celda.append(crear('small', undefined, extra));
+        const fondo = col.color?.(f);
+        if (fondo) { celda.style.background = fondo; celda.classList.add('t1-celda-sem'); }
         tr.append(celda);
       });
       return tr;
@@ -868,13 +975,13 @@ const tablas = {
     { titulo: 'Fecha', texto: f => fecha(f.fecha), orden: (a, b) => a.fecha - b.fecha, primero: -1 },
     { titulo: 'Placa', texto: f => f.placa, orden: (a, b) => porTexto(a.placa, b.placa) },
     { titulo: 'Tiempo', num: true, texto: f => hhmm(f.minutos), orden: (a, b) => a.minutos - b.minutos, primero: -1 },
-    { titulo: 'Horas', num: true, texto: f => horas(f.horas), extra: f => repetidos(f.horas, f.minutos), orden: (a, b) => a.horas - b.horas, primero: -1 },
+    { titulo: 'Horas', num: true, texto: f => horas(f.horas), extra: f => repetidos(f.horas, f.minutos), orden: (a, b) => a.horas - b.horas, primero: -1, color: f => tramoEn(DETALLE_ATENCION, f.horas).color },
   ], f => f.placa),
   detEspera: crearTabla<DetEs>('t1TDetEs', 'Detalle de tiempos de espera', [
     { titulo: 'Fecha', texto: f => fecha(f.fecha), orden: (a, b) => a.fecha - b.fecha, primero: -1 },
     { titulo: 'Placa', texto: f => f.placa, orden: (a, b) => porTexto(a.placa, b.placa) },
     { titulo: 'Espera', num: true, texto: f => f.espera, orden: (a, b) => a.horas - b.horas, primero: -1 },
-    { titulo: 'Horas', num: true, texto: f => horas(f.horas), extra: f => repetidos(f.horas, minutosDeTexto(f.espera)), orden: (a, b) => a.horas - b.horas, primero: -1 },
+    { titulo: 'Horas', num: true, texto: f => horas(f.horas), extra: f => repetidos(f.horas, minutosDeTexto(f.espera)), orden: (a, b) => a.horas - b.horas, primero: -1, color: f => tramoEn(DETALLE_ESPERA, f.horas).color },
   ], f => f.placa),
   placaAtencion: crearTabla<PorPlaca>('t1TPlAt', 'Atención por placa', [
     { titulo: 'Placa', texto: f => f.placa, orden: (a, b) => porTexto(a.placa, b.placa) },
@@ -1133,12 +1240,19 @@ function contar(el: HTMLElement, valor: number | null, formato: (n: number) => s
   const inicio = performance.now();
   el.classList.remove('t1-kpi-salto');
   const paso = (ahora: number) => {
-    const t = Math.min(1, (ahora - inicio) / 1100);
+    const t = Math.max(0, Math.min(1, (ahora - inicio) / 1100)); // el primer cuadro puede llegar antes de "inicio"
     el.textContent = formato(t < 1 ? previo + (valor - previo) * (1 - (1 - t) ** 3) : valor);
     if (t < 1) el.dataset.cuadro = String(requestAnimationFrame(paso));
     else { void el.offsetWidth; el.classList.add('t1-kpi-salto'); }
   };
   el.dataset.cuadro = String(requestAnimationFrame(paso));
+}
+
+/** La nota va oculta dentro de la tarjeta (la lee el lector de pantalla) y aparece al pasar el mouse. */
+function notaTarjeta(id: string, texto: string) {
+  const el = porId(id);
+  el.textContent = texto;
+  el.closest('article')!.title = texto;
 }
 
 const esperaFaltante = () => { const ue = opciones?.ultimaEspera ?? null; return ue === null || filtro.desde > ue; };
@@ -1149,12 +1263,12 @@ function pintarTarjetas(r: ResultadoT1) {
   contar(porId('t1KpiAtencion'), t.atencion, horas);
   contar(porId('t1KpiEspera'), t.espera, horas);
   contar(porId('t1KpiFtct'), t.ftct, horas);
-  porId('t1KpiAtencionNota').textContent = t.atencion === null ? 'Sin registros en zona de atención' : `${horasATexto(t.atencion)} en horas y minutos`;
+  notaTarjeta('t1KpiAtencionNota', t.atencion === null ? 'Sin registros en zona de atención' : `${horasATexto(t.atencion)} en horas y minutos`);
   const ue = opciones?.ultimaEspera ?? null;
-  porId('t1KpiEsperaNota').textContent = t.espera !== null ? `${horasATexto(t.espera)} en horas y minutos`
-    : ue === null ? 'Falta cargar ESPERA.xlsx' : filtro.desde > ue ? `Sin datos: la espera llega al ${fecha(ue)}` : 'Sin datos de espera con estos filtros';
-  porId('t1KpiFtctNota').textContent = t.ftct === null ? 'Sin registros en zona de atención'
-    : t.espera === null ? 'Sin espera: queda igual a la atención' : `${horasATexto(t.ftct)} · atención + espera`;
+  notaTarjeta('t1KpiEsperaNota', t.espera !== null ? `${horasATexto(t.espera)} en horas y minutos`
+    : ue === null ? 'Falta cargar ESPERA.xlsx' : filtro.desde > ue ? `Sin datos: la espera llega al ${fecha(ue)}` : 'Sin datos de espera con estos filtros');
+  notaTarjeta('t1KpiFtctNota', t.ftct === null ? 'Sin registros en zona de atención'
+    : t.espera === null ? 'Sin espera: queda igual a la atención' : `${horasATexto(t.ftct)} · atención + espera`);
 }
 
 function pintarResumen(r: ResultadoT1) {

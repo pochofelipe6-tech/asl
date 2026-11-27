@@ -10,6 +10,8 @@ import { porId } from './dom';
 import { calcularOfe, claveChasis, filasFms, listaMontacargas, opcionesOfe, revisarMontacargas, CDS_FMS } from '../shared/ofe';
 import type { CambioMontacargas, ColumnasFms, FilaFms, FiltrosOfe, MontacargasDeLista, ResultadoOfe } from '../shared/ofe';
 import { diaDeIso, fechaDeDia, horasATexto, isoDeDia, DIAS_SEMANA, MESES } from '../shared/t1';
+import { calcularWip, filasWip } from '../shared/wip';
+import type { ColumnasWip, FilaWip, ResultadoWip } from '../shared/wip';
 import type { RespuestaWorkerCargas } from './cargas-worker';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -161,6 +163,9 @@ const P_ENCENDIDO: Serie = { nombre: '% Encendido', corto: 'Encendido', clase: '
 const P_MOVIMIENTO: Serie = { nombre: '% Movimiento', corto: 'Movimiento', clase: 'ofe-c-mov' };
 const P_CARGA: Serie = { nombre: '% Carga', corto: 'Carga', clase: 'ofe-c-car' };
 const OFE: Serie = { nombre: 'OFE', corto: 'OFE', clase: 'ofe-c-ofe' };
+/** Colores del Power BI "Seguimiento ATCT" (tema por defecto): en cada gráfico, la 1.ª serie va en azul, la 2.ª en azul
+ *  oscuro y la 3.ª en naranja, en el mismo orden que allá (por eso el ralentí cambia de color de un gráfico a otro). */
+const enPosicion = (serie: Serie, n: 1 | 2 | 3): Serie => ({ ...serie, clase: `ofe-p${n}` });
 
 /** Cómo se escriben las cifras de un gráfico: horas (suma o promedio) o porcentaje. */
 interface Medida { corta: (n: number | null) => string; larga: (n: number | null) => string; eje: (n: number) => string; horas: boolean }
@@ -177,6 +182,8 @@ interface Categoria {
   extra?: FilaTip[];
   /** Posición en el eje (días de Excel) para las líneas por fecha. */
   x?: number;
+  /** Color propio de esta columna (semáforo), en vez del de la serie. */
+  clase?: string;
 }
 interface Grafico {
   caja: HTMLElement; subtitulo: HTMLElement | null; nombre: string; forma: 'linea' | 'barras' | 'columnas';
@@ -188,19 +195,23 @@ interface Grafico {
   /** Si va en la misma fila que este elemento (la tabla por CD), el gráfico toma su alto: la tarjeta no queda medio vacía. */
   igualarA: HTMLElement | null;
   vacio: string; enTabla: boolean; ancho: number; foco: number;
+  /** Líneas de meta (verdes punteadas, como la línea constante del Power BI). */
+  metas: { nombre: string; valor: number }[];
+  /** Convenciones de colores por valor (semáforo), si el gráfico las usa. */
+  convenciones: { clase: string; nombre: string }[];
 }
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], series: Serie[], medida: Medida, encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, series, medida, categorias: [], encabezado, encabezadoDetalle: '',
-    dimension: null, seleccion: new Set(), paginar: false, pagina: 0, igualarA: null, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, ...extra,
+    dimension: null, seleccion: new Set(), paginar: false, pagina: 0, igualarA: null, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, metas: [], convenciones: [], ...extra,
   };
 }
 const graficos: Record<string, Grafico> = {
-  turno: nuevoGrafico('ofeGTurno', null, 'Seguimiento por turno', 'columnas', [RALENTI, CARGA, MOVIMIENTO], PROMEDIO_HORAS, 'Turno', { dimension: 'turnos' }),
-  dia: nuevoGrafico('ofeGDia', 'ofeGDiaS', '% Encendido, movimiento y carga por día', 'linea', [P_ENCENDIDO, P_MOVIMIENTO, P_CARGA], PORCENTAJE, 'Fecha'),
-  maquinaRalenti: nuevoGrafico('ofeGMaqRal', 'ofeGMaqRalS', 'Tiempo ralentí por máquina', 'barras', [RALENTI], SUMA_HORAS, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD' }),
-  maquinaOfe: nuevoGrafico('ofeGMaqOfe', 'ofeGMaqOfeS', '% OFE por máquina', 'barras', [OFE], PORCENTAJE, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD' }),
-  gerencia: nuevoGrafico('ofeGGer', 'ofeGGerS', 'Tiempo ralentí por gerencia', 'columnas', [RALENTI], SUMA_HORAS, 'Gerencia', { igualarA: porId('ofeTCd') }),
+  turno: nuevoGrafico('ofeGTurno', null, 'Seguimiento por turno', 'columnas', [enPosicion(RALENTI, 1), enPosicion(CARGA, 2), enPosicion(MOVIMIENTO, 3)], PROMEDIO_HORAS, 'Turno', { dimension: 'turnos' }),
+  dia: nuevoGrafico('ofeGDia', 'ofeGDiaS', '% Encendido, movimiento y carga por día', 'linea', [enPosicion(P_ENCENDIDO, 1), enPosicion(P_MOVIMIENTO, 2), enPosicion(P_CARGA, 3)], PORCENTAJE, 'Fecha'),
+  maquinaRalenti: nuevoGrafico('ofeGMaqRal', 'ofeGMaqRalS', 'Tiempo ralentí por máquina', 'barras', [enPosicion(RALENTI, 1)], SUMA_HORAS, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD', metas: [{ nombre: 'Meta 1 h', valor: 1 }] }),
+  maquinaOfe: nuevoGrafico('ofeGMaqOfe', 'ofeGMaqOfeS', '% OFE por máquina', 'barras', [enPosicion(OFE, 1)], PORCENTAJE, 'Máquina', { dimension: 'maquinas', paginar: true, encabezadoDetalle: 'CD' }),
+  gerencia: nuevoGrafico('ofeGGer', 'ofeGGerS', 'Tiempo ralentí por gerencia', 'columnas', [enPosicion(RALENTI, 1)], SUMA_HORAS, 'Gerencia', { igualarA: porId('ofeTCd') }),
 };
 
 /** Marcas "redondas" del eje (0; 0,5; 1; 1,5…): unas 4 o 5. */
@@ -221,7 +232,7 @@ const sinSerie = (g: Grafico, k: number) => g.categorias.every(c => c.valores[k]
 const valorDicho = (g: Grafico, v: number | null) => (v === null ? 'sin datos' : g.medida.horas ? `${g.medida.corta(v)} horas` : g.medida.corta(v));
 
 function filasTip(g: Grafico, c: Categoria): FilaTip[] {
-  const filasDe: FilaTip[] = g.series.map((s, k) => ({ nombre: s.nombre, valor: g.medida.larga(c.valores[k]), clase: s.clase, fuerte: g.series.length === 1 }));
+  const filasDe: FilaTip[] = g.series.map((s, k) => ({ nombre: s.nombre, valor: g.medida.larga(c.valores[k]), clase: c.clase ?? s.clase, fuerte: g.series.length === 1 }));
   return c.extra ? [...filasDe, ...c.extra] : filasDe;
 }
 function textoCategoria(g: Grafico, c: Categoria): string {
@@ -233,13 +244,25 @@ function pistaDe(g: Grafico, c: Categoria): string | undefined {
 }
 
 function leyendaDe(g: Grafico): HTMLElement | null {
-  if (g.series.length < 2) return null;
+  if (g.series.length < 2 && !g.metas.length && !g.convenciones.length) return null;
   const lista = crear('ul', 't1-leyenda');
   lista.setAttribute('aria-label', 'Convenciones');
-  for (const [k, s] of g.series.entries()) {
+  for (const c of g.convenciones) {
     const li = crear('li');
-    li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
-    if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
+    li.append(crear('i', `t1-muestra ${c.clase}`), c.nombre);
+    lista.append(li);
+  }
+  if (g.series.length > 1) {
+    for (const [k, s] of g.series.entries()) {
+      const li = crear('li');
+      li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
+      if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
+      lista.append(li);
+    }
+  }
+  for (const m of g.metas) {
+    const li = crear('li');
+    li.append(crear('i', 't1-muestra t1-muestra-meta ofe-muestra-meta'), m.nombre);
     lista.append(li);
   }
   return lista;
@@ -316,11 +339,13 @@ function dibujarBarras(g: Grafico, ancho: number, todas: Categoria[] = g.categor
   const DERECHA = Math.round(Math.max(40, ...valoresTodas.map(v => anchoTexto(g.medida.corta(v)))) + 12);
   const ARRIBA = 4;
   const alto = ARRIBA * 2 + Math.max(n, Math.min(POR_PAGINA, todas.length)) * FILA;
-  const tope = Math.max(0.0001, ...valoresTodas.map(v => v ?? 0));
+  // La escala llega al menos hasta la meta, para que siempre se vea.
+  const tope = Math.max(0.0001, ...valoresTodas.map(v => v ?? 0), ...g.metas.map(m => m.valor));
   const largo = Math.max(40, ancho - IZQUIERDA - DERECHA);
   const filtra = !!g.dimension;
   const svg = nodo('svg', { width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`, class: `t1-svg${filtra ? ' t1-filtra' : ''}${g.seleccion.size ? ' t1-con-seleccion' : ''}`, tabindex: 0, role: 'img' });
-  svg.setAttribute('aria-label', etiquetaAccesible(g, 'barra', `Usa las flechas para leer cada una${filtra ? ' y Enter para filtrar la página' : ''}.`));
+  const textoMetas = g.metas.map(m => ` ${m.nombre}.`).join('');
+  svg.setAttribute('aria-label', etiquetaAccesible(g, 'barra', `Usa las flechas para leer cada una${filtra ? ' y Enter para filtrar la página' : ''}.${textoMetas}`));
   svg.append(nodo('line', { x1: IZQUIERDA, x2: IZQUIERDA, y1: 0, y2: alto, class: 't1-base' }));
   const marcas: Marca[] = [];
   g.categorias.forEach((c, i) => {
@@ -357,6 +382,11 @@ function dibujarBarras(g: Grafico, ancho: number, todas: Categoria[] = g.categor
     marcas.push(grupo);
     svg.append(grupo);
   });
+  // Metas: línea vertical verde punteada de arriba abajo (el nombre va en las convenciones).
+  for (const m of g.metas) {
+    const x = IZQUIERDA + (m.valor / tope) * largo;
+    svg.append(nodo('line', { x1: x, x2: x, y1: 0, y2: alto, class: 'ofe-meta' }));
+  }
   conTeclado(g, svg, n, i => marcas[i].mostrar?.(), () => { svg.classList.remove('t1-enfoque'); marcas.forEach(m => m.classList.remove('t1-activa')); });
   return svg;
 }
@@ -411,7 +441,7 @@ function dibujarColumnas(g: Grafico, ancho: number, altoPedido?: number): SVGSVG
       if (alto > 0.5) {
         const r = Math.min(4, grosor / 2, alto);
         const barra = nodo('g', { class: 't1-barra-v' });
-        barra.append(nodo('path', { class: `t1-parte ${g.series[s].clase}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
+        barra.append(nodo('path', { class: `t1-parte ${c.clase ?? g.series[s].clase}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
         grupo.append(barra);
       }
       if (caben) grupo.append(nodo('text', { x: x + grosor / 2, y: yDe(v) - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col' }, g.medida.corta(v)));
@@ -663,7 +693,7 @@ const donaCaja = porId('ofeGComposicion');
 const donaSubtitulo = porId('ofeGComposicionS');
 
 function pintarDona(c: ResultadoOfe['composicion'], hayFilas: boolean) {
-  const partes = [{ serie: CARGA, v: c.carga }, { serie: MOVIMIENTO, v: c.movimiento }, { serie: RALENTI, v: c.ralenti }];
+  const partes = [{ serie: enPosicion(CARGA, 1), v: c.carga }, { serie: enPosicion(MOVIMIENTO, 2), v: c.movimiento }, { serie: enPosicion(RALENTI, 3), v: c.ralenti }];
   const total = partes.reduce((s, p) => s + p.v, 0);
   donaSubtitulo.textContent = 'Suma de horas encendido: carga + movimiento + ralentí';
   if (!hayFilas || total <= 0) { donaCaja.replaceChildren(crear('p', 't1-grafico-vacio', 'Sin registros con estos filtros.')); return; }
@@ -1071,7 +1101,7 @@ function contar(el: HTMLElement, valor: number | null, formato: (n: number) => s
   if (sinMovimiento.matches || previo === valor) { el.textContent = formato(valor); return; }
   const inicio = performance.now();
   const paso = (ahora: number) => {
-    const t = Math.min(1, (ahora - inicio) / 800);
+    const t = Math.max(0, Math.min(1, (ahora - inicio) / 800)); // el primer cuadro puede llegar antes de "inicio"
     el.textContent = formato(t < 1 ? previo + (valor - previo) * (1 - (1 - t) ** 3) : valor);
     if (t < 1) el.dataset.cuadro = String(requestAnimationFrame(paso));
   };
@@ -1080,16 +1110,36 @@ function contar(el: HTMLElement, valor: number | null, formato: (n: number) => s
 
 const enHoras = (n: number) => conH(horas1(n));
 
-function pintarTarjetas(r: ResultadoOfe) {
+/** Usabilidad entera, como las tarjetas del Power BI ("99 %"). */
+const pctUso = (n: number) => `${Math.round(n * 100)} %`;
+/** Regla del Power BI para las tarjetas y el gráfico por gerencia de OFE: verde de 99 % a menos de 200 %, rojo de 0 a
+ *  menos de 99 %. Son usabilidades de WIP (así está armado el Power BI), no medidas de OFE. */
+function nivelUso(v: number | null | undefined): 'ok' | 'bajo' | null {
+  if (v == null || v < 0) return null;
+  return v >= 0.99 ? (v < 2 ? 'ok' : null) : 'bajo';
+}
+function tarjetaOfe(id: string, valor: number | null, formato: (n: number) => string, uso: number | null | undefined, nota: string) {
+  const el = porId(id);
+  contar(el, valor, formato);
+  const tarjeta = el.closest('article')!;
+  const nivel = valor === null ? null : nivelUso(uso);
+  tarjeta.classList.toggle('ofe-kpi-ok', nivel === 'ok');
+  tarjeta.classList.toggle('ofe-kpi-bajo', nivel === 'bajo');
+  porId(`${id}Nota`).textContent = nota;
+  tarjeta.title = nota;
+}
+
+function pintarTarjetas(r: ResultadoOfe, w: ResultadoWip | null) {
   const t = r.tarjetas;
   const con = (v: number | null) => (t.filas ? v : null);
-  contar(porId('ofeKpiOfe'), con(t.ofe), porcentaje);
-  contar(porId('ofeKpiRalenti'), con(t.ralenti), enHoras);
-  contar(porId('ofeKpiEncendido'), con(t.encendido), enHoras);
-  contar(porId('ofeKpiUso'), con(t.carga + t.movimiento), enHoras);
-  porId('ofeKpiRalentiNota').textContent = t.filas && t.encendido > 0 ? `${porcentaje(t.ralenti / t.encendido)} del tiempo encendido` : 'Encendido sin moverse ni cargar';
-  porId('ofeKpiEncendidoNota').textContent = t.filas ? `Carga + movimiento + ralentí · ${plural(t.maquinas, 'máquina', 'máquinas')}` : 'Carga + movimiento + ralentí';
-  porId('ofeKpiUsoNota').textContent = t.filas ? `Carga ${enHoras(t.carga)} · movimiento ${enHoras(t.movimiento)}` : 'Sin registros con estos filtros';
+  const u = w?.tarjetas.filas ? w.tarjetas : null;
+  const sinWip = filasWipOfe ? 'sin registros de WIP en este rango' : 'aún no se ha cargado Data WIP';
+  const textoUso = (v: number | null | undefined) => (v == null ? sinWip : pctUso(v));
+  tarjetaOfe('ofeKpiRalenti', con(t.ralenti), enHoras, u?.wip,
+    `Suma de horas ralentí${t.filas && t.encendido > 0 ? ` (${porcentaje(t.ralenti / t.encendido)} del tiempo encendido)` : ''}. Color: usabilidad WIP ${textoUso(u?.wip)} (verde desde 99 %).`);
+  tarjetaOfe('ofeKpiOfe', con(t.ofe), porcentaje, u?.armado, `(Movimiento + carga) / 24 h. Color: usabilidad de armado de WIP ${textoUso(u?.armado)} (verde desde 99 %).`);
+  tarjetaOfe('ofeKpiVerif', u ? u.verificacion : null, pctUso, u?.verificacion, `Usabilidad de verificación de WIP: ${textoUso(u?.verificacion)} (verde desde 99 %).`);
+  tarjetaOfe('ofeKpiMonta', u ? u.montacargas : null, pctUso, u?.montacargas, `Usabilidad de montacargas de WIP: ${textoUso(u?.montacargas)} (verde desde 99 %).`);
 }
 
 const textoRango = () => (filtro.desde === filtro.hasta ? fecha(filtro.desde) : `del ${fecha(filtro.desde)} al ${fecha(filtro.hasta)}`);
@@ -1157,7 +1207,7 @@ avisoVer.addEventListener('click', () => { chasisCaja.hidden = !chasisCaja.hidde
 
 const porValor = <T>(valor: (x: T) => number | null) => (a: T, b: T) => (valor(b) ?? -1) - (valor(a) ?? -1);
 
-function pintarGraficos(r: ResultadoOfe, rTur: ResultadoOfe, rMaq: ResultadoOfe) {
+function pintarGraficos(r: ResultadoOfe, rTur: ResultadoOfe, rMaq: ResultadoOfe, w: ResultadoWip | null) {
   graficos.turno.seleccion = new Set(filtro.turnos);
   ponerCategorias(graficos.turno, rTur.porTurno.map(t => ({ clave: t.turno, etiqueta: `Turno ${t.turno}`, titulo: `Turno ${t.turno} · promedio por montacargas`, valores: [t.ralenti, t.carga, t.movimiento] })));
 
@@ -1169,13 +1219,22 @@ function pintarGraficos(r: ResultadoOfe, rTur: ResultadoOfe, rMaq: ResultadoOfe)
   const porPagina = maquinas.length > POR_PAGINA ? ` · ${POR_PAGINA} por página` : '';
   for (const g of [graficos.maquinaRalenti, graficos.maquinaOfe]) g.seleccion = new Set(filtro.maquinas);
   ponerCategorias(graficos.maquinaRalenti, maquinas.map(m => ({
-    clave: m.maquina, etiqueta: m.maquina, detalle: m.cd, titulo: titulo(m), valores: [m.ralenti], extra: [{ nombre: 'OFE', valor: porcentajeLargo(m.ofe), clase: OFE.clase }],
+    clave: m.maquina, etiqueta: m.maquina, detalle: m.cd, titulo: titulo(m), valores: [m.ralenti], extra: [{ nombre: 'OFE', valor: porcentajeLargo(m.ofe) }],
   })), `${plural(maquinas.length, 'máquina', 'máquinas')} · suma de horas · de mayor a menor${porPagina}`);
   ponerCategorias(graficos.maquinaOfe, [...maquinas].sort((a, b) => porValor<typeof a>(m => m.ofe)(a, b) || porTexto(a.maquina, b.maquina)).map(m => ({
-    clave: m.maquina, etiqueta: m.maquina, detalle: m.cd, titulo: titulo(m), valores: [m.ofe], extra: [{ nombre: 'Horas ralentí', valor: horasLargo(m.ralenti), clase: RALENTI.clase }],
+    clave: m.maquina, etiqueta: m.maquina, detalle: m.cd, titulo: titulo(m), valores: [m.ofe], extra: [{ nombre: 'Horas ralentí', valor: horasLargo(m.ralenti) }],
   })), `${plural(maquinas.length, 'máquina', 'máquinas')} · OFE promedio · de mayor a menor${porPagina}`);
 
-  ponerCategorias(graficos.gerencia, [...r.porGerencia].sort((a, b) => b.ralenti - a.ralenti || porTexto(a.gerencia, b.gerencia)).map(g => ({ clave: g.gerencia, etiqueta: g.gerencia, titulo: `Gerencia ${g.gerencia}`, valores: [g.ralenti] })),
+  const usoGerencia = new Map((w?.porGerencia ?? []).map(x => [claveTexto(x.gerencia), x.wip]));
+  graficos.gerencia.convenciones = w ? [{ clase: 'ofe-sem-ok', nombre: 'Usabilidad WIP 99 % o más' }, { clase: 'ofe-sem-bajo', nombre: 'Menos de 99 %' }] : [];
+  ponerCategorias(graficos.gerencia, [...r.porGerencia].sort((a, b) => b.ralenti - a.ralenti || porTexto(a.gerencia, b.gerencia)).map(g => {
+    const uso = usoGerencia.get(claveTexto(g.gerencia));
+    const nivel = nivelUso(uso);
+    return {
+      clave: g.gerencia, etiqueta: g.gerencia, titulo: `Gerencia ${g.gerencia}`, valores: [g.ralenti], clase: nivel ? `ofe-sem-${nivel}` : undefined,
+      extra: w ? [{ nombre: 'Usabilidad WIP', valor: uso == null ? 'Sin datos' : pctUso(uso) }] : undefined,
+    };
+  }),
     `${plural(r.porGerencia.length, 'gerencia', 'gerencias')} · suma de horas · de mayor a menor`);
 }
 
@@ -1187,13 +1246,15 @@ function pintar() {
   const rMaq = filtro.maquinas.length ? calcular(paraMotor('maquinas')) : r;
   pintarResumen(r);
   pintarAviso(r);
-  pintarTarjetas(r);
+  // Usabilidad WIP del mismo rango y los mismos CD (las tarjetas y el gráfico por gerencia del Power BI la usan).
+  const w = filasWipOfe ? calcularWip(filasWipOfe, { desde: filtro.desde, hasta: filtro.hasta, cds: filtro.cds }) : null;
+  pintarTarjetas(r, w);
   // La tabla por CD va antes que los gráficos: el de gerencia, a su lado, toma su alto.
   tablaCd.filas = r.porCd;
   tablaCd.total = r.tarjetas.filas ? r.tarjetas : null;
   porId('ofeTCdS').textContent = r.porCd.length ? `${plural(r.porCd.length, 'CD', 'CD')} · suma de horas y OFE promedio` : 'Suma de horas y OFE promedio';
   pintarTablaCd();
-  pintarGraficos(r, rTur, rMaq);
+  pintarGraficos(r, rTur, rMaq, w);
   pintarDona(r.composicion, r.tarjetas.filas > 0);
 }
 
@@ -1297,6 +1358,39 @@ function aplicarLista() {
   armarFilas();
   pintarFiltros();
   recalcular(0);
+}
+
+// ---------- Datos de WIP (usabilidades para las tarjetas y el gráfico por gerencia) ----------
+
+/** Comparación de nombres sin mayúsculas ni tildes (gerencias de los dos archivos). */
+const claveTexto = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+let filasWipOfe: FilaWip[] | null = null;
+async function cargarWip() {
+  try {
+    const estado = await fetch('/api/wip/estado');
+    if (!estado.ok) return;
+    const c = (await estado.json().catch(() => ({}))).wip;
+    if (!c) return;
+    const ruta = '/api/wip/datos/wip';
+    const url = `${ruta}?v=${encodeURIComponent(c.creado_en ?? '')}`;
+    const almacen = 'caches' in window ? await caches.open('wip-datos').catch(() => null) : null;
+    let datos: ColumnasWip | null = null;
+    const guardada = await almacen?.match(url).catch(() => undefined);
+    if (guardada) datos = await guardada.json().catch(() => null) as ColumnasWip | null;
+    if (!datos) {
+      const respuesta = await fetch(url);
+      if (!respuesta.ok) return;
+      if (almacen) {
+        try {
+          for (const vieja of await almacen.keys()) if (new URL(vieja.url).pathname === ruta) await almacen.delete(vieja);
+          await almacen.put(url, respuesta.clone());
+        } catch { /* Sin espacio para la copia: la página funciona igual. */ }
+      }
+      datos = await respuesta.json() as ColumnasWip;
+    }
+    filasWipOfe = filasWip(datos);
+    if (filas) recalcular(0);
+  } catch { /* Sin WIP, las tarjetas de usabilidad quedan sin dato y sin color. */ }
 }
 
 function cargar(): Promise<void> {
@@ -1780,3 +1874,4 @@ let cuadroMc = 0;
 addEventListener('resize', () => { cancelAnimationFrame(cuadroMc); cuadroMc = requestAnimationFrame(ajustarPorPagina); });
 
 void cargar();
+void cargarWip();

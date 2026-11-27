@@ -86,7 +86,7 @@ function contar(el: HTMLElement, valor: number, formato: (n: number) => string =
   if (sinMovimiento.matches || desde === valor) { el.textContent = formato(valor); return; }
   const inicio = performance.now();
   const paso = (ahora: number) => {
-    const t = Math.min(1, (ahora - inicio) / 900);
+    const t = Math.max(0, Math.min(1, (ahora - inicio) / 900)); // el primer cuadro puede llegar antes de "inicio"
     const actual = desde + (valor - desde) * (1 - (1 - t) ** 3);
     el.textContent = formato(t < 1 ? Math.round(actual) : valor);
     if (t < 1) el.dataset.cuadro = String(requestAnimationFrame(paso));
@@ -99,19 +99,23 @@ function pintarTotales(r: ResumenActivos) {
   contar(porId('aaKpiCajas'), totalCajas(r.total));
   contar(porId('aaKpiIsotanques'), totalIsotanques(r.total));
   contar(porId('aaKpiHl'), r.total.hl_pendientes_verter, cifraHl);
-  porId('aaKpiIsotanquesNota').textContent = `Llenos + vacíos · Necesidad: ${cifra(r.total.necesidad_isotanques)}`;
+  const notaIso = `Llenos + vacíos · Necesidad: ${cifra(r.total.necesidad_isotanques)}`;
+  porId('aaKpiIsotanquesNota').textContent = notaIso;
+  porId('aaKpiIsotanquesNota').closest('article')!.title = notaIso;
 }
 
 // ---------- Ventanita de detalle (al pasar el puntero o con las flechas del teclado) ----------
 
 const tip = porId('aaTip');
-interface FilaTip { nombre: string; valor: string; color?: number; fuerte?: boolean }
+/** Clase de color de una serie (la paleta del Power BI "Seguimiento ATCT", en activos.css). */
+const colorDe = (clave: string) => `aa-k-${clave.replace(/_/g, '-')}`;
+interface FilaTip { nombre: string; valor: string; color?: string; fuerte?: boolean }
 
 function mostrarTip(titulo: string, filas: readonly FilaTip[], x: number, y: number) {
   const lista = crear('dl', 'aa-tip-filas');
   for (const f of filas) {
     const dt = crear('dt', f.fuerte ? 'aa-tip-total' : undefined);
-    if (f.color) dt.append(crear('i', `aa-tip-clave aa-c${f.color}`));
+    if (f.color) dt.append(crear('i', `aa-tip-clave ${f.color}`));
     dt.append(f.nombre);
     lista.append(dt, crear('dd', f.fuerte ? 'aa-tip-total' : undefined, f.valor));
   }
@@ -155,14 +159,14 @@ function pintarDona(d: Dona, c: Cantidades) {
     const largo = (v / total) * 100;
     const trazo = Math.max(0.25, largo - hueco);
     const seg = nodo('circle', {
-      cx: CENTRO, cy: CENTRO, r: R, pathLength: 100, 'stroke-width': GROSOR, class: `aa-dona-seg aa-c${i + 1}`,
+      cx: CENTRO, cy: CENTRO, r: R, pathLength: 100, 'stroke-width': GROSOR, class: `aa-dona-seg ${colorDe(r.clave)}`,
       'stroke-dasharray': `${trazo} ${100 - trazo}`, 'stroke-dashoffset': -(inicio + hueco / 2), transform: `rotate(-90 ${CENTRO} ${CENTRO})`,
       style: `--i:${i}`,
     });
     const mostrar = (evento: PointerEvent) => {
       svg.classList.add('aa-enfoque');
       seg.classList.add('activo');
-      mostrarTip(r.nombre, [{ nombre: 'Cantidad', valor: `${cifra(v)} ${d.unidad}`, color: i + 1, fuerte: true }, { nombre: 'Del total', valor: porcentaje(v, total) }], evento.clientX, evento.clientY);
+      mostrarTip(r.nombre, [{ nombre: 'Cantidad', valor: `${cifra(v)} ${d.unidad}`, color: colorDe(r.clave), fuerte: true }, { nombre: 'Del total', valor: porcentaje(v, total) }], evento.clientX, evento.clientY);
     };
     seg.addEventListener('pointermove', mostrar);
     seg.addEventListener('pointerleave', () => { svg.classList.remove('aa-enfoque'); seg.classList.remove('activo'); ocultarTip(); });
@@ -182,7 +186,7 @@ function pintarDona(d: Dona, c: Cantidades) {
     const li = crear('li', 'aa-dona-item');
     li.style.setProperty('--i', String(i));
     const nombre = crear('span', 'aa-dona-nombre');
-    nombre.append(crear('i', `aa-muestra aa-c${i + 1}`), r.nombre);
+    nombre.append(crear('i', `aa-muestra ${colorDe(r.clave)}`), r.nombre);
     const cifras = crear('span', 'aa-dona-cifras');
     cifras.append(crear('b', undefined, cifra(valores[i])), crear('small', undefined, porcentaje(valores[i], total)));
     li.append(nombre, cifras);
@@ -198,7 +202,7 @@ function pintarDona(d: Dona, c: Cantidades) {
 
 // ---------- Gráficos de columnas (por CD y por día) ----------
 
-interface Serie { nombre: string; corto: string; color: number }
+interface Serie { nombre: string; corto: string; color: string }
 interface Columna { etiqueta: string; titulo: string; valores: number[] }
 interface Grafico {
   caja: HTMLElement;
@@ -215,7 +219,7 @@ interface Grafico {
   foco: number;
 }
 
-const seriesDe = (refs: readonly Referencia[]): Serie[] => refs.map((r, i) => ({ nombre: r.nombre, corto: r.corto, color: i + 1 }));
+const seriesDe = (refs: readonly Referencia[]): Serie[] => refs.map(r => ({ nombre: r.nombre, corto: r.corto, color: colorDe(r.clave) }));
 function nuevoGrafico(caja: string, subtitulo: string, nombre: string, tipo: Grafico['tipo'], refs: readonly Referencia[], unidad: string, formato = (n: number) => cifra(n)): Grafico {
   return { caja: porId(caja), subtitulo: porId(subtitulo), nombre, tipo, series: seriesDe(refs), columnas: [], unidad, formato, enTabla: false, ancho: 0, foco: 0 };
 }
@@ -279,7 +283,7 @@ function leyendaDe(g: Grafico): HTMLElement | null {
   lista.setAttribute('aria-label', 'Convenciones');
   for (const s of g.series) {
     const li = crear('li');
-    li.append(crear('i', `aa-muestra aa-c${s.color}`), s.nombre);
+    li.append(crear('i', `aa-muestra ${s.color}`), s.nombre);
     lista.append(li);
   }
   return lista;
@@ -387,10 +391,10 @@ function dibujar(g: Grafico, animar = true) {
       if (k === ultima) {
         // Punta redondeada (4 px) y base cuadrada.
         const r = Math.min(4, grosor / 2, alto);
-        barra.append(nodo('path', { class: `aa-parte aa-c${g.series[k].color}`, d: `M${x} ${y0}V${arriba + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${y0}z` }));
+        barra.append(nodo('path', { class: `aa-parte ${g.series[k].color}`, d: `M${x} ${y0}V${arriba + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${y0}z` }));
       } else if (alto > 2) {
         // 2 px de separación con la parte de encima.
-        barra.append(nodo('rect', { class: `aa-parte aa-c${g.series[k].color}`, x, y: arriba + 2, width: grosor, height: alto - 2 }));
+        barra.append(nodo('rect', { class: `aa-parte ${g.series[k].color}`, x, y: arriba + 2, width: grosor, height: alto - 2 }));
       }
       y0 = arriba;
     });

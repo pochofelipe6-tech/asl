@@ -587,7 +587,7 @@ function contar(el: HTMLElement, valor: number) {
   const inicio = performance.now();
   const DURACION = 900;
   const paso = (ahora: number) => {
-    const t = Math.min(1, (ahora - inicio) / DURACION);
+    const t = Math.max(0, Math.min(1, (ahora - inicio) / DURACION)); // el primer cuadro puede llegar antes de "inicio"
     el.textContent = cifra(Math.round(desde + (valor - desde) * (1 - (1 - t) ** 3)));
     if (t < 1) el.dataset.cuadro = String(requestAnimationFrame(paso));
   };

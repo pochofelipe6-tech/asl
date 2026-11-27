@@ -713,3 +713,6 @@ html[data-tema="claro"] .excel-summary { background: #f1f5f9; }
 /* Shared warehouse photograph in the freshness module, both themes. */
 .hero,html[data-tema="claro"] .hero{background-image:linear-gradient(90deg,#090d17ef 0%,#10101dbb 38%,#10101c12 78%),url('/img/comando/portada.jpg');background-position:center;background-size:cover;border-radius:22px;border-color:#77607188;min-height:220px}
 .hero h1,html[data-tema="claro"] .hero h1{color:#fff}.hero p,html[data-tema="claro"] .hero p{color:#d8dce8}html[data-tema="claro"] .hero .hero-caption{color:#eee}
+/* Portada: solo el nombre del módulo, en grande. */
+.hero h1{margin:0;font-size:clamp(42px,4.6vw,72px)}
+@media(max-width:600px){.hero h1{font-size:36px}}

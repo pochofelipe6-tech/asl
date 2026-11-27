@@ -11,7 +11,7 @@
   --t1-texto:#f5f5f5;--t1-suave:#b9bcc4;--t1-tenue:#7c7f88;--t1-hover:#ffffff0d;--t1-sombra:0 18px 40px -24px #000;
   --t1-guia:#26272b;--t1-base:#55565c;--t1-eje:#a3a6ae;--t1-pista:#18191c;--t1-tip:#18191cf5;
   --t1-icono-fondo:#ffd10021;--t1-icono:#ffd100;--t1-suave-amarillo:#ffd10017;--t1-elegida:#ffd1001f;
-  --t1-at:#d28e05;--t1-es:#338ced;
+  --t1-at:#d28e05;--t1-es:#338ced;--t1-meta:#ff4d4f;
   --t1-alerta:#ff8a80;--t1-alerta-fondo:#ff5a5a1c;--t1-alerta-borde:#ff5a5a66;
   --t1-mapa-at-0:#30280a;--t1-mapa-at-1:#a87300;--t1-mapa-at-2:#ffd84a;
   --t1-mapa-es-0:#0f2242;--t1-mapa-es-1:#2370cd;--t1-mapa-es-2:#a9d0fa;
@@ -23,13 +23,17 @@ html[data-tema="claro"] .t1-page{
   --t1-texto:#17181c;--t1-suave:#5b606b;--t1-tenue:#8a8e97;--t1-hover:#17181c0a;--t1-sombra:0 14px 34px -22px #2a2a1f40;
   --t1-guia:#ececea;--t1-base:#bdbdb8;--t1-eje:#646973;--t1-pista:#f3f2ee;--t1-tip:#fffffff7;
   --t1-icono-fondo:#fff1b3;--t1-icono:#5c4600;--t1-suave-amarillo:#ffd10024;--t1-elegida:#ffd10033;
-  --t1-at:#f2a600;--t1-es:#257de0;
+  --t1-at:#f2a600;--t1-es:#257de0;--t1-meta:#d61f1f;
   --t1-alerta:#b42318;--t1-alerta-fondo:#fdecea;--t1-alerta-borde:#f3b4ae;
   --t1-mapa-at-0:#fff6d6;--t1-mapa-at-1:#f2a600;--t1-mapa-at-2:#764600;
   --t1-mapa-es-0:#e9f2fd;--t1-mapa-es-1:#519ced;--t1-mapa-es-2:#0e3d7e;
   background:radial-gradient(ellipse at 8% -6%,#fff6cc,transparent 42%),var(--t1-fondo);
 }
 .t1-c-at{--c:var(--t1-at)}.t1-c-es{--c:var(--t1-es)}
+/* Semáforo (formato condicional del Power BI): verde, amarillo y rojo. */
+.t1-sem-verde{--c:#49F84C}.t1-sem-amarillo{--c:#EEF74F}.t1-sem-rojo{--c:#F83F3F}
+/* Celdas con color de semáforo (tablas de detalle): texto negro sobre el tono claro. */
+.t1-tabla .t1-celda-sem,.t1-tabla .t1-celda-sem small{color:#111}
 
 .t1-app{display:flex;flex-direction:column;gap:18px}
 .t1-app>*{margin:0}
@@ -46,6 +50,9 @@ html[data-tema="claro"] .t1-page{
 
 /* ---------- Filtros (una fila arriba; mandan sobre todo lo de abajo) ---------- */
 .t1-filtros{position:sticky;top:10px;z-index:8;padding:14px 18px 12px;border:1px solid var(--t1-borde);border-radius:18px;background:color-mix(in srgb,var(--t1-card) 94%,transparent);box-shadow:var(--t1-sombra);backdrop-filter:blur(12px)}
+.t1-filtros-titulo{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--t1-borde);color:var(--t1-texto);font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.t1-filtros-titulo-ico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--cc-amarillo,#ffd100)}
+.t1-filtros-titulo-ico svg{width:15px;height:15px;fill:none;stroke:#111;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .t1-filtros-fila{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 14px}
 .t1-campo{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
 .t1-etiqueta{display:inline-flex;align-items:center;gap:6px;color:var(--t1-suave);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
@@ -122,6 +129,23 @@ html[data-tema="claro"] .t1-page{
 .t1-kpi-nota{margin:0;color:var(--t1-suave);font-size:12.5px}
 /* Rayita del color de la serie: la tarjeta de atención y la de espera se reconocen en los gráficos. */
 .t1-kpi-serie{display:inline-block;width:14px;height:3px;margin:0 7px 0 0;border-radius:2px;background:var(--c);vertical-align:middle}
+/* Tarjetas compactas (Seguimiento T1): cuadro de color con ícono blanco, cifra y rótulo en mayúsculas debajo. */
+.t1-kpis-compactas{gap:14px}
+.t1-kpis-compactas .t1-kpi{gap:14px;min-height:0;padding:14px 16px;border-radius:12px;box-shadow:0 4px 14px -8px #00000047}
+html[data-tema="claro"] .t1-kpis-compactas .t1-kpi{border-color:transparent;background:#fff}
+.t1-kpis-compactas .t1-kpi-icono{--k:#2f6fdf;width:50px;height:50px;border-radius:7px;background:var(--k)}
+.t1-kpis-compactas .t1-kpi-verde{--k:#43a047}
+.t1-kpis-compactas .t1-kpi-naranja{--k:#f6a00c}
+.t1-kpis-compactas .t1-kpi-reloj{background:none}
+.t1-kpis-compactas .t1-kpi-icono svg{width:32px;height:32px}
+.t1-kpis-compactas .t1-kpi-reloj svg{width:46px;height:46px}
+.t1-kpis-compactas .t1-kpi-rueda{fill:#fff;stroke:var(--k);stroke-width:1.4}
+.t1-kpis-compactas .t1-kpi-hueco{fill:var(--k)}
+.t1-kpis-compactas .t1-kpi-agujas{stroke:var(--t1-texto)}
+.t1-kpis-compactas .t1-kpi-valor{margin:0 0 3px;font-size:27px;line-height:1.1;letter-spacing:0}
+.t1-kpis-compactas .t1-kpi-valor.t1-sin-dato{color:var(--t1-texto)}
+.t1-kpis-compactas .t1-kpi-etiqueta{color:var(--t1-texto);font-size:10.5px;font-weight:800;letter-spacing:.02em;line-height:1.3;text-transform:uppercase}
+.t1-kpis-compactas abbr{text-decoration:none}
 .t1-kpi-amarillo{border-color:#ffd100;background:linear-gradient(135deg,#ffd100,#f5c400);color:#111}
 .t1-kpi-amarillo .t1-kpi-etiqueta,.t1-kpi-amarillo .t1-kpi-nota{color:#2b2400}
 .t1-kpi-amarillo .t1-kpi-valor{color:#111}
@@ -187,6 +211,16 @@ html[data-tema="claro"] .t1-page{
 .t1-marca.t1-atenuada :is(.t1-barra,.t1-barra-v){opacity:.32}
 .t1-marca.t1-atenuada .t1-cifra{fill:var(--t1-suave)}
 .t1-linea{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Metas (Meta BU, Meta Liga): línea roja punteada con el nombre encima. */
+.t1-meta{stroke:var(--t1-meta);stroke-width:2;stroke-dasharray:.5 4;stroke-linecap:round;pointer-events:none}
+.t1-meta-texto{fill:var(--t1-meta);font-size:10px;font-weight:800;letter-spacing:.06em;paint-order:stroke;stroke:var(--t1-card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+/* Tendencias diaria y mensual como en el Power BI: atención azul claro, espera azul oscuro, cifra en cada punto. */
+.t1-pbi{--t1-at:#118dff;--t1-es:#8d9cff}
+html[data-tema="claro"] .t1-pbi{--t1-es:#12239e}
+.t1-svg-linea .t1-linea{stroke-width:2.6}
+.t1-cifra-punto{font-size:10.5px;paint-order:stroke;stroke:var(--t1-card);stroke-width:3px;stroke-linejoin:round}
+.t1-svg-linea .t1-eje-x{fill:var(--t1-texto);font-weight:700}
+.t1-muestra-meta{width:18px;height:0;border-radius:0;border-top:2.5px dotted var(--t1-meta);background:none}
 .t1-punto{fill:var(--c);stroke:var(--t1-card);stroke-width:2}
 .t1-punto-foco{pointer-events:none}
 .t1-cruz{stroke:var(--t1-base);stroke-width:1;shape-rendering:crispEdges;pointer-events:none}
@@ -363,7 +397,7 @@ dt.t1-tip-total,dt.t1-tip-total+dd{padding-top:5px;border-top:1px solid var(--t1
   .t1-hero .t1-hero-lineas{font-size:14px}
   .t1-buscar input{width:110px}
 }
-@media(forced-colors:active){.t1-parte,.t1-linea,.t1-punto,.t1-mapa td{forced-color-adjust:none}}
+@media(forced-colors:active){.t1-parte,.t1-linea,.t1-meta,.t1-punto,.t1-mapa td{forced-color-adjust:none}}
 
 /* ---------- Tablero compacto de Seguimiento T1, en la distribución del Power BI ----------
    Proporciones del lienzo del Power BI: tendencias 1240 : 1345 · CD 618 : 615 : 756 : 572 ·

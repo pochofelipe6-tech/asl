@@ -1,8 +1,9 @@
 /* Inventario activos: identidad negra y amarilla (Comando Central · Team WH North Regional).
    Colores de la marca en comando.css (--cc-amarillo, --cc-negro…). Texto sobre amarillo: negro.
-   Series de los gráficos (validadas con el skill dataviz, claro y oscuro, también el cierre de cada dona):
-   1 ámbar · 2 magenta · 3 violeta · 4 aguamarina · 5 azul. El ámbar es el amarillo de la marca ajustado
-   para que se distinga sobre blanco y no encandile sobre negro. */
+   Series de los gráficos: la paleta del Power BI "Seguimiento ATCT" (tema por defecto de Power BI), una por serie:
+   estibas A dorado · B gris · C naranja; cajas 250 azul · 330 azul oscuro · 750 naranja · 1000 morado · 225 rosado;
+   isotanques llenos dorado · vacíos gris; HL gris. En el tema oscuro, el azul oscuro y el morado van un poco más
+   claros para que se vean sobre el fondo negro. */
 
 /* ---------- Variables: oscuro por defecto, claro con html[data-tema="claro"] ---------- */
 .aa-page{
@@ -11,7 +12,6 @@
   --aa-texto:#f5f5f5;--aa-suave:#b9bcc4;--aa-tenue:#6f727a;--aa-hover:#ffffff0a;--aa-sombra:0 18px 40px -24px #000;
   --aa-guia:#26272b;--aa-base:#55565c;--aa-eje:#a3a6ae;--aa-pista:#1d1e22;--aa-tip:#18191cf5;
   --aa-icono-fondo:#ffd10021;--aa-icono:#ffd100;--aa-total:#191a1d;--aa-suave-amarillo:#ffd10014;
-  --aa-s1:#d28e05;--aa-s2:#e24d8b;--aa-s3:#9887ef;--aa-s4:#00a888;--aa-s5:#338ced;
   --aa-error:#ff8a80;
   background:radial-gradient(ellipse at 8% -6%,#ffd1001a,transparent 40%),radial-gradient(ellipse at 96% 104%,#ffd10012,transparent 42%),var(--aa-fondo);
 }
@@ -21,11 +21,16 @@ html[data-tema="claro"] .aa-page{
   --aa-texto:#17181c;--aa-suave:#5b606b;--aa-tenue:#a3a7b0;--aa-hover:#17181c08;--aa-sombra:0 14px 34px -22px #2a2a1f40;
   --aa-guia:#ececea;--aa-base:#bdbdb8;--aa-eje:#646973;--aa-pista:#f0efea;--aa-tip:#fffffff7;
   --aa-icono-fondo:#fff1b3;--aa-icono:#5c4600;--aa-total:#fdf8e4;--aa-suave-amarillo:#ffd10024;
-  --aa-s1:#f2a600;--aa-s2:#ee7fac;--aa-s3:#6a4ce2;--aa-s4:#00b894;--aa-s5:#257de0;
   --aa-error:#b42318;
   background:radial-gradient(ellipse at 8% -6%,#fff6cc,transparent 42%),var(--aa-fondo);
 }
-.aa-c1{--c:var(--aa-s1)}.aa-c2{--c:var(--aa-s2)}.aa-c3{--c:var(--aa-s3)}.aa-c4{--c:var(--aa-s4)}.aa-c5{--c:var(--aa-s5)}
+.aa-page{--aa-azul-oscuro:#5b6ef0;--aa-morado:#b04cc4}
+html[data-tema="claro"] .aa-page{--aa-azul-oscuro:#12239E;--aa-morado:#6B007B}
+.aa-k-estibas-a{--c:#D9B300}.aa-k-estibas-b{--c:#B3B3B3}.aa-k-estibas-c{--c:#E66C37}
+.aa-k-cajas-250cc-x38{--c:#118DFF}.aa-k-cajas-330cc-x30{--c:var(--aa-azul-oscuro)}.aa-k-cajas-750cc-x16{--c:#E66C37}
+.aa-k-cajas-1000cc-x13{--c:var(--aa-morado)}.aa-k-cajas-225cc-x38{--c:#E044A7}
+.aa-k-isotanques-llenos{--c:#E5B611}.aa-k-isotanques-vacios{--c:#B3B3B3}
+.aa-k-hl-pendientes-verter{--c:#B3B3B3}
 
 .aa-app{display:flex;flex-direction:column;gap:18px}
 .aa-app>*{margin:0}
@@ -38,6 +43,9 @@ html[data-tema="claro"] .aa-page{
 
 /* ---------- Filtros (una fila arriba; mandan sobre todo lo de abajo) ---------- */
 .aa-filtros{position:sticky;top:10px;z-index:6;padding:14px 18px 12px;border:1px solid var(--aa-borde);border-radius:18px;background:color-mix(in srgb,var(--aa-card) 92%,transparent);box-shadow:var(--aa-sombra);backdrop-filter:blur(12px)}
+.aa-filtros-titulo{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--aa-borde);color:var(--aa-texto);font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.aa-filtros-titulo-ico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--cc-amarillo,#ffd100)}
+.aa-filtros-titulo-ico svg{width:15px;height:15px;fill:none;stroke:#111;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .aa-filtros-fila{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px}
 .aa-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .aa-etiqueta{display:inline-flex;align-items:center;gap:6px;color:var(--aa-suave);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
@@ -59,6 +67,10 @@ html[data-tema="claro"] .aa-page{
 .aa-boton-sec{border:1px solid var(--aa-borde-campo);background:transparent;color:var(--aa-texto)}
 .aa-boton-sec:hover{border-color:var(--cc-amarillo)}
 .aa-boton-sec:disabled{opacity:.55;cursor:progress}
+/* Portada: botón al formulario de control de inventarios (antes estaba en el menú principal). */
+.aa-hero-acciones{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.aa-boton-hero{min-height:46px;padding:0 22px;font-size:15px;box-shadow:0 8px 22px -10px #ffd100}
+.aa-boton-hero .aa-ico{width:20px;height:20px;stroke-width:2}
 #aaActualizar{margin-left:auto}
 .aa-resumen{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:12px 0 0;color:var(--aa-suave);font-size:13px}
 .aa-resumen>span:first-child{color:var(--aa-texto);font-weight:700}
@@ -265,10 +277,21 @@ dt.aa-tip-total,dt.aa-tip-total+dd{padding-top:5px;border-top:1px solid var(--aa
 .aa-tabla th,.aa-tabla td{padding:6px 10px}
 .aa-tabla thead th{font-size:11.5px}
 .aa-kpi{min-height:104px;padding:16px 18px}
+/* Tarjetas como en el Power BI: imagen a la izquierda, nombre en mayúsculas arriba a la derecha y la cifra en dorado. */
+.aa-kpi-pbi{align-items:stretch;gap:12px;min-height:118px;padding:14px 22px 14px 16px;border-radius:22px}
+.aa-kpi-img{flex:none;align-self:center;width:84px;height:84px;object-fit:contain}
+/* Las imágenes de trazo negro se vuelven blancas en el tema oscuro. */
+html:not([data-tema="claro"]) .aa-kpi-img-linea{filter:invert(1)}
+.aa-kpi-pbi .aa-kpi-texto{display:flex;flex:1;flex-direction:column;justify-content:space-between;align-items:flex-end;text-align:right}
+.aa-kpi-pbi .aa-kpi-etiqueta{max-width:15ch;color:var(--aa-texto);font-size:15px;font-weight:900;line-height:1.15;letter-spacing:.02em;text-transform:uppercase}
+.aa-kpi-pbi .aa-kpi-valor{margin:6px 0 0;color:var(--aa-dorado);font-size:clamp(34px,2.6vw,46px);font-weight:800;line-height:1}
+.aa-page{--aa-dorado:#ffd100}
+html[data-tema="claro"] .aa-page{--aa-dorado:#e0a800}
 @container (max-width:480px){
   .aa-dona-caja{grid-template-columns:1fr;gap:10px}
 }
 @media(max-width:700px){
   .aa-kpi{min-height:0}
+  .aa-kpi-img{width:64px;height:64px}
   .aa-card{padding:14px}
 }

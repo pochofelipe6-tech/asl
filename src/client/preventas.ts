@@ -33,10 +33,10 @@ const CANALES = ['TAT', 'KA', 'T4'];
 const CALENDARIO = '<svg class="pv-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const TITULOS = { total: 'Preventa total', disponible: 'Preventa disponible por canal', preventa: 'Preventa por canal' } as const;
 const MEDIDAS = { disponible: 'HL Disp Prev', preventa: 'HL Preventa' } as const;
-const TEXTOS: Record<Vista, { titulo: string; resalte: string; subtitulo: string }> = {
-  datos: { titulo: 'Datos de ', resalte: 'preventa', subtitulo: 'Consulta, importa y registra la información base de preventa de tu operación.' },
-  canal: { titulo: 'Preventa por ', resalte: 'canal', subtitulo: 'Consulta la preventa por canal y centro de distribución en las fechas de corte de tu operación.' },
-  so: { titulo: 'SO · ', resalte: 'Agotados', subtitulo: 'Revisa los agotados por material y centro de distribución en cada corte de tu operación.' },
+const TEXTOS: Record<Vista, { titulo: string; resalte: string }> = {
+  datos: { titulo: 'Datos de ', resalte: 'preventa' },
+  canal: { titulo: 'Preventa por ', resalte: 'canal' },
+  so: { titulo: 'SO · ', resalte: 'Agotados' },
 };
 
 let datos: Datos | null = null;
@@ -338,7 +338,6 @@ function render() {
     resalte.textContent = textos.resalte;
     el('viewTitle').replaceChildren(textos.titulo, resalte);
   }
-  el('viewSubtitle').textContent = textos.subtitulo;
   document.title = `${textos.titulo}${textos.resalte} · Bavaria`;
   document.body.dataset.vista = vista;
   el('datosActions').hidden = vista !== 'datos'; el('canalView').hidden = vista !== 'canal'; el('tableView').hidden = vista === 'canal';

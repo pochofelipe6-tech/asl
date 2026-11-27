@@ -33,7 +33,7 @@ html[data-tema="claro"] .pv-tab.active{color:#111}
 .pv-hero:before{z-index:-2;background:url('/img/comando/portada.jpg') 100% 60%/max(70%,900px) auto no-repeat}
 .pv-hero:after{z-index:-1;background:linear-gradient(105deg,transparent 40%,#ffd11926 50%,transparent 60%) -150% 0/60% 100% no-repeat,linear-gradient(90deg,#0a0d16 0%,#0a0d16 30%,#0a0d16d9 42%,#0a0d1600 68%),linear-gradient(0deg,#0a0d1680,transparent 45%)}
 .pv-eyebrow{display:block;color:#ffd100;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
-.pv-hero h1{margin:6px 0 10px;color:#fff;font-size:clamp(34px,3.2vw,50px);font-weight:800;line-height:1.05;letter-spacing:-.03em}
+.pv-hero h1{margin:0;color:#fff;font-size:clamp(42px,4.6vw,72px);font-weight:800;line-height:1.05;letter-spacing:-.03em}
 .pv-hero h1 em{color:#ffd100;font-style:normal}
 .pv-hero p{max-width:440px;margin:0;color:#dde2eb;font-size:15px;line-height:1.5}
 .pv-source{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:14px;color:#c4cbd8;font-size:12px}
@@ -413,7 +413,7 @@ html[data-tema="claro"] .pv-cargando .pv-kpi strong{background-image:linear-grad
 .pv-hero{min-height:0;padding:24px 22px}
 .pv-hero:before{background-size:cover;background-position:62% center}
 .pv-hero:after{background:linear-gradient(90deg,#0a0d16f0,#0a0d16b3)}
-.pv-hero h1{font-size:34px}
+.pv-hero h1{font-size:42px}
 .pv-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pv-kpi{gap:10px;min-height:72px;padding:12px 14px}
 .pv-kpi-icon{width:30px;height:30px}

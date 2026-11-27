@@ -137,6 +137,24 @@ function mostrarTip(titulo: string, filasTip: readonly FilaTip[], x: number, y: 
 const ocultarTip = () => { tip.hidden = true; };
 addEventListener('scroll', ocultarTip, { passive: true });
 
+// ---------- Meta y semáforo de usabilidad (formato condicional del Power BI) ----------
+
+/** Meta de usabilidad (la del Power BI): 99 % o más va en verde; menos, en rojo. */
+const META_USABILIDAD = 0.99;
+/** Porcentaje entero, como lo muestran las tarjetas del Power BI ("97 %"). */
+const pctEntero = (n: number) => `${Math.round(n * 100)} %`;
+type NivelUso = 'ok' | 'bajo';
+/** Colores del Power BI: verde #5FF74B y rojo #F6563A. */
+const COLOR_USO: Record<NivelUso, string> = { ok: '#5FF74B', bajo: '#F6563A' };
+/** Verde de 99 % a menos de 200 %; rojo por debajo de 99 %. En las tablas, verificación y montacargas en 0 % quedan
+ *  sin color (la regla del Power BI pide más de 0); el armado sí se pinta desde 0 %. */
+function nivelUso(v: number | null, ceroSinColor = false): NivelUso | null {
+  if (v === null || v < 0) return null;
+  if (v >= META_USABILIDAD) return v < 2 ? 'ok' : null;
+  return ceroSinColor && v === 0 ? null : 'bajo';
+}
+const colorUso = (v: number | null, ceroSinColor = false) => { const n = nivelUso(v, ceroSinColor); return n ? COLOR_USO[n] : null; };
+
 // ---------- Gráficos (líneas y columnas) ----------
 
 type Formato = 'pct' | 'cifra';
@@ -166,21 +184,25 @@ interface Grafico {
   /** Alto del área de las líneas: proporción del ancho y tope en píxeles. */
   proporcion: number; altoMax: number;
   vacio: string; enTabla: boolean; ancho: number; foco: number;
+  /** Columnas (o puntos) en verde o rojo según la meta de usabilidad. */
+  semaforo: boolean;
+  /** Líneas de meta (verdes punteadas, como en el Power BI). */
+  metas: { nombre: string; valor: number }[];
 }
 function nuevoGrafico(caja: string, subtitulo: string | null, nombre: string, forma: Grafico['forma'], formato: Formato, series: Serie[], encabezado: string, extra: Partial<Grafico> = {}): Grafico {
   return {
     caja: porId(caja), subtitulo: subtitulo ? porId(subtitulo) : null, nombre, forma, formato, series, categorias: [], encabezado,
-    dimension: null, seleccion: new Set(), leyenda: true, proporcion: 0.3, altoMax: 290, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, ...extra,
+    dimension: null, seleccion: new Set(), leyenda: true, proporcion: 0.3, altoMax: 290, vacio: 'Sin registros con estos filtros.', enTabla: false, ancho: 0, foco: 0, semaforo: false, metas: [], ...extra,
   };
 }
 const graficos: Record<string, Grafico> = {
   // Comparte fila con la tabla por CD (14 filas): un poco más alto para llenar la tarjeta.
-  dia: nuevoGrafico('wipGDia', 'wipGDiaS', 'Seguimiento usabilidad de WIP por día', 'linea', 'pct', MEDIDAS.map(m => SERIES_USO[m.clave]), 'Fecha', { leyenda: false, proporcion: 0.2, altoMax: 200 }),
+  dia: nuevoGrafico('wipGDia', 'wipGDiaS', 'Seguimiento usabilidad de WIP por día', 'linea', 'pct', MEDIDAS.map(m => SERIES_USO[m.clave]), 'Fecha', { leyenda: false, proporcion: 0.2, altoMax: 200, metas: [{ nombre: 'Meta 100 %', valor: 1 }] }),
   dts: nuevoGrafico('wipGDts', 'wipGDtsS', 'Seguimiento cargue de DTs por día', 'linea', 'cifra', [FINALIZADOS, TOTAL_DTS], 'Fecha', { proporcion: 0.19, altoMax: 185 }),
-  cd: nuevoGrafico('wipGCd', 'wipGCdS', 'Porcentaje de usabilidad WIP por CD', 'columnas', 'pct', [WIP], 'CD', { dimension: 'cds', altoMax: 215 }),
-  gerencia: nuevoGrafico('wipGGer', 'wipGGerS', 'Porcentaje de usabilidad WIP por gerencia', 'columnas', 'pct', [WIP], 'Gerencia'),
-  ol: nuevoGrafico('wipGOl', null, 'Porcentaje de usabilidad WIP por OL', 'columnas', 'pct', [WIP], 'OL'),
-  semana: nuevoGrafico('wipGSem', 'wipGSemS', 'Porcentaje de usabilidad WIP por semana', 'linea', 'pct', [WIP], 'Semana', { proporcion: 0.24, altoMax: 175 }),
+  cd: nuevoGrafico('wipGCd', 'wipGCdS', 'Porcentaje de usabilidad WIP por CD', 'columnas', 'pct', [WIP], 'CD', { dimension: 'cds', altoMax: 215, semaforo: true }),
+  gerencia: nuevoGrafico('wipGGer', 'wipGGerS', 'Porcentaje de usabilidad WIP por gerencia', 'columnas', 'pct', [WIP], 'Gerencia', { semaforo: true }),
+  ol: nuevoGrafico('wipGOl', null, 'Porcentaje de usabilidad WIP por OL', 'columnas', 'pct', [WIP], 'OL', { semaforo: true }),
+  semana: nuevoGrafico('wipGSem', 'wipGSemS', 'Porcentaje de usabilidad WIP por semana', 'linea', 'pct', [WIP], 'Semana', { proporcion: 0.24, altoMax: 175, semaforo: true }),
 };
 
 /** Marcas "redondas" del eje (unas 4 o 5) desde un piso hasta cubrir el tope. */
@@ -199,9 +221,11 @@ const ejeDe = (g: Grafico, v: number) => (g.formato === 'pct' ? formatoPctEje.fo
 const anchoTexto = (texto: string, tamano = 11.5) => texto.length * tamano * 0.585;
 const hayDatos = (g: Grafico) => g.categorias.some(c => c.valores.some(v => v !== null));
 const sinSerie = (g: Grafico, k: number) => g.categorias.every(c => c.valores[k] === null);
+/** Clase de color de una columna o punto: la del semáforo si el gráfico lo tiene, o la de su serie. */
+const claseDe = (g: Grafico, k: number, v: number | null) => { const n = g.semaforo ? nivelUso(v) : null; return n ? `wip-sem-${n}` : g.series[k].clase; };
 
 function filasTip(g: Grafico, c: Categoria): FilaTip[] {
-  const filasDe: FilaTip[] = g.series.map((s, k) => ({ nombre: s.nombre, valor: c.valores[k] === null ? 'Sin datos' : valorDe(g, c.valores[k]), clase: s.clase, fuerte: g.series.length === 1 }));
+  const filasDe: FilaTip[] = g.series.map((s, k) => ({ nombre: s.nombre, valor: c.valores[k] === null ? 'Sin datos' : valorDe(g, c.valores[k]), clase: claseDe(g, k, c.valores[k]), fuerte: g.series.length === 1 }));
   return c.notas ? [...filasDe, ...c.notas] : filasDe;
 }
 function textoCategoria(g: Grafico, c: Categoria): string {
@@ -213,15 +237,30 @@ function pistaDe(g: Grafico, c: Categoria): string | undefined {
 }
 
 function leyendaDe(g: Grafico): HTMLElement | null {
-  if (g.series.length < 2 || !g.leyenda) return null;
+  const items: HTMLElement[] = [];
+  if (g.semaforo) {
+    for (const [nivel, texto] of [['ok', `${pctEntero(META_USABILIDAD)} o más`], ['bajo', `Menos de ${pctEntero(META_USABILIDAD)}`]] as const) {
+      const li = crear('li');
+      li.append(crear('i', `t1-muestra wip-sem-${nivel}`), texto);
+      items.push(li);
+    }
+  } else if (g.series.length > 1 && g.leyenda) {
+    for (const [k, s] of g.series.entries()) {
+      const li = crear('li');
+      li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
+      if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
+      items.push(li);
+    }
+  }
+  for (const m of g.metas) {
+    const li = crear('li');
+    li.append(crear('i', 't1-muestra t1-muestra-meta wip-muestra-meta'), m.nombre);
+    items.push(li);
+  }
+  if (!items.length) return null;
   const lista = crear('ul', 't1-leyenda');
   lista.setAttribute('aria-label', 'Convenciones');
-  for (const [k, s] of g.series.entries()) {
-    const li = crear('li');
-    li.append(crear('i', `t1-muestra ${g.forma === 'linea' ? 't1-muestra-linea ' : ''}${s.clase}`), s.nombre);
-    if (sinSerie(g, k)) li.append(crear('span', 't1-leyenda-nota', '· sin datos'));
-    lista.append(li);
-  }
+  lista.append(...items);
   return lista;
 }
 
@@ -318,7 +357,7 @@ function dibujarColumnas(g: Grafico, ancho: number): SVGSVGElement {
       if (alto > 0.5) {
         const r = Math.min(4, grosor / 2, alto);
         const barra = nodo('g', { class: 't1-barra-v' });
-        barra.append(nodo('path', { class: `t1-parte ${g.series[0].clase}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
+        barra.append(nodo('path', { class: `t1-parte ${claseDe(g, 0, v)}`, d: `M${x} ${base}V${base - alto + r}a${r} ${r} 0 0 1 ${r} ${-r}h${grosor - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}V${base}z` }));
         grupo.append(barra);
       }
       if (caben) grupo.append(nodo('text', { x: centro, y: yDe(v) - 6, 'text-anchor': 'middle', class: 't1-cifra t1-cifra-col' }, valorDe(g, v)));
@@ -383,7 +422,7 @@ function dibujarBarras(g: Grafico, ancho: number): SVGSVGElement {
     if (w > 0.5) {
       const r = Math.min(4, GROSOR / 2, w);
       const barra = nodo('g', { class: 't1-barra' });
-      barra.append(nodo('path', { class: `t1-parte ${g.series[0].clase}`, d: `M${IZQUIERDA} ${top}H${IZQUIERDA + w - r}a${r} ${r} 0 0 1 ${r} ${r}V${top + GROSOR - r}a${r} ${r} 0 0 1 ${-r} ${r}H${IZQUIERDA}z` }));
+      barra.append(nodo('path', { class: `t1-parte ${claseDe(g, 0, v)}`, d: `M${IZQUIERDA} ${top}H${IZQUIERDA + w - r}a${r} ${r} 0 0 1 ${r} ${r}V${top + GROSOR - r}a${r} ${r} 0 0 1 ${-r} ${r}H${IZQUIERDA}z` }));
       grupo.append(barra);
     }
     grupo.append(nodo('text', { x: IZQUIERDA + w + 7, y: centro, 'dominant-baseline': 'central', class: `t1-cifra${v === null ? ' t1-cifra-nula' : ''}` }, valorDe(g, v)));
@@ -411,7 +450,8 @@ function dibujarBarras(g: Grafico, ancho: number): SVGSVGElement {
 function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
   const n = g.categorias.length;
   const valores = g.categorias.flatMap(c => c.valores).filter((v): v is number => v !== null);
-  const mayor = Math.max(...valores);
+  // El eje llega al menos hasta la meta más alta, para que siempre se vea.
+  const mayor = Math.max(...valores, ...g.metas.map(m => m.valor));
   const menor = Math.min(...valores);
   let marcas: number[];
   if (g.formato === 'pct' && menor >= 0.4) {
@@ -442,6 +482,12 @@ function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
     svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + 8, y1: y, y2: y, class: i ? 't1-guia' : 't1-base' }));
     svg.append(nodo('text', { x: IZQUIERDA - 8, y, 'text-anchor': 'end', 'dominant-baseline': 'central', class: 't1-eje' }, etiquetasEje[i]));
   });
+  // Metas: línea verde punteada de lado a lado; el nombre va encima (se agrega al final, para que nada lo tape).
+  const nombresMeta = g.metas.map(m => {
+    const y = yDe(m.valor);
+    svg.append(nodo('line', { x1: IZQUIERDA, x2: ancho - DERECHA + 8, y1: y, y2: y, class: 'wip-meta' }));
+    return nodo('text', { x: IZQUIERDA + 4, y: y - 5, class: 'wip-meta-texto' }, m.nombre.toUpperCase());
+  });
   const caben = Math.max(2, Math.floor(largo / (Math.max(...g.categorias.map(c => anchoTexto(c.etiqueta))) + 16)));
   const saltar = Math.max(1, Math.ceil(n / caben));
   g.categorias.forEach((c, i) => {
@@ -467,7 +513,7 @@ function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
     g.categorias.forEach((c, i) => {
       const v = c.valores[k];
       if (v === null || (!conPuntos && !aislados.includes(i))) return;
-      puntos.append(nodo('circle', { cx: xDe(i), cy: yDe(v), r: 4, class: `t1-punto ${s.clase}` }));
+      puntos.append(nodo('circle', { cx: xDe(i), cy: yDe(v), r: 4, class: `t1-punto ${claseDe(g, k, v)}` }));
     });
     svg.append(puntos);
     // Cifra al final de cada línea (si no choca con la de otra línea).
@@ -478,6 +524,7 @@ function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
       svg.append(nodo('text', { x: xDe(ultimo) + 8, y, 'dominant-baseline': 'central', class: 't1-cifra t1-cifra-final' }, valorDe(g, g.categorias[ultimo].valores[k])));
     }
   });
+  svg.append(...nombresMeta);
   const cruz = nodo('line', { x1: 0, x2: 0, y1: ARRIBA - 4, y2: base, class: 't1-cruz', visibility: 'hidden' });
   const focos = g.series.map(s => nodo('circle', { r: 5, class: `t1-punto t1-punto-foco ${s.clase}`, visibility: 'hidden' }));
   const captura = nodo('rect', { x: IZQUIERDA, y: ARRIBA - 8, width: largo, height: ALTO + 8, class: 't1-captura' });
@@ -491,7 +538,7 @@ function dibujarLinea(g: Grafico, ancho: number): SVGSVGElement {
     focos.forEach((f, k) => {
       const v = c.valores[k];
       f.setAttribute('visibility', v === null ? 'hidden' : 'visible');
-      if (v !== null) { f.setAttribute('cx', String(x)); f.setAttribute('cy', String(yDe(v))); }
+      if (v !== null) { f.setAttribute('cx', String(x)); f.setAttribute('cy', String(yDe(v))); f.setAttribute('class', `t1-punto t1-punto-foco ${claseDe(g, k, v)}`); }
     });
     const caja = svg.getBoundingClientRect();
     const arriba = Math.min(...c.valores.map(v => (v === null ? base : yDe(v))));
@@ -571,7 +618,11 @@ function pintarTendencias() {
 
 // ---------- Tablas (por CD y por día) ----------
 
-interface ColumnaTabla<T> { titulo: string; num?: boolean; texto: (f: T) => string; extra?: (f: T) => string; clase?: string }
+interface ColumnaTabla<T> {
+  titulo: string; num?: boolean; texto: (f: T) => string; extra?: (f: T) => string; clase?: string;
+  /** Fondo de la celda según el valor (formato condicional del Power BI). */
+  color?: (f: T) => string | null;
+}
 /** Tabla simple con encabezado amarillo, fila de total al pie y filas resaltadas (los CD elegidos en el filtro). */
 function tablaSimple<T>(nombre: string, columnas: ColumnaTabla<T>[], filasTabla: readonly T[], total: T | null, elegida?: (f: T) => boolean): HTMLElement {
   const caja = crear('div', 't1-tabla-caja wip-tabla-caja');
@@ -596,6 +647,8 @@ function tablaSimple<T>(nombre: string, columnas: ColumnaTabla<T>[], filasTabla:
       if (k === 0) (celda as HTMLTableCellElement).scope = 'row';
       const extra = esTotal ? '' : col.extra?.(f);
       if (extra) celda.append(crear('small', undefined, extra));
+      const fondo = esTotal ? null : col.color?.(f);
+      if (fondo) { celda.style.background = fondo; celda.classList.add('wip-celda-sem'); }
       tr.append(celda);
     });
     return tr;
@@ -608,7 +661,9 @@ function tablaSimple<T>(nombre: string, columnas: ColumnaTabla<T>[], filasTabla:
 
 type FilaCd = { cd: string } & Usabilidades;
 type FilaDia = ResultadoWip['porDia'][number];
-const columnasUso = <T extends Usabilidades>(): ColumnaTabla<T>[] => MEDIDAS.map(m => ({ titulo: m.nombre, num: true, clase: m.clase, texto: (f: T) => pct(f[m.clave]) }));
+const columnasUso = <T extends Usabilidades>(): ColumnaTabla<T>[] => MEDIDAS.map(m => ({
+  titulo: m.nombre, num: true, clase: m.clase, texto: (f: T) => pct(f[m.clave]), color: (f: T) => colorUso(f[m.clave], m.clave !== 'armado'),
+}));
 
 function pintarTablaCd(r: ResultadoWip, rSinCd: ResultadoWip) {
   const zona = porId('wipTCd');
@@ -696,46 +751,6 @@ for (const m of MEDIDAS) {
   medidaCaja.append(b);
 }
 
-// Colores en OKLab. Casi todo está cerca de 100 %: lo que importa es lo que falta. La escala va de un tono neutro
-// (usabilidad completa) a uno cálido intenso (la más baja), para que los problemas salten a la vista.
-type Lab = [number, number, number];
-const aLineal = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const aSrgb = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
-function rgbDe(hex: string): [number, number, number] {
-  const h = hex.trim().replace('#', '');
-  return [0, 2, 4].map(i => aLineal(parseInt(h.slice(i, i + 2), 16) / 255)) as [number, number, number];
-}
-function aLab(hex: string): Lab {
-  const [r, g, b] = rgbDe(hex);
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-function deLab([L, A, B]: Lab): [number, number, number] {
-  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
-  const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
-  const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
-  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s]
-    .map(c => Math.min(1, Math.max(0, c))) as [number, number, number];
-}
-const hexDe = (rgb: [number, number, number]) => `#${rgb.map(c => Math.round(aSrgb(c) * 255).toString(16).padStart(2, '0')).join('')}`;
-const luminancia = ([r, g, b]: [number, number, number]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
-/** Escala de 3 puntos (completo, medio, más bajo) leída de las variables del tema actual; t = 0 es la usabilidad más alta. */
-function escala(): (t: number) => { fondo: string; texto: string } {
-  const estilos = getComputedStyle(document.body);
-  const puntos = [0, 1, 2].map(i => aLab(estilos.getPropertyValue(`--wip-mapa-${i}`) || '#888888'));
-  return t => {
-    const u = Math.min(1, Math.max(0, t)) * 2;
-    const [a, b] = u <= 1 ? [puntos[0], puntos[1]] : [puntos[1], puntos[2]];
-    const f = u <= 1 ? u : u - 1;
-    const rgb = deLab([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]);
-    // Texto negro o blanco, el que más contraste tenga con la celda.
-    const y = luminancia(rgb);
-    return { fondo: hexDe(rgb), texto: (y + 0.05) / 0.05 >= 1.05 / (y + 0.05) ? '#000000' : '#ffffff' };
-  };
-}
-
 /** Matriz CD × día: los días que no caben se ven deslizando DENTRO de la tarjeta (la columna de CD queda fija). */
 function dibujarMapa() {
   const m = mapaActual;
@@ -748,14 +763,8 @@ function dibujarMapa() {
   const desplazado = anterior?.scrollLeft ?? 0;
   const ANCHO_CD = Math.round(Math.max(104, Math.max(...cds.map(cd => anchoTexto(cd, 13))) + 26));
 
-  // Escala: de 100 % o el mayor valor si es menor (neutro) al percentil 5 (intenso; un valor muy bajo no apaga el resto).
-  // El archivo trae días con más de 100 % (estados que suman más que el total): quedan neutros, como el 100 %.
-  const mayor = todos[todos.length - 1];
-  const maximo = Math.min(1, mayor);
-  let minimo = todos[Math.floor(todos.length * 0.05)];
-  if (maximo - minimo < 0.05) minimo = Math.max(0, maximo - 0.05);
-  const rango = Math.max(1e-6, maximo - minimo);
-  const color = escala();
+  // Colores del Power BI: verde desde la meta (99 %), rojo por debajo; en verificación y montacargas, 0 % sin color.
+  const ceroSinColor = medidaMapa !== 'armado';
 
   const tabla = crear('table', 't1-mapa wip-mapa');
   tabla.style.setProperty('--t1-ancho-cd', `${ANCHO_CD}px`);
@@ -804,9 +813,8 @@ function dibujarMapa() {
       const td = crear('td', v !== null ? 't1-celda' : hay ? 'wip-celda-sin-dato' : 't1-celda-vacia wip-celda-vacia', v === null && hay ? '—' : undefined);
       if (v === null) td.setAttribute('aria-label', hay ? 'sin dato' : 'sin registro');
       else {
-        const c = color((maximo - v) / rango);
-        td.style.background = c.fondo;
-        td.style.color = c.texto;
+        const fondo = colorUso(v, ceroSinColor);
+        if (fondo) { td.style.background = fondo; td.style.color = '#111'; }
         td.textContent = pctCelda(v);
       }
       td.dataset.f = String(j);
@@ -834,12 +842,16 @@ function dibujarMapa() {
   desliza.append(tabla);
 
   const pie = crear('div', 't1-mapa-pie');
-  const leyenda = crear('div', 't1-escala');
-  const muestra = crear('span', 't1-escala-barra');
-  muestra.style.background = `linear-gradient(90deg,${[1, 0.75, 0.5, 0.25, 0].map(t => color(t).fondo).join(',')})`;
-  leyenda.append(crear('span', undefined, `${minimo > todos[0] ? '≤ ' : ''}${pct(minimo)}`), muestra, crear('span', undefined, `${mayor > maximo ? '≥ ' : ''}${pct(maximo)}`));
-  leyenda.setAttribute('aria-label', `Escala de ${pct(minimo)} a ${pct(maximo)}; cuanto más intenso el color, más baja la usabilidad.`);
-  pie.append(leyenda, crear('span', 'wip-mapa-ayuda', `Usabilidad de ${medida.nombre.toLowerCase()} en % · más intenso, más baja · rayado: sin registro ese día`), crear('span', 'wip-mapa-ayuda wip-mapa-desliza', 'Desliza para ver todos los días'));
+  const leyenda = crear('ul', 't1-leyenda wip-mapa-leyenda');
+  leyenda.setAttribute('aria-label', 'Convenciones de colores');
+  for (const [nivel, texto] of [['ok', `${pctEntero(META_USABILIDAD)} o más`], ['bajo', `Menos de ${pctEntero(META_USABILIDAD)}`]] as const) {
+    const li = crear('li');
+    const muestraNivel = crear('i', 't1-muestra');
+    muestraNivel.style.background = COLOR_USO[nivel];
+    li.append(muestraNivel, texto);
+    leyenda.append(li);
+  }
+  pie.append(leyenda, crear('span', 'wip-mapa-ayuda', `Usabilidad de ${medida.nombre.toLowerCase()} en % · rayado: sin registro ese día`), crear('span', 'wip-mapa-ayuda wip-mapa-desliza', 'Desliza para ver todos los días'));
   mapaCaja.replaceChildren(desliza, pie);
   // Mismos días: se conserva lo desplazado; días nuevos: se muestran los más recientes.
   const clave = `${fechas[0]}|${fechas[fechas.length - 1]}|${fechas.length}`;
@@ -847,8 +859,6 @@ function dibujarMapa() {
   mapaClave = clave;
   pie.lastElementChild!.toggleAttribute('hidden', desliza.scrollWidth <= desliza.clientWidth + 1);
 }
-// Los colores del mapa salen del tema: al cambiarlo se vuelve a pintar.
-new MutationObserver(() => dibujarMapa()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] });
 
 // ---------- Filtros ----------
 
@@ -1016,17 +1026,12 @@ function contar(el: HTMLElement, valor: number | null, formato: (n: number) => s
   if (sinMovimiento.matches || previo === valor) { el.textContent = formato(valor); return; }
   const inicio = performance.now();
   const paso = (ahora: number) => {
-    const t = Math.min(1, (ahora - inicio) / 800);
+    const t = Math.max(0, Math.min(1, (ahora - inicio) / 800)); // el primer cuadro puede llegar antes de "inicio"
     el.textContent = formato(t < 1 ? previo + (valor - previo) * (1 - (1 - t) ** 3) : valor);
     if (t < 1) el.dataset.cuadro = String(requestAnimationFrame(paso));
   };
   el.dataset.cuadro = String(requestAnimationFrame(paso));
 }
-
-/** Meta de usabilidad (la del Power BI): 99 % o más va en verde; menos, en rojo. */
-const META_USABILIDAD = 0.99;
-/** Porcentaje entero, como lo muestran las tarjetas del Power BI ("97 %"). */
-const pctEntero = (n: number) => `${Math.round(n * 100)} %`;
 
 /** Cifra del indicador: cuenta hasta el valor, con el color de la meta y el valor exacto al pasar el puntero. */
 function indicador(id: string, valor: number | null) {

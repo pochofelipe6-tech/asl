@@ -2,19 +2,26 @@
    Series (validadas con el skill dataviz en claro y oscuro, todas contra todas):
    Armado = naranja · Verificación = azul · Montacargas = aguamarina. Usabilidad WIP = ámbar (el de T1, de la marca).
    Cargue de DTs: Finalizados = magenta · Total DTs = violeta.
-   Mapa de calor: casi todo está cerca de 100 %, así que la escala marca lo que falta: neutro (usabilidad completa)
-   → cálido intenso (la más baja). Una sola escala de un tono, monótona en luminosidad en los dos temas. */
+   Semáforo de usabilidad (formato condicional del Power BI): verde #5FF74B desde 99 %, rojo #F6563A por debajo;
+   lo usan las columnas por CD, gerencia y OL, los puntos semanales, las tablas y el mapa de calor. */
 
 /* ---------- Variables: oscuro por defecto, claro con html[data-tema="claro"] ---------- */
 .wip-page{
   --wip-ar:#e76624;--wip-ve:#338ced;--wip-mo:#00a888;--wip-fin:#e24d8b;--wip-tot:#9887ef;
-  --wip-mapa-0:#2b2d33;--wip-mapa-1:#9c4512;--wip-mapa-2:#ff8156;
+  --wip-meta:#13FF0F;--wip-meta-texto:#13FF0F;
 }
 html[data-tema="claro"] .wip-page{
   --wip-ar:#f47230;--wip-ve:#257de0;--wip-mo:#00b894;--wip-fin:#ee7fac;--wip-tot:#6a4ce2;
-  --wip-mapa-0:#e9e7de;--wip-mapa-1:#f4a46c;--wip-mapa-2:#b8321c;
+  --wip-meta:#13FF0F;--wip-meta-texto:#0b8a09;
 }
 .wip-c-ar{--c:var(--wip-ar)}.wip-c-ve{--c:var(--wip-ve)}.wip-c-mo{--c:var(--wip-mo)}.wip-c-fin{--c:var(--wip-fin)}.wip-c-tot{--c:var(--wip-tot)}
+/* Semáforo de usabilidad: verde desde 99 %, rojo por debajo (texto negro sobre las celdas de color). */
+.wip-sem-ok{--c:#5FF74B}.wip-sem-bajo{--c:#F6563A}
+.wip-tabla .wip-celda-sem,.wip-tabla .wip-celda-sem small{color:#111}
+/* Meta de 100 % en la usabilidad por día: verde punteada, como la línea constante del Power BI. */
+.wip-meta{stroke:var(--wip-meta);stroke-width:2;stroke-dasharray:.5 4;stroke-linecap:round;pointer-events:none}
+.wip-meta-texto{fill:var(--wip-meta-texto);font-size:10px;font-weight:800;letter-spacing:.06em;paint-order:stroke;stroke:var(--t1-card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.t1-muestra-meta.wip-muestra-meta{border-top-color:var(--wip-meta)}
 
 /* ---------- Portada: la línea de datos cargados puede ocupar dos renglones ---------- */
 .wip-hero-fuente{line-height:1.4}

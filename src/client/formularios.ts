@@ -316,10 +316,6 @@ form.addEventListener('submit', async evento => {
 
 // Tarjeta "Guardado": se cierra con Aceptar, con Escape o al hacer clic fuera de ella.
 porId('fmGuardadoCerrar').addEventListener('click', () => guardado.close());
-porId('fmGuardadoResumen').addEventListener('click', () => {
-  guardado.close();
-  document.querySelector<HTMLButtonElement>('button[data-view="resumen"]')?.click();
-});
 guardado.addEventListener('click', evento => { if (evento.target === guardado) guardado.close(); });
 
 // ---------- Resumen: una pestaña por parte del formulario, con sus totales, su gráfico y la tabla por CD ----------

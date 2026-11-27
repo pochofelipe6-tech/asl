@@ -1,10 +1,7 @@
 /* OFE: uso de los montacargas. Usa el diseño de Seguimiento T1 (t1.css: variables, filtros, tarjetas, gráficos, tablas,
    avisos, carga de datos y animaciones); aquí solo va lo propio de OFE.
-   Series (validadas con el skill dataviz en claro y oscuro, también de a tres en el mismo gráfico):
-   Carga = ámbar · Movimiento = azul · Ralentí = magenta (turno y dona: los tres juntos);
-   % Encendido = aguamarina (línea diaria, junto a movimiento y carga) · OFE = violeta (sola, por máquina).
-   En claro, el ámbar, el magenta y el aguamarina quedan bajo 3:1 sobre blanco: por eso cada gráfico lleva sus cifras
-   escritas y "Ver tabla". */
+   Series: la paleta del Power BI "Seguimiento ATCT" por posición en cada gráfico (azul · azul oscuro · naranja), ver
+   .ofe-p1/.ofe-p2/.ofe-p3 más abajo. Tarjetas y gráfico por gerencia: semáforo de usabilidad WIP, como el Power BI. */
 
 .ofe-page{
   --ofe-car:#d28e05;--ofe-mov:#338ced;--ofe-ral:#e24d8b;--ofe-enc:#00a888;--ofe-ofe:#9887ef;
@@ -13,6 +10,26 @@ html[data-tema="claro"] .ofe-page{
   --ofe-car:#f2a600;--ofe-mov:#257de0;--ofe-ral:#ee7fac;--ofe-enc:#00b894;--ofe-ofe:#6a4ce2;
 }
 .ofe-c-car{--c:var(--ofe-car)}.ofe-c-mov{--c:var(--ofe-mov)}.ofe-c-ral{--c:var(--ofe-ral)}.ofe-c-enc{--c:var(--ofe-enc)}.ofe-c-ofe{--c:var(--ofe-ofe)}
+/* Paleta del Power BI (tema por defecto), por posición en cada gráfico: azul · azul oscuro · naranja.
+   En el tema oscuro, el azul oscuro va un poco más claro para que se vea sobre el fondo negro. */
+.ofe-page{--ofe-p2:#5b6ef0}
+html[data-tema="claro"] .ofe-page{--ofe-p2:#12239E}
+.ofe-p1{--c:#118DFF}.ofe-p2{--c:var(--ofe-p2)}.ofe-p3{--c:#E66C37}
+/* Semáforo del Power BI (usabilidad WIP): verde desde 99 %, rojo por debajo. */
+.ofe-sem-ok{--c:#5FF74B}.ofe-sem-bajo{--c:#F6563A}
+
+/* ---------- Tarjetas como en el Power BI: imagen a la izquierda, nombre arriba a la derecha y la cifra en verde o rojo ---------- */
+.ofe-kpi{align-items:stretch;gap:12px;min-height:118px;padding:14px 22px 14px 16px;border-radius:22px}
+.ofe-kpi-img{flex:none;align-self:center;width:84px;height:84px;object-fit:contain}
+.ofe-kpi-img-wip{width:100px;height:67px}
+/* Los dibujos de trazo negro se vuelven blancos en el tema oscuro. */
+html:not([data-tema="claro"]) .ofe-kpi-img-linea{filter:invert(1)}
+.ofe-kpi-texto{display:flex;flex:1;flex-direction:column;justify-content:space-between;align-items:flex-end;min-width:0;text-align:right}
+.ofe-kpi-etiqueta{margin:0;max-width:16ch;color:var(--t1-texto);font-size:15px;font-weight:900;line-height:1.15;letter-spacing:.02em;text-transform:uppercase}
+.ofe-kpi-valor{display:block;margin:6px 0 0;color:var(--t1-texto);font-size:clamp(32px,2.5vw,44px);font-weight:800;line-height:1;white-space:nowrap}
+.ofe-kpi-valor.t1-sin-dato{color:var(--t1-tenue)}
+.ofe-kpi-ok .ofe-kpi-valor{color:#5FF74B;text-shadow:0 1px 0 #2f8a2440}
+.ofe-kpi-bajo .ofe-kpi-valor{color:#F6563A}
 
 /* ---------- Portada: la línea de datos cargados puede ocupar dos renglones ---------- */
 .t1-hero .ofe-hero-fuente{border-radius:14px;line-height:1.45}
@@ -263,3 +280,6 @@ html[data-tema="claro"] .ofe-page{
 @media(max-width:700px){
   .ofe-fila-1{grid-template-columns:1fr}
 }
+/* Meta de "Tiempo ralentí por máquina" (1 h): verde punteada, como la línea constante del Power BI. */
+.ofe-meta{stroke:#13FF0F;stroke-width:2;stroke-dasharray:.5 4;stroke-linecap:round;pointer-events:none}
+.t1-muestra-meta.ofe-muestra-meta{border-top-color:#13FF0F}
