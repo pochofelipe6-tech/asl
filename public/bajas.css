@@ -1,0 +1,68 @@
+/* Módulo Bajas (/bajas). Usa las piezas de Seguimiento T1 (t1.css: filtros, tarjetas, tarjetas de gráficos, ventanita,
+   tema claro/oscuro con las variables --t1-*); aquí va lo propio: los gráficos SVG, el mapa CD × mes y el detalle. */
+.bj-tablero{gap:16px}
+.bj-pista{margin:0;color:var(--t1-suave);font-size:13px}
+.bj-fila-ancha{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.bj-kpis .t1-kpi-icono{--k:#2f6fdf}
+.bj-kpis .bj-kpi-rojo{--k:#e5484d}
+.bj-kpis .bj-kpi-naranja{--k:#f6a00c}
+.bj-kpis .t1-kpi-valor{white-space:nowrap}
+
+/* Gráficos */
+.bj-grafico{min-width:0;min-height:160px}
+.bj-grafico .t1-leyenda{margin-bottom:6px}
+.bj-svg{display:block;overflow:visible}
+.bj-guia{stroke:var(--t1-guia);stroke-width:1;shape-rendering:crispEdges}
+.bj-base{stroke:var(--t1-base);stroke-width:1;shape-rendering:crispEdges}
+.bj-eje{fill:var(--t1-eje);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.bj-eje-cat{fill:var(--t1-texto);font-size:12px;font-weight:700}
+.bj-eje-x{fill:var(--t1-suave)}
+.bj-cifra{fill:var(--t1-texto);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;pointer-events:none}
+.bj-cifra-col{font-size:10.5px}
+.bj-barra{fill:var(--c)}
+.bj-zona{fill:transparent}
+.bj-marca:hover .bj-zona{fill:var(--t1-hover)}
+.bj-filtra .bj-marca{cursor:pointer}
+.bj-marca.bj-atenuada .bj-barra{opacity:.35}
+.bj-marca.bj-elegida .bj-eje-cat{fill:#b88a00}
+html:not([data-tema="claro"]) .bj-marca.bj-elegida .bj-eje-cat{fill:#ffd100}
+
+/* Mapa CD × mes: el rojo crece con el valor (--bj-calor de 0 a 1; nombre propio, porque --i ya lo usa la animación de la tarjeta). */
+.bj-mapa-scroll{overflow-x:auto}
+.bj-mapa{width:100%;min-width:760px;border-collapse:separate;border-spacing:2px;color:var(--t1-texto);font-size:12px}
+.bj-mapa th,.bj-mapa td{height:30px;padding:0 8px;border-radius:5px;white-space:nowrap}
+.bj-mapa thead th{color:var(--t1-suave);font-size:11.5px;font-weight:800;text-align:center;letter-spacing:.04em;text-transform:uppercase}
+.bj-mapa .bj-mapa-cd{text-align:left;font-weight:800}
+.bj-mapa td{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;--bj-calor:0;background:color-mix(in srgb,#ef4444 calc(var(--bj-calor) * 78%),var(--t1-card-2));color:var(--t1-texto)}
+.bj-mapa td.bj-mapa-neg{background:#22c55e33}
+.bj-mapa .bj-mapa-total{border-left:5px solid var(--t1-card);background-clip:padding-box;font-weight:900}
+.bj-mapa tfoot th,.bj-mapa tfoot td{border-top:5px solid var(--t1-card);background-clip:padding-box;font-weight:900}
+.bj-mapa tfoot th{text-transform:uppercase;letter-spacing:.04em}
+
+/* Detalle */
+.bj-buscar{display:flex;align-items:center;gap:8px;margin-left:auto;height:36px;padding:0 10px;border:1px solid var(--t1-borde-campo);border-radius:10px;background:var(--t1-campo);color:var(--t1-suave)}
+.bj-buscar:focus-within{border-color:var(--cc-amarillo)}
+.bj-buscar .t1-ico{flex:none;width:16px;height:16px}
+.bj-buscar input{width:230px;height:34px;padding:0;border:0;background:transparent;color:var(--t1-texto);font:inherit;font-size:13px;font-weight:600}
+.bj-buscar input:focus{outline:none}
+.bj-detalle-scroll{overflow-x:auto;border:1px solid var(--t1-borde);border-radius:12px}
+.bj-detalle{width:100%;min-width:980px;border-collapse:collapse;color:var(--t1-texto);font-size:12.5px}
+.bj-detalle th,.bj-detalle td{padding:7px 10px;text-align:left;vertical-align:middle}
+.bj-detalle thead th{background:var(--cc-amarillo);color:#111;font-size:11.5px;font-weight:800}
+.bj-detalle tbody tr+tr td{border-top:1px solid var(--t1-borde)}
+.bj-detalle .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bj-detalle .bj-neg{color:#16a34a;font-weight:800}
+.bj-fecha,.bj-doc{white-space:nowrap;color:var(--t1-suave);font-variant-numeric:tabular-nums}
+.bj-material b{display:block;font-weight:800}
+.bj-material small,.bj-anula{display:block;color:var(--t1-suave);font-size:11px;font-weight:600}
+.bj-anula{color:#16a34a}
+.bj-motivo{font-weight:700}
+.bj-paginas{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;color:var(--t1-suave);font-size:12.5px;font-weight:700}
+
+@media(max-width:1100px){
+  .bj-fila-ancha{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .bj-buscar{width:100%;margin-left:0}
+  .bj-buscar input{width:100%}
+}

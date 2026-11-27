@@ -8,6 +8,8 @@ import { validarColumnasWip } from '../shared/wip.ts';
 import type { ColumnasWip } from '../shared/wip.ts';
 import { validarColumnasFms } from '../shared/ofe.ts';
 import type { ColumnasFms } from '../shared/ofe.ts';
+import { ESQUEMA_BAJAS, validarColumnasBajas } from '../shared/bajas.ts';
+import type { ColumnasBajas } from '../shared/bajas.ts';
 
 // Rutas de datos de los módulos de Comando Central. Todas guardan en public.t1_cargas (ver src/server/cargas.ts).
 interface UsuarioSesion { sub: string; nombre: string }
@@ -40,3 +42,8 @@ export const rutasOfe = (pool: pg.Pool | null, sesion: Sesion) => {
   router.use('/montacargas', rutasMontacargas(pool, sesion));
   return router;
 };
+
+/** Bajas: un Excel de SAP por mes; cada archivo llena las fechas contables que trae. */
+export const rutasBajas = (pool: pg.Pool | null, sesion: Sesion) => rutasCargas(pool, sesion, 'Bajas', {
+  bajas: { validar: validarColumnasBajas, dias: (d: ColumnasBajas) => d.fecha, esquema: ESQUEMA_BAJAS },
+});

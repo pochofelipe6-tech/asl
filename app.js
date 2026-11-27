@@ -1492,6 +1492,31 @@ function validarColumnasWip(datos) {
 }
 var orden3 = new Intl.Collator("es").compare;
 
+// src/shared/bajas.ts
+var MAX_FILAS_BAJAS = 3e5;
+var ESQUEMA_BAJAS = {
+  filas: ["fecha", "documento", "cantidad", "importe"],
+  indices: { centro: "centros", mov: "movs", material: "materiales", almacen: "almacenes", ume: "umes", usuario: "usuarios", cabecera: "cabeceras" }
+};
+function validarColumnasBajas(datos) {
+  const d = datos;
+  if (!d || d.tipo !== "bajas" || d.version !== 1) return "El tipo de archivo no coincide.";
+  const n = d.fecha?.length ?? 0;
+  if (n < 1 || n > MAX_FILAS_BAJAS) return "La cantidad de filas no es v\xE1lida.";
+  const numeros = (a) => Array.isArray(a) && a.length === n && a.every((v) => typeof v === "number" && Number.isFinite(v));
+  if (!numeros(d.fecha) || !numeros(d.cantidad) || !numeros(d.importe)) return "Las columnas de fecha, cantidad o importe no son v\xE1lidas.";
+  if (!Array.isArray(d.documento) || d.documento.length !== n || !d.documento.every((v) => typeof v === "string" && v.length <= 30)) return "La columna de documento no es v\xE1lida.";
+  for (const [col, lista] of Object.entries(ESQUEMA_BAJAS.indices)) {
+    const l = d[lista];
+    const idx = d[col];
+    if (!Array.isArray(l) || !l.every((v) => typeof v === "string" && v.length <= 160)) return `La lista ${lista} no es v\xE1lida.`;
+    if (!Array.isArray(idx) || idx.length !== n || !idx.every((i) => Number.isInteger(i) && i >= 0 && i < l.length)) return `La columna ${col} no es v\xE1lida.`;
+  }
+  return null;
+}
+var gerenciaDeCd = /* @__PURE__ */ new Map();
+for (const g of GERENCIAS) if (!gerenciaDeCd.has(g.cd)) gerenciaDeCd.set(g.cd, g);
+
 // src/server/t1.ts
 var rutasT1 = (pool, sesion) => rutasCargas(pool, sesion, "Seguimiento T1", {
   atct: {
@@ -1515,6 +1540,9 @@ var rutasOfe = (pool, sesion) => {
   router.use("/montacargas", rutasMontacargas(pool, sesion));
   return router;
 };
+var rutasBajas = (pool, sesion) => rutasCargas(pool, sesion, "Bajas", {
+  bajas: { validar: validarColumnasBajas, dias: (d) => d.fecha, esquema: ESQUEMA_BAJAS }
+});
 
 // src/server/usuarios.ts
 import express7 from "express";
@@ -1961,6 +1989,7 @@ app.use("/api/solicitudes", rutasSolicitudes(dbFrescura, leerSesion));
 app.use("/api/t1", rutasT1(dbFrescura, leerSesion));
 app.use("/api/wip", rutasWip(dbFrescura, leerSesion));
 app.use("/api/ofe", rutasOfe(dbFrescura, leerSesion));
+app.use("/api/bajas", rutasBajas(dbFrescura, leerSesion));
 app.get("/api/frescura/indice.json", async (req, res) => {
   if (!leerSesion(req)) {
     res.status(401).json({ error: "No has iniciado sesi\xF3n." });
@@ -2174,6 +2203,7 @@ app.get("/activos", paginaProtegida("activos.html"));
 app.get("/t1", paginaProtegida("t1.html"));
 app.get("/wip", paginaProtegida("wip.html"));
 app.get("/ofe", paginaProtegida("ofe.html"));
+app.get("/bajas", paginaProtegida("bajas.html"));
 var server_default = app;
 if (!process.env.VERCEL) app.listen(Number(PORT), (err) => {
   if (err) {

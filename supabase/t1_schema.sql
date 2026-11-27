@@ -1,5 +1,5 @@
 -- Cargas de Excel de Comando Central: Seguimiento T1 (ATCT.xlsx y ESPERA.xlsx, página /t1),
--- Seguimiento WIP (Data WIP.xlsx, página /wip) y OFE (Data FMS.xlsx, página /ofe).
+-- Seguimiento WIP (Data WIP.xlsx, página /wip), OFE (Data FMS.xlsx, página /ofe) y Bajas (Excel de SAP por mes, página /bajas).
 -- Los datos van en columnas (ver ColumnasAtct y ColumnasEspera en src/shared/t1.ts, ColumnasWip en src/shared/wip.ts y
 -- ColumnasFms en src/shared/ofe.ts), en JSON comprimido con gzip.
 -- t1_cargas: cada archivo subido, tal cual. No se borra ninguno (es el historial).
@@ -20,7 +20,7 @@ create table if not exists public.t1_cargas (
   creado_en timestamptz not null default now()
 );
 alter table public.t1_cargas drop constraint if exists t1_cargas_tipo_check;
-alter table public.t1_cargas add constraint t1_cargas_tipo_check check (tipo in ('atct', 'espera', 'wip', 'fms'));
+alter table public.t1_cargas add constraint t1_cargas_tipo_check check (tipo in ('atct', 'espera', 'wip', 'fms', 'bajas'));
 create index if not exists t1_cargas_tipo on public.t1_cargas(tipo, creado_en desc);
 alter table public.t1_cargas enable row level security;
 revoke all on public.t1_cargas from anon, authenticated;

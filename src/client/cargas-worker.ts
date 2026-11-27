@@ -1,11 +1,12 @@
-// Lee Data WIP.xlsx o Data FMS.xlsx en segundo plano, lo pasa a columnas y lo comprime con gzip para subirlo.
+// Lee Data WIP.xlsx, Data FMS.xlsx o el Excel de bajas de SAP en segundo plano, lo pasa a columnas y lo comprime con gzip para subirlo.
 // Detecta el tipo por el encabezado de cada hoja (normalmente "Hoja1" en WIP y "Data FMS" en FMS).
 // Se le envía { file, tipo } y responde solo si el archivo es del tipo pedido.
 import * as XLSX from 'xlsx';
 import { esEncabezadoWip, leerWip, COLUMNAS_WIP } from '../shared/wip';
 import { esEncabezadoFms, leerFms, COLUMNAS_FMS } from '../shared/ofe';
+import { esEncabezadoBajas, leerBajas } from '../shared/bajas';
 
-export type TipoCargaComando = 'wip' | 'fms';
+export type TipoCargaComando = 'wip' | 'fms' | 'bajas';
 export interface PedidoWorkerCargas { file: File; tipo: TipoCargaComando }
 export interface RespuestaWorkerCargas {
   error?: string;
@@ -17,6 +18,7 @@ export interface RespuestaWorkerCargas {
 const LECTORES = {
   wip: { es: esEncabezadoWip, leer: leerWip, nombre: 'Data WIP', columnas: COLUMNAS_WIP },
   fms: { es: esEncabezadoFms, leer: leerFms, nombre: 'Data FMS', columnas: COLUMNAS_FMS },
+  bajas: { es: esEncabezadoBajas, leer: leerBajas, nombre: 'el Excel de bajas', columnas: ['Ce.', 'Nombre 1', 'CMv', 'Material', 'Texto breve de material', 'Fe.contab.', 'Cantidad', 'Importe ML'] },
 } as const;
 
 async function comprimir(texto: string): Promise<ArrayBuffer> {

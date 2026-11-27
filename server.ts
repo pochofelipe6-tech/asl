@@ -11,7 +11,7 @@ import { rutasExcel } from './src/server/excel.ts';
 import { rutasPreventas } from './src/server/preventas.ts';
 import { rutasFormularios } from './src/server/formularios.ts';
 import { rutasSolicitudes } from './src/server/solicitudes.ts';
-import { rutasOfe, rutasT1, rutasWip } from './src/server/t1.ts';
+import { rutasBajas, rutasOfe, rutasT1, rutasWip } from './src/server/t1.ts';
 import { crearAcceso, type SesionUsuario } from './src/server/usuarios.ts';
 
 // Se entra con cédula y contraseña (src/server/usuarios.ts); los usuarios viven en la base (SUPABASE_DB_URL).
@@ -141,6 +141,7 @@ app.use('/api/solicitudes', rutasSolicitudes(dbFrescura, leerSesion));
 app.use('/api/t1', rutasT1(dbFrescura, leerSesion));
 app.use('/api/wip', rutasWip(dbFrescura, leerSesion));
 app.use('/api/ofe', rutasOfe(dbFrescura, leerSesion));
+app.use('/api/bajas', rutasBajas(dbFrescura, leerSesion));
 
 // El catalogo debe estar disponible aunque el servidor no tenga los JSON locales del Excel.
 app.get('/api/frescura/indice.json', async (req, res) => {
@@ -299,6 +300,7 @@ app.get('/activos', paginaProtegida('activos.html'));
 app.get('/t1', paginaProtegida('t1.html'));
 app.get('/wip', paginaProtegida('wip.html'));
 app.get('/ofe', paginaProtegida('ofe.html'));
+app.get('/bajas', paginaProtegida('bajas.html'));
 
 export default app;
 

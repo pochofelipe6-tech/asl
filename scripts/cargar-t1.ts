@@ -1,5 +1,5 @@
 // Carga inicial de los módulos de Comando Central: crea o actualiza la tabla (supabase/t1_schema.sql) y guarda los
-// archivos con el mismo lector de las páginas. Indica cada archivo con su tipo (atct, espera, wip o fms). Uso:
+// archivos con el mismo lector de las páginas. Indica cada archivo con su tipo (atct, espera, wip, fms o bajas). Uso:
 //   node --env-file=.env.local scripts/cargar-t1.ts atct=ATCT.xlsx espera=ESPERA.xlsx wip="Data WIP.xlsx" fms="Data FMS.xlsx"
 import XLSX from 'xlsx';
 import pg from 'pg';
@@ -9,11 +9,21 @@ import { gzipSync } from 'node:zlib';
 import { isoDeDia, leerAtct, leerEspera, validarColumnas } from '../src/shared/t1.ts';
 import { leerWip, validarColumnasWip } from '../src/shared/wip.ts';
 import { leerFms, validarColumnasFms } from '../src/shared/ofe.ts';
+import { esEncabezadoBajas, leerBajas, validarColumnasBajas } from '../src/shared/bajas.ts';
 
 const hoja = (archivo: string, nombre: string) => {
   const libro = XLSX.readFile(archivo, { dense: true, sheets: [nombre] });
   if (!libro.Sheets[nombre]) throw new Error(`${basename(archivo)} no tiene la hoja "${nombre}".`);
   return XLSX.utils.sheet_to_json<unknown[]>(libro.Sheets[nombre], { header: 1, raw: true, defval: null });
+};
+/** La primera hoja cuyo encabezado cumple (las bajas de SAP suelen venir en "Hoja1", pero no siempre). */
+const hojaCon = (archivo: string, es: (cabecera: readonly unknown[]) => boolean) => {
+  const libro = XLSX.readFile(archivo, { dense: true });
+  for (const nombre of libro.SheetNames) {
+    const filas = XLSX.utils.sheet_to_json<unknown[]>(libro.Sheets[nombre], { header: 1, raw: true, defval: null });
+    if (es(filas[0] ?? [])) return filas;
+  }
+  throw new Error(`${basename(archivo)} no tiene una hoja con las columnas de bajas.`);
 };
 interface Lectura { columnas: unknown; filas: number; omitidas: unknown[]; desde: number | null; hasta: number | null }
 const LECTORES: Record<string, { leer(archivo: string): Lectura; validar(c: unknown): string | null }> = {
@@ -21,6 +31,7 @@ const LECTORES: Record<string, { leer(archivo: string): Lectura; validar(c: unkn
   espera: { leer: a => leerEspera(hoja(a, 'Export')), validar: c => validarColumnas(c, 'espera') },
   wip: { leer: a => leerWip(hoja(a, 'Hoja1')), validar: validarColumnasWip },
   fms: { leer: a => leerFms(hoja(a, 'Data FMS')), validar: validarColumnasFms },
+  bajas: { leer: a => leerBajas(hojaCon(a, esEncabezadoBajas)), validar: validarColumnasBajas },
 };
 
 const pedidos = process.argv.slice(2).map(arg => {
@@ -48,4 +59,7 @@ try {
       [tipo, basename(archivo), lectura.filas, isoDeDia(lectura.desde!), isoDeDia(lectura.hasta!), gzip, 'Carga inicial']);
     console.log(`${tipo}: ${basename(archivo)} · ${lectura.filas} filas (${lectura.omitidas.length} omitidas) · ${isoDeDia(lectura.desde!)} a ${isoDeDia(lectura.hasta!)} · ${(gzip.length / 1024 / 1024).toFixed(2)} MB comprimido`);
   }
+  // Lo juntado de esos tipos se rehace en el servidor con todas sus cargas (incluidas las nuevas) la próxima vez que se abra.
+  const tipos = [...new Set(cargas.map(c => c.tipo))];
+  await pool.query('delete from public.t1_consolidado where tipo = any($1)', [tipos]).catch((e: { code?: string }) => { if (e.code !== '42P01') throw e; });
 } finally { await pool.end(); }
