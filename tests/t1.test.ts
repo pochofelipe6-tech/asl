@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
 import { gzipSync } from 'node:zlib';
-import type pg from 'pg';
+import { baseFalsa } from './base-cargas-falsa.ts';
+import { combinarColumnas } from '../src/server/cargas.ts';
 import {
   calcularT1, cdDeUbicacion, diaDeIso, filasAtct, filasEspera, horasATexto, leerAtct, leerEspera, minutosDelDia, minutosIngreso,
   opcionesT1, semanaDe, tipoDeEncabezado, turnoDe, validarColumnas, COLUMNAS_ATCT, COLUMNAS_ESPERA,
@@ -95,39 +96,96 @@ test('valida lo que llega al servidor', () => {
   assert.match(validarColumnas({ ...columnas, minutos: [1, 2] }, 'atct')!, /minutos/);
 });
 
-test('la API guarda cargas comprimidas y entrega la última', async () => {
-  const filas: { id: string; tipo: string; archivo: string; filas: number; datos: Buffer; creado_en: Date }[] = [];
-  let pedidasASupabase = 0;
-  const consulta = async (sql: string, params: unknown[] = []) => {
-    if (/^(begin|commit|rollback)/.test(sql) || sql.trimStart().startsWith('delete')) return { rows: [] };
-    if (sql.trimStart().startsWith('insert')) { const f = { id: `id${filas.length + 1}`, tipo: String(params[0]), archivo: String(params[1]), filas: Number(params[2]), datos: params[5] as Buffer, creado_en: new Date() }; filas.push(f); return { rows: [f] }; }
-    if (sql.includes('distinct on')) return { rows: filas.map(({ id, tipo, archivo, filas: n }) => ({ id, tipo, archivo, filas: n })) };
-    if (sql.includes('select id from')) return { rows: filas.filter(f => f.tipo === params[0]).slice(-1) };
-    if (sql.includes('encode(datos')) { pedidasASupabase++; const f = filas.find(x => x.id === params[0]); return { rows: f ? [{ datos: f.datos.toString('base64') }] : [] }; }
-    throw new Error('SQL inesperado: ' + sql);
-  };
-  const pool = { query: consulta, connect: async () => ({ query: consulta, release() {} }) } as unknown as pg.Pool;
+
+/** Levanta las rutas en un puerto libre; devuelve la dirección y cómo cerrarlo. */
+async function levantar(base: ReturnType<typeof baseFalsa>) {
   const app = express();
-  app.use('/api/t1', rutasT1(pool, req => (req.get('x-test-user') ? { sub: 'u1', nombre: 'Operador' } : null)));
+  app.use('/api/t1', rutasT1(base.pool, req => (req.get('x-test-user') ? { sub: 'u1', nombre: 'Operador' } : null)));
   const server = app.listen(0);
   await new Promise<void>(r => server.once('listening', r));
+  return { url: `http://127.0.0.1:${(server.address() as { port: number }).port}/api/t1`, cerrar: () => server.close() };
+}
+const h = { 'x-test-user': '1' };
+const subirA = (url: string, tipo: string, body: Buffer, archivo: string) => fetch(`${url}/cargar/${tipo}`, { method: 'POST', headers: { ...h, 'Content-Type': 'application/octet-stream', 'x-t1-archivo': encodeURIComponent(archivo) }, body });
+const comprimir = (crudo: unknown[][]) => gzipSync(JSON.stringify(leerAtct(crudo).columnas));
+
+test('la API guarda cargas comprimidas y entrega los datos', async () => {
+  const base = baseFalsa();
+  const { url, cerrar } = await levantar(base);
   try {
-    const url = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/t1`;
-    const h = { 'x-test-user': '1' };
     assert.equal((await fetch(`${url}/estado`)).status, 401);
-    const cuerpo = gzipSync(JSON.stringify(leerAtct(atctCrudo).columnas));
-    const subir = (tipo: string, body: Buffer) => fetch(`${url}/cargar/${tipo}`, { method: 'POST', headers: { ...h, 'Content-Type': 'application/octet-stream', 'x-t1-archivo': encodeURIComponent('ATCT nov.xlsx') }, body });
-    assert.equal((await subir('espera', cuerpo)).status, 400, 'tipo cruzado');
-    assert.equal((await subir('atct', Buffer.from('no es gzip'))).status, 400);
-    const ok = await subir('atct', cuerpo);
+    const cuerpo = comprimir(atctCrudo);
+    assert.equal((await subirA(url, 'espera', cuerpo, 'ATCT nov.xlsx')).status, 400, 'tipo cruzado');
+    assert.equal((await subirA(url, 'atct', Buffer.from('no es gzip'), 'ATCT nov.xlsx')).status, 400);
+    const ok = await subirA(url, 'atct', cuerpo, 'ATCT nov.xlsx');
     assert.equal(ok.status, 201);
-    assert.deepEqual(await ok.json(), { tipo: 'atct', archivo: 'ATCT nov.xlsx', filas: 5, desde: '2026-11-02', hasta: '2026-11-03', creado_en: (await (async () => filas[0].creado_en.toISOString())()) });
+    assert.deepEqual(await ok.json(), {
+      tipo: 'atct', archivo: 'ATCT nov.xlsx', filas: 5, desde: '2026-11-02', hasta: '2026-11-03', creado_en: base.cargas[0].creado_en.toISOString(),
+      total: { filas: 5, desde: '2026-11-02', hasta: '2026-11-03' },
+    });
     const estado = await (await fetch(`${url}/estado`, { headers: h })).json();
-    assert.equal(estado.atct.archivo, 'ATCT nov.xlsx');
+    assert.deepEqual([estado.atct.archivo, estado.atct.filas, estado.atct.cargas], ['ATCT nov.xlsx', 5, 1]);
     assert.equal(estado.espera, null);
     const datosRecibidos = await (await fetch(`${url}/datos/atct`, { headers: h })).json();
     assert.equal(datosRecibidos.fecha.length, 5, 'el navegador recibe el JSON descomprimido');
-    assert.equal(pedidasASupabase, 0, 'lo recién subido sale de la memoria del servidor, sin volver a pedirlo');
+    assert.equal(base.estado.pedidasJuntado, 0, 'lo recién subido sale de la memoria del servidor, sin volver a pedirlo');
     assert.equal((await fetch(`${url}/datos/espera`, { headers: h })).status, 404);
-  } finally { server.close(); }
+  } finally { cerrar(); }
+});
+
+test('cada archivo llena sus fechas y nada se borra', async () => {
+  // Sin la tabla de lo juntado: el servidor la crea sola.
+  const base = baseFalsa({ conTablaJuntado: false });
+  const { url, cerrar } = await levantar(base);
+  // El archivo del día: corrige el 3 de noviembre (otra placa) y agrega el 4.
+  const delDia = [
+    [...COLUMNAS_ATCT],
+    [dia('2026-11-03'), '9', 'EEE555', 'MONTERIA', 'Zona de atención', '11/3/2026 9:00:00 AM', '11/3/2026 10:00:00 AM', 0, hora(1, 0)],
+    [dia('2026-11-04'), '10', 'FFF666', 'GALAPA', 'Zona de atención', '11/4/2026 9:00:00 AM', '11/4/2026 11:00:00 AM', 0, hora(2, 0)],
+  ];
+  const placas = (c: ReturnType<typeof leerAtct>['columnas']) => filasAtct(c).map(f => `${f.fecha - dia('2026-11-01') + 1}:${f.placa}`);
+  try {
+    assert.equal((await subirA(url, 'atct', comprimir(atctCrudo), 'ATCT histórico.xlsx')).status, 201);
+    assert.ok(base.estado.tablaJuntado, 'la tabla se creó');
+    const ok = await subirA(url, 'atct', comprimir(delDia), 'ATCT 4 nov.xlsx');
+    assert.deepEqual((await ok.json()).total, { filas: 6, desde: '2026-11-02', hasta: '2026-11-04' });
+    const juntos = await (await fetch(`${url}/datos/atct`, { headers: h })).json();
+    assert.equal(validarColumnas(juntos, 'atct'), null, 'lo juntado sigue siendo una carga válida');
+    assert.deepEqual(placas(juntos), ['2:AAA111', '2:BBB222', '2:CCC333', '2:AAA111', '3:EEE555', '4:FFF666'], 'el 2 se conserva, el 3 se reemplaza, el 4 se suma');
+    assert.equal(base.cargas.length, 2, 'los dos archivos quedan guardados');
+    assert.equal(base.estado.borrados, 0, 'no se borra ninguna carga');
+    const estado = await (await fetch(`${url}/estado`, { headers: h })).json();
+    assert.deepEqual([estado.atct.archivo, estado.atct.filas, estado.atct.desde, estado.atct.hasta, estado.atct.cargas], ['ATCT 4 nov.xlsx', 6, '2026-11-02', '2026-11-04', 2]);
+  } finally { cerrar(); }
+
+  // Otro servidor (sin memoria) y sin lo juntado: se rehace con todas las cargas guardadas, de la más vieja a la más nueva.
+  base.juntado.clear();
+  const otro = await levantar(base);
+  try {
+    const estado = await (await fetch(`${otro.url}/estado`, { headers: h })).json();
+    assert.deepEqual([estado.atct.filas, estado.atct.desde, estado.atct.hasta], [6, '2026-11-02', '2026-11-04']);
+    assert.deepEqual(placas(await (await fetch(`${otro.url}/datos/atct`, { headers: h })).json()), ['2:AAA111', '2:BBB222', '2:CCC333', '2:AAA111', '3:EEE555', '4:FFF666']);
+  } finally { otro.cerrar(); }
+});
+
+test('al juntar no se pierde ninguna columna', () => {
+  const esquema = { filas: ['fecha'] };
+  const base = { tipo: 'x', version: 1, fecha: [1] };
+  assert.deepEqual(combinarColumnas(esquema, base, [1], { tipo: 'x', version: 1, fecha: [2] }, [2]), { tipo: 'x', version: 1, fecha: [1, 2] });
+  assert.throws(() => combinarColumnas(esquema, { ...base, otra: [5] }, [1], base, [1]), /otra/);
+});
+
+test('ESPERA también se junta por fecha', async () => {
+  const base = baseFalsa();
+  const { url, cerrar } = await levantar(base);
+  const gz = (crudo: unknown[][]) => gzipSync(JSON.stringify(leerEspera(crudo).columnas));
+  try {
+    assert.equal((await subirA(url, 'espera', gz(esperaCruda), 'ESPERA.xlsx')).status, 201);
+    // Un archivo del 3 de noviembre: el 2 (tres filas) se conserva.
+    const del3 = [[...COLUMNAS_ESPERA], ['GGG777', dia('2026-11-03') + hora(6, 0), dia('2026-11-03') + hora(5, 0), dia('2026-11-03') + hora(7, 0), dia('2026-11-03') + hora(8, 0), '01:00', '01:00', '02:00', 'Galapa']];
+    assert.deepEqual((await (await subirA(url, 'espera', gz(del3), 'ESPERA 3 nov.xlsx')).json()).total, { filas: 4, desde: '2026-11-02', hasta: '2026-11-03' });
+    const juntos = await (await fetch(`${url}/datos/espera`, { headers: h })).json();
+    assert.equal(validarColumnas(juntos, 'espera'), null);
+    assert.deepEqual(filasEspera(juntos).map(f => f.placa), ['AAA111', 'ZZZ999', 'CCC333', 'GGG777']);
+  } finally { cerrar(); }
 });

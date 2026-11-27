@@ -68,7 +68,8 @@ function icono(trazos: string): SVGSVGElement {
 
 type Medida = 'armado' | 'verificacion' | 'montacargas';
 interface Filtro { desde: number; hasta: number; cds: string[] }
-interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string }
+/** Lo guardado de un tipo: filas y fechas de todos los archivos juntos; archivo, quién y cuándo son del último que se subió. */
+interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string; cargas?: number }
 type OpcionesWip = ReturnType<typeof opcionesWip>;
 
 /** Las tres usabilidades, cada una con su color (el mismo en las tarjetas, las tablas y las líneas). */
@@ -1179,11 +1180,11 @@ function pintarAvisoCd() {
 
 // ---------- Carga de datos ----------
 
-/** Archivo cargado (nombre, filas, quién y cuándo), junto al botón "Subir Excel". */
+/** Junto al botón "Subir Excel": lo guardado (todos los archivos juntos) y el último archivo (nombre, quién y cuándo). */
 function pintarCarga() {
   const c = carga;
   porId('wipHeroDatos').textContent = c
-    ? `Datos cargados: ${c.archivo} · ${plural(c.filas, 'fila', 'filas')} del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))} · subido por ${c.usuario_nombre || 'sin nombre'} el ${formatoMomento.format(new Date(c.creado_en))}`
+    ? `Datos guardados: ${plural(c.filas, 'fila', 'filas')} del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}${c.cargas ? ` (${plural(c.cargas, 'archivo', 'archivos')})` : ''} · último: ${c.archivo}, subido por ${c.usuario_nombre || 'sin nombre'} el ${formatoMomento.format(new Date(c.creado_en))}`
     : 'Sin datos cargados';
 }
 
@@ -1331,7 +1332,7 @@ async function subir(archivo: File | undefined) {
     entradaArchivo.value = '';
   }
   if (problema) avance(`No se cargó ${archivo.name}: ${problema}`, 'error');
-  else if (listo) avance(`Datos actualizados. ${listo}.`, 'ok');
+  else if (listo) avance(`Guardado en sus fechas; lo de otras fechas se conserva. ${listo}.`, 'ok');
 }
 for (const b of botonesSubir) b.addEventListener('click', () => entradaArchivo.click());
 entradaArchivo.addEventListener('change', () => void subir(entradaArchivo.files?.[0]));

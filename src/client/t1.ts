@@ -69,7 +69,8 @@ function icono(trazos: string): SVGSVGElement {
 
 type Dimension = 'cds' | 'gerencias' | 'turnos';
 interface Filtro { desde: number; hasta: number; cds: string[]; gerencias: string[]; semanas: number[]; diasSemana: number[]; turnos: Turno[] }
-interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string }
+/** Lo guardado de un tipo: filas y fechas de todos los archivos juntos; archivo, quién y cuándo son del último que se subió. */
+interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string; cargas?: number }
 type Cargas = Record<TipoCarga, Carga | null>;
 
 let datos: DatosT1 | null = null;
@@ -1475,14 +1476,14 @@ porId('t1ExclEs').addEventListener('click', () => {
 
 // ---------- Carga de datos ----------
 
-/** Fechas de los datos junto a "Subir Excel"; el detalle de cada archivo (filas, quién y cuándo) va al pasar el mouse. */
+/** Fechas de los datos junto a "Subir Excel"; al pasar el mouse, lo guardado (todos los archivos juntos) y el último archivo. */
 function pintarCargas() {
   const fuente = porId('t1HeroDatos');
   fuente.textContent = [cargas.atct && `ATCT al ${fecha(diaDeIso(cargas.atct.hasta))}`, cargas.espera && `ESPERA al ${fecha(diaDeIso(cargas.espera.hasta))}`].filter(Boolean).join(' · ') || 'Sin datos cargados';
   fuente.title = (['atct', 'espera'] as const).map(tipo => {
     const c = cargas[tipo];
     return c
-      ? `${c.archivo}: ${plural(c.filas, 'fila', 'filas')}, del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}. Subido por ${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}`
+      ? `${NOMBRE_TIPO[tipo]}: ${plural(c.filas, 'fila guardada', 'filas guardadas')}, del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}${c.cargas ? ` (${plural(c.cargas, 'archivo', 'archivos')})` : ''}. Último: ${c.archivo}, subido por ${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}`
       : `${NOMBRE_TIPO[tipo]}.xlsx: sin cargar`;
   }).join('\n');
 }
@@ -1632,7 +1633,7 @@ async function subir(archivos: File[]) {
     entradaArchivo.value = '';
   }
   if (problema) avance(`${listos.length ? `Se cargó ${listos.join(' y ')}. ` : ''}No se cargó ${problema}`, 'error');
-  else if (listos.length) avance(`Datos actualizados. ${listos.join(' · ')}.`, 'ok');
+  else if (listos.length) avance(`Guardado en sus fechas; lo de otras fechas se conserva. ${listos.join(' · ')}.`, 'ok');
 }
 for (const b of botonesSubir) b.addEventListener('click', () => entradaArchivo.click());
 entradaArchivo.addEventListener('change', () => void subir([...(entradaArchivo.files ?? [])]));

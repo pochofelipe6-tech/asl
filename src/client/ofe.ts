@@ -82,7 +82,8 @@ function icono(trazos: string): SVGSVGElement {
 type Dimension = 'cds' | 'maquinas' | 'turnos';
 type OpcionesOfe = ReturnType<typeof opcionesOfe>;
 interface Filtro { desde: number; hasta: number; cds: string[]; maquinas: string[]; turnos: string[] }
-interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string }
+/** Lo guardado de un tipo: filas y fechas de todos los archivos juntos; archivo, quién y cuándo son del último que se subió. */
+interface Carga { archivo: string; filas: number; desde: string; hasta: string; usuario_nombre: string | null; creado_en: string; cargas?: number }
 
 /** Data FMS tal como llega del servidor: se guarda para recalcular las filas cuando cambia la lista de montacargas. */
 let columnasFms: ColumnasFms | null = null;
@@ -1274,14 +1275,15 @@ function recalcular(espera = 140) {
 
 // ---------- Carga de datos ----------
 
-/** Archivo cargado (nombre, filas, fechas, quién y cuándo), junto al botón "Subir Excel". */
+/** Junto al botón "Subir Excel": lo guardado (todos los archivos juntos) y el último archivo (nombre, quién y cuándo). */
 function pintarCarga() {
   const c = carga;
   const rango = c ? `del ${fecha(diaDeIso(c.desde))} al ${fecha(diaDeIso(c.hasta))}` : '';
   const quien = c ? `${c.usuario_nombre || 'sin nombre'} · ${formatoMomento.format(new Date(c.creado_en))}` : '';
   const fuente = porId('ofeHeroDatos');
   if (!c) { fuente.textContent = 'Sin datos cargados'; return; }
-  fuente.replaceChildren(crear('strong', undefined, 'Datos cargados: '), `${c.archivo} · ${plural(c.filas, 'fila', 'filas')} · ${rango} · subido por ${quien}`);
+  const archivos = c.cargas ? ` (${plural(c.cargas, 'archivo', 'archivos')})` : '';
+  fuente.replaceChildren(crear('strong', undefined, 'Datos guardados: '), `${plural(c.filas, 'fila', 'filas')} ${rango}${archivos} · último: ${c.archivo}, subido por ${quien}`);
 }
 
 /** Copia de los datos en el navegador: se vuelven a descargar solo cuando alguien sube un archivo nuevo. */
@@ -1495,7 +1497,7 @@ async function subir(archivo: File | undefined) {
     entradaArchivo.value = '';
   }
   if (problema) avance(`No se cargó ${archivo.name}: ${problema}`, 'error');
-  else if (listo) avance(`Datos actualizados. ${listo}.`, 'ok');
+  else if (listo) avance(`Guardado en sus fechas; lo de otras fechas se conserva. ${listo}.`, 'ok');
 }
 for (const b of botonesSubir) b.addEventListener('click', () => entradaArchivo.click());
 entradaArchivo.addEventListener('change', () => void subir(entradaArchivo.files?.[0]));

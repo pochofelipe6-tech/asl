@@ -8,6 +8,7 @@ import { COLUMNAS_WIP, calcularWip, esEncabezadoWip, filasWip, leerWip, opciones
 import { CDS_FMS, COLUMNAS_FMS, calcularOfe, filasFms, leerFms, listaMontacargas, opcionesOfe, revisarMontacargas, validarColumnasFms } from '../src/shared/ofe.ts';
 import { MONTACARGAS } from '../src/shared/montacargas.ts';
 import { rutasOfe, rutasWip } from '../src/server/t1.ts';
+import { baseFalsa } from './base-cargas-falsa.ts';
 
 const d = diaDeIso;
 const cerca = (a: number | null | undefined, b: number) => assert.ok(a !== null && a !== undefined && Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`);
@@ -101,16 +102,7 @@ test('indicadores de OFE solo con montacargas con CD', () => {
 });
 
 test('las API de WIP y OFE guardan solo su propio archivo', async () => {
-  const filas: { id: string; tipo: string; archivo: string; filas: number; datos: Buffer; creado_en: Date }[] = [];
-  const consulta = async (sql: string, params: unknown[] = []) => {
-    if (/^(begin|commit|rollback)/.test(sql) || sql.trimStart().startsWith('delete')) return { rows: [] };
-    if (sql.trimStart().startsWith('insert')) { const f = { id: `id${filas.length + 1}`, tipo: String(params[0]), archivo: String(params[1]), filas: Number(params[2]), datos: params[5] as Buffer, creado_en: new Date() }; filas.push(f); return { rows: [f] }; }
-    if (sql.includes('distinct on')) return { rows: filas.filter(f => (params[0] as string[]).includes(f.tipo)).map(({ id, tipo, archivo, filas: n }) => ({ id, tipo, archivo, filas: n })) };
-    if (sql.includes('select id from')) return { rows: filas.filter(f => f.tipo === params[0]).slice(-1) };
-    if (sql.includes('encode(datos')) { const f = filas.find(x => x.id === params[0]); return { rows: f ? [{ datos: f.datos.toString('base64') }] : [] }; }
-    throw new Error('SQL inesperado: ' + sql);
-  };
-  const pool = { query: consulta, connect: async () => ({ query: consulta, release() {} }) } as unknown as pg.Pool;
+  const { pool } = baseFalsa();
   const sesion = (req: express.Request) => (req.get('x-test-user') ? { sub: 'u1', nombre: 'Operador' } : null);
   const app = express();
   app.use('/api/wip', rutasWip(pool, sesion));
@@ -135,6 +127,27 @@ test('las API de WIP y OFE guardan solo su propio archivo', async () => {
     assert.equal((await (await fetch(`${base}/ofe/estado`, { headers: h })).json()).fms.filas, 4);
     assert.equal((await (await fetch(`${base}/ofe/datos/fms`, { headers: h })).json()).tipo, 'fms');
     assert.equal((await fetch(`${base}/ofe/datos/wip`, { headers: h })).status, 404);
+
+    // Archivo del día: reemplaza el 4 de noviembre (otro CD y otros estados) y suma el 6; los demás días se conservan.
+    const delDia = gzipSync(JSON.stringify(leerWip([
+      [...COLUMNAS_WIP],
+      [d('2026-11-04'), 'Corozal', 2, _, _, _, 1, _, _, _, 7, 10],
+      [d('2026-11-06'), 'Galapa', _, _, _, _, _, _, _, _, 6, 6],
+    ]).columnas));
+    assert.deepEqual((await (await subir('wip/cargar/wip', delDia)).json()).total, { filas: 5, desde: '2026-10-20', hasta: '2026-11-06' });
+    const juntos = await (await fetch(`${base}/wip/datos/wip`, { headers: h })).json();
+    assert.equal(validarColumnasWip(juntos), null);
+    const filasJuntas = filasWip(juntos);
+    assert.deepEqual(filasJuntas.map(f => [f.fecha - d('2026-10-01') + 1, f.cd, f.total]), [[20, 'Galapa', 8], [34, 'La Arenosa', 10], [34, '', 4], [35, 'Corozal', 10], [37, 'Galapa', 6]]);
+    assert.deepEqual(filasJuntas[3].estados, [2, null, null, null, 1, null, null, null, 7], 'los estados viajan con su fila');
+    const estado = (await (await fetch(`${base}/wip/estado`, { headers: h })).json()).wip;
+    assert.deepEqual([estado.filas, estado.cargas], [5, 2]);
+    // Data FMS: un archivo del 3 de octubre reemplaza ese día; el 1 y el 2 se conservan.
+    const fms3 = gzipSync(JSON.stringify(leerFms([[...COLUMNAS_FMS], ['308FGJ35-68176', 1, 2, 3, d('2026-10-03'), 'A']]).columnas));
+    assert.deepEqual((await (await subir('ofe/cargar/fms', fms3)).json()).total, { filas: 5, desde: '2026-10-01', hasta: '2026-10-03' });
+    const fmsJuntos = await (await fetch(`${base}/ofe/datos/fms`, { headers: h })).json();
+    assert.equal(validarColumnasFms(fmsJuntos), null);
+    assert.deepEqual(filasFms(fmsJuntos).map(f => [f.fecha - d('2026-09-30'), f.forklift]), [[1, '308FGJ35-35321'], [1, '308FGJ35-68176'], [2, 'XYZ-NO-EXISTE'], [2, '308FGJ35-35321'], [3, '308FGJ35-68176']]);
   } finally { server.close(); }
 });
 

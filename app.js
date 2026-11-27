@@ -833,7 +833,7 @@ function rutasSolicitudes(pool, sesion) {
     console.error(`${accion} de solicitudes:`, error.message);
     res.status(503).json({ error: mensaje });
   };
-  const leer = (req, res) => {
+  const leer2 = (req, res) => {
     const { solicitud, errores } = revisarSolicitud(req.body?.solicitud);
     if (!solicitud) {
       res.status(400).json({ error: Object.values(errores)[0] ?? "La solicitud no es v\xE1lida." });
@@ -899,7 +899,7 @@ function rutasSolicitudes(pool, sesion) {
       res.status(404).json({ error: "La solicitud no existe." });
       return;
     }
-    const solicitud = leer(req, res);
+    const solicitud = leer2(req, res);
     if (!solicitud) return;
     try {
       const { rows } = await pool.query(
@@ -941,7 +941,7 @@ function rutasSolicitudes(pool, sesion) {
 
 // src/server/cargas.ts
 import express5 from "express";
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 
 // src/shared/t1.ts
 var MAX_FILAS_T1 = 4e5;
@@ -1008,9 +1008,51 @@ var orden = new Intl.Collator("es", { numeric: true }).compare;
 
 // src/server/cargas.ts
 var TABLA_FALTANTE3 = "Falta crear la tabla de cargas. Ejecuta supabase/t1_schema.sql en Supabase.";
-var CONSERVAR = 5;
 var LIMITE_CUERPO = "8mb";
 var LIMITE_DESCOMPRIMIDO = 80 * 1024 * 1024;
+var LIMITE_CONSOLIDADO = 400 * 1024 * 1024;
+function combinarColumnas(esquema, base, diasBase, nuevo, diasNuevo) {
+  const grupos = esquema.grupos ?? [];
+  const indices = esquema.indices ?? {};
+  const conocidas = /* @__PURE__ */ new Set(["tipo", "version", ...esquema.filas, ...grupos, ...Object.keys(indices), ...Object.values(indices)]);
+  for (const d of [base, nuevo]) {
+    const extra = Object.keys(d).find((k) => !conocidas.has(k));
+    if (extra) throw new Error(`La columna ${extra} no est\xE1 en el esquema de la carga.`);
+  }
+  const fuentes = [base, nuevo];
+  const reemplazados = new Set(diasNuevo);
+  const elegidas = [];
+  diasBase.forEach((d, i) => {
+    if (!reemplazados.has(d)) elegidas.push([0, i, d]);
+  });
+  diasNuevo.forEach((d, i) => elegidas.push([1, i, d]));
+  elegidas.sort((a, b) => a[2] - b[2]);
+  const columna = (f, k) => fuentes[f][k];
+  const salida = { tipo: nuevo.tipo, version: nuevo.version };
+  for (const k of esquema.filas) salida[k] = elegidas.map(([f, i]) => columna(f, k)[i]);
+  for (const g of grupos) {
+    const partes = fuentes[1][g].length;
+    salida[g] = Array.from({ length: partes }, (_, p) => elegidas.map(([f, i]) => fuentes[f][g][p][i]));
+  }
+  for (const [col, lista] of Object.entries(indices)) {
+    const valores = [];
+    const posicion = /* @__PURE__ */ new Map();
+    salida[col] = elegidas.map(([f, i]) => {
+      const v = fuentes[f][lista][columna(f, col)[i]];
+      let p = posicion.get(v);
+      if (p === void 0) {
+        p = valores.length;
+        valores.push(v);
+        posicion.set(v, p);
+      }
+      return p;
+    });
+    salida[lista] = valores;
+  }
+  return salida;
+}
+var leer = (gz, limite) => JSON.parse(gunzipSync(gz, { maxOutputLength: limite }).toString("utf8"));
+var deBase64 = (texto) => Buffer.from(String(texto).replace(/\s/g, ""), "base64");
 function rutasCargas(pool, sesion, modulo, tipos) {
   const nombres = Object.keys(tipos);
   const router = express5.Router();
@@ -1035,13 +1077,43 @@ function rutasCargas(pool, sesion, modulo, tipos) {
     res.status(503).json({ error: mensaje });
   };
   const tipoDe = (req) => nombres.includes(String(req.params.tipo)) ? String(req.params.tipo) : null;
+  let tablaLista = null;
+  const crearTabla = (db) => tablaLista ??= (async () => {
+    const client = await db.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", ["t1_consolidado:crear"]);
+      await client.query(`create table if not exists public.t1_consolidado (
+        tipo text primary key, carga_id uuid not null, filas integer not null, desde date, hasta date,
+        datos bytea not null, actualizado_en timestamptz not null default now())`);
+      await client.query("alter table public.t1_consolidado enable row level security");
+      await client.query("revoke all on public.t1_consolidado from anon, authenticated");
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback").catch(() => void 0);
+      tablaLista = null;
+      throw error;
+    } finally {
+      client.release();
+    }
+  })();
+  const conTabla = async (db, accion) => {
+    try {
+      return await accion();
+    } catch (error) {
+      const e = error;
+      if (e.code !== "42P01" || !String(e.message).includes("t1_consolidado")) throw error;
+      await crearTabla(db);
+      return accion();
+    }
+  };
   const memoria = /* @__PURE__ */ new Map();
   const datosDe = (db, tipo, id) => {
     const guardado = memoria.get(tipo);
     if (guardado?.id === id) return guardado.datos;
-    const datos = db.query("select encode(datos, 'base64') as datos from public.t1_cargas where id = $1", [id]).then(({ rows }) => {
-      if (!rows[0]) throw new Error("La carga ya no existe.");
-      return Buffer.from(String(rows[0].datos).replace(/\s/g, ""), "base64");
+    const datos = db.query("select encode(datos, 'base64') as datos from public.t1_consolidado where tipo = $1 and carga_id = $2", [tipo, id]).then(({ rows }) => {
+      if (!rows[0]) throw new Error("Los datos cambiaron mientras se consultaban.");
+      return deBase64(rows[0].datos);
     });
     memoria.set(tipo, { id, datos });
     datos.catch(() => {
@@ -1049,17 +1121,77 @@ function rutasCargas(pool, sesion, modulo, tipos) {
     });
     return datos;
   };
+  const guardarJuntado = async (db, tipo, cargaId, columnas) => {
+    const dias = tipos[tipo].dias(columnas);
+    let desde = Infinity, hasta = -Infinity;
+    for (const d of dias) {
+      if (d < desde) desde = d;
+      if (d > hasta) hasta = d;
+    }
+    const gz = gzipSync(JSON.stringify(columnas));
+    await db.query(
+      `insert into public.t1_consolidado (tipo, carga_id, filas, desde, hasta, datos) values ($1, $2, $3, $4, $5, $6)
+       on conflict (tipo) do update set carga_id = excluded.carga_id, filas = excluded.filas, desde = excluded.desde,
+         hasta = excluded.hasta, datos = excluded.datos, actualizado_en = now()`,
+      [tipo, cargaId, dias.length, dias.length ? isoDeDia(desde) : null, dias.length ? isoDeDia(hasta) : null, gz]
+    );
+    return { gz, filas: dias.length, desde: dias.length ? isoDeDia(desde) : null, hasta: dias.length ? isoDeDia(hasta) : null };
+  };
+  const juntarTodo = async (db, tipo) => {
+    const { rows } = await db.query("select id from public.t1_cargas where tipo = $1 order by creado_en, id", [tipo]);
+    let actual = null;
+    for (const { id } of rows) {
+      const fila = (await db.query("select encode(datos, 'base64') as datos from public.t1_cargas where id = $1", [id])).rows[0];
+      if (!fila) continue;
+      const nuevo = leer(deBase64(fila.datos), LIMITE_DESCOMPRIMIDO);
+      const columnas = actual ? combinarColumnas(tipos[tipo].esquema, actual.columnas, tipos[tipo].dias(actual.columnas), nuevo, tipos[tipo].dias(nuevo)) : nuevo;
+      actual = { id: String(id), columnas };
+    }
+    return actual;
+  };
+  const completarJuntados = async (db, faltan) => {
+    if (!faltan.length) return;
+    const { rows } = await db.query("select distinct tipo from public.t1_cargas where tipo = any($1)", [faltan]);
+    for (const { tipo } of rows) {
+      const client = await db.connect();
+      try {
+        await client.query("begin");
+        await client.query("select pg_advisory_xact_lock(hashtext($1))", [`t1_cargas:${tipo}`]);
+        const ya = await client.query("select carga_id from public.t1_consolidado where tipo = $1", [tipo]);
+        if (!ya.rows[0]) {
+          const todo = await juntarTodo(client, tipo);
+          if (todo) {
+            const { gz } = await guardarJuntado(client, tipo, todo.id, todo.columnas);
+            memoria.set(tipo, { id: todo.id, datos: Promise.resolve(gz) });
+          }
+        }
+        await client.query("commit");
+      } catch (error) {
+        await client.query("rollback").catch(() => void 0);
+        throw error;
+      } finally {
+        client.release();
+      }
+    }
+  };
+  const ESTADO = `select c.tipo, c.carga_id as id, c.filas, to_char(c.desde, 'YYYY-MM-DD') as desde, to_char(c.hasta, 'YYYY-MM-DD') as hasta,
+      l.archivo, l.usuario_nombre, l.creado_en, (select count(*)::int from public.t1_cargas x where x.tipo = c.tipo) as cargas
+    from public.t1_consolidado c join public.t1_cargas l on l.id = c.carga_id where c.tipo = any($1)`;
   router.get("/estado", async (_req, res) => {
     if (!pool) {
       res.status(503).json({ error: `Configura la conexi\xF3n de Supabase para consultar ${modulo}.` });
       return;
     }
     try {
-      const { rows } = await pool.query(
-        `select distinct on (tipo) id, tipo, archivo, filas, to_char(desde, 'YYYY-MM-DD') as desde, to_char(hasta, 'YYYY-MM-DD') as hasta, usuario_nombre, creado_en
-         from public.t1_cargas where tipo = any($1) order by tipo, creado_en desc, id desc`,
-        [nombres]
-      );
+      const rows = await conTabla(pool, async () => {
+        let { rows: rows2 } = await pool.query(ESTADO, [nombres]);
+        const faltan = nombres.filter((t) => !rows2.some((r) => r.tipo === t));
+        if (faltan.length) {
+          await completarJuntados(pool, faltan);
+          ({ rows: rows2 } = await pool.query(ESTADO, [nombres]));
+        }
+        return rows2;
+      });
       for (const r of rows) datosDe(pool, r.tipo, String(r.id)).catch(() => void 0);
       res.json(Object.fromEntries(nombres.map((t) => [t, rows.find((r) => r.tipo === t) ?? null])));
     } catch (error) {
@@ -1077,12 +1209,20 @@ function rutasCargas(pool, sesion, modulo, tipos) {
       return;
     }
     try {
-      const { rows } = await pool.query("select id from public.t1_cargas where tipo = $1 order by creado_en desc, id desc limit 1", [tipo]);
-      if (!rows[0]) {
+      const id = await conTabla(pool, async () => {
+        const cual = () => pool.query("select carga_id from public.t1_consolidado where tipo = $1", [tipo]);
+        let { rows } = await cual();
+        if (!rows[0]) {
+          await completarJuntados(pool, [tipo]);
+          ({ rows } = await cual());
+        }
+        return rows[0] ? String(rows[0].carga_id) : null;
+      });
+      if (!id) {
         res.status(404).json({ error: "A\xFAn no se ha cargado ese archivo." });
         return;
       }
-      const datos = await datosDe(pool, tipo, String(rows[0].id));
+      const datos = await datosDe(pool, tipo, id);
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.setHeader("Content-Encoding", "gzip");
       res.send(datos);
@@ -1107,7 +1247,7 @@ function rutasCargas(pool, sesion, modulo, tipos) {
     }
     let columnas;
     try {
-      columnas = JSON.parse(gunzipSync(req.body, { maxOutputLength: LIMITE_DESCOMPRIMIDO }).toString("utf8"));
+      columnas = leer(req.body, LIMITE_DESCOMPRIMIDO);
     } catch {
       res.status(400).json({ error: "El archivo lleg\xF3 da\xF1ado o es demasiado grande. Int\xE9ntalo de nuevo." });
       return;
@@ -1124,33 +1264,36 @@ function rutasCargas(pool, sesion, modulo, tipos) {
       if (d > hasta) hasta = d;
     }
     const usuario = sesion(req);
-    let client;
     try {
-      client = await pool.connect();
-    } catch {
-      res.status(503).json({ error: "No se pudo conectar a Supabase. Reintenta en un momento." });
-      return;
-    }
-    try {
-      await client.query("begin");
-      const { rows } = await client.query(
-        `insert into public.t1_cargas (tipo, archivo, filas, desde, hasta, datos, usuario_id, usuario_nombre)
-         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, creado_en`,
-        [tipo, archivo, dias.length, isoDeDia(desde), isoDeDia(hasta), req.body, usuario.sub, usuario.nombre]
-      );
-      await client.query(
-        `delete from public.t1_cargas where tipo = $1 and id not in
-         (select id from public.t1_cargas where tipo = $1 order by creado_en desc, id desc limit ${CONSERVAR})`,
-        [tipo]
-      );
-      await client.query("commit");
-      memoria.set(tipo, { id: String(rows[0].id), datos: Promise.resolve(req.body) });
-      res.status(201).json({ tipo, archivo, filas: dias.length, desde: isoDeDia(desde), hasta: isoDeDia(hasta), creado_en: rows[0].creado_en });
+      const resultado = await conTabla(pool, async () => {
+        const client = await pool.connect();
+        try {
+          await client.query("begin");
+          await client.query("select pg_advisory_xact_lock(hashtext($1))", [`t1_cargas:${tipo}`]);
+          const vigente = (await client.query("select carga_id from public.t1_consolidado where tipo = $1", [tipo])).rows[0];
+          const antes = vigente ? { id: String(vigente.carga_id), columnas: leer(await datosDe(client, tipo, String(vigente.carga_id)), LIMITE_CONSOLIDADO) } : await juntarTodo(client, tipo);
+          const { rows } = await client.query(
+            `insert into public.t1_cargas (tipo, archivo, filas, desde, hasta, datos, usuario_id, usuario_nombre)
+             values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, creado_en`,
+            [tipo, archivo, dias.length, isoDeDia(desde), isoDeDia(hasta), req.body, usuario.sub, usuario.nombre]
+          );
+          const id = String(rows[0].id);
+          const juntado = antes ? combinarColumnas(tipos[tipo].esquema, antes.columnas, tipos[tipo].dias(antes.columnas), columnas, dias) : columnas;
+          const total = await guardarJuntado(client, tipo, id, juntado);
+          await client.query("commit");
+          memoria.set(tipo, { id, datos: Promise.resolve(total.gz) });
+          return { creado_en: rows[0].creado_en, total: { filas: total.filas, desde: total.desde, hasta: total.hasta } };
+        } catch (error) {
+          await client.query("rollback").catch(() => void 0);
+          memoria.delete(tipo);
+          throw error;
+        } finally {
+          client.release();
+        }
+      });
+      res.status(201).json({ tipo, archivo, filas: dias.length, desde: isoDeDia(desde), hasta: isoDeDia(hasta), ...resultado });
     } catch (error) {
-      await client.query("rollback").catch(() => void 0);
       fallo(res, error, "Guardado", "No se pudo guardar el archivo. No se aplic\xF3 la carga; reintenta.");
-    } finally {
-      client.release();
     }
   });
   return router;
@@ -1352,15 +1495,23 @@ var orden3 = new Intl.Collator("es").compare;
 
 // src/server/t1.ts
 var rutasT1 = (pool, sesion) => rutasCargas(pool, sesion, "Seguimiento T1", {
-  atct: { validar: (d) => validarColumnas2(d, "atct"), dias: (d) => d.fecha },
-  espera: { validar: (d) => validarColumnas2(d, "espera"), dias: (d) => d.enturnamiento.map((s) => Math.floor(s / 86400)) }
+  atct: {
+    validar: (d) => validarColumnas2(d, "atct"),
+    dias: (d) => d.fecha,
+    esquema: { filas: ["fecha", "registro", "ingreso", "salida", "dias", "minutos"], indices: { placa: "placas", ubicacion: "ubicaciones", zona: "zonas" } }
+  },
+  espera: {
+    validar: (d) => validarColumnas2(d, "espera"),
+    dias: (d) => d.enturnamiento.map((s) => Math.floor(s / 86400)),
+    esquema: { filas: ["programada", "enturnamiento", "inicio", "fin", "espera", "atencion", "ftct"], indices: { placa: "placas", ubi: "ubis" } }
+  }
 });
 var rutasWip = (pool, sesion) => rutasCargas(pool, sesion, "Seguimiento WIP", {
-  wip: { validar: validarColumnasWip, dias: (d) => d.fecha }
+  wip: { validar: validarColumnasWip, dias: (d) => d.fecha, esquema: { filas: ["fecha", "total"], grupos: ["estados"], indices: { cd: "cds" } } }
 });
 var rutasOfe = (pool, sesion) => {
   const router = rutasCargas(pool, sesion, "OFE", {
-    fms: { validar: validarColumnasFms, dias: (d) => d.fecha }
+    fms: { validar: validarColumnasFms, dias: (d) => d.fecha, esquema: { filas: ["ralenti", "carga", "movimiento", "fecha", "turno"], indices: { forklift: "forklifts" } } }
   });
   router.use("/montacargas", rutasMontacargas(pool, sesion));
   return router;
