@@ -1,0 +1,92 @@
+/* Fondo vivo del inicio (Comando Central): efectos encima de la foto, en su mismo lugar (la escena tiene la proporción
+   de la foto, 1779 × 884). El cielo de la foto fluye (WebGL) y tiene relámpagos en la parte oscura; sombras y luces de
+   nubes que avanzan, camión encendido (luces de gálibo, traseras e intermitentes de parqueo,
+   humo del escape), montacargas con balizas y luz azul en el piso, faroles y bodegas con luz viva, llovizna y gotas en
+   el piso mojado. Las luces se dibujan en lienzos chicos (src/client/inicio.ts) y se mezclan con la foto ("screen").
+   Sin z-index ni transform en .cc-escena: así la mezcla toma la foto de fondo. */
+.cc-escena{position:absolute;left:0;top:0;width:100%;aspect-ratio:1779/884;overflow:hidden;pointer-events:none}
+.cc-escena canvas{position:absolute;mix-blend-mode:screen}
+
+/* Cielo que fluye (WebGL): las nubes de la foto se desplazan; aparece suave cuando la foto ya cargó. */
+.cc-escena .cc-cielo-vivo{left:0;top:0;width:100%;height:calc(570 / 884 * 100%);mix-blend-mode:normal;opacity:0;transition:opacity 1.5s ease;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.cc-escena .cc-cielo-vivo.cc-cielo-listo{opacity:1}
+/* Relámpagos: solo en la parte oscura del cielo, recortados a su contorno. */
+.cc-escena .cc-rayos{-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* Nubes: dos capas que avanzan sin parar, recortadas al cielo (máscara con bordes suaves). */
+.cc-nubes{position:absolute;left:0;top:0;width:100%;height:64.5%;overflow:hidden;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.cc-nubes-sombra{mix-blend-mode:multiply;opacity:.55}
+.cc-nubes-luz{mix-blend-mode:screen;opacity:.32}
+.cc-nubes-capa{position:absolute;left:0;top:0;width:200%;height:100%;background-repeat:repeat-x;background-size:50% 100%;will-change:transform}
+
+/* Llovizna: dos capas de gotas que bajan; y ondas en el piso mojado. */
+.cc-lluvia{position:absolute;inset:0;overflow:hidden;mix-blend-mode:screen;opacity:.22}
+.cc-lluvia-capa{position:absolute;left:0;width:100%;background-repeat:repeat;will-change:transform}
+.cc-lluvia-cerca{top:-240px;height:calc(100% + 240px);background-size:240px 240px}
+.cc-lluvia-lejos{top:-160px;height:calc(100% + 160px);background-size:160px 160px;opacity:.6}
+.cc-gota{position:absolute;width:calc(30 / 1779 * 100%);aspect-ratio:3/1;border:1px solid #ffdcb48c;border-radius:50%;opacity:0;transform:translate(-50%,-50%) scale(.2)}
+.cc-humo{position:absolute;width:calc(20 / 1779 * 100%);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#d6d6dc66 0,#d6d6dc26 45%,transparent 70%);opacity:0;transform:translate(-50%,-50%) scale(.3)}
+
+@media(prefers-reduced-motion:no-preference){
+  .cc-nubes-sombra .cc-nubes-capa{animation:cc-derivar 210s linear infinite}
+  .cc-nubes-luz .cc-nubes-capa{animation:cc-derivar 130s linear infinite}
+  .cc-lluvia-cerca{animation:cc-llover-cerca .42s linear infinite}
+  .cc-lluvia-lejos{animation:cc-llover-lejos .7s linear infinite}
+  .cc-gota{animation:cc-onda 1.5s cubic-bezier(.2,.7,.3,1) infinite}
+  .cc-humo{animation:cc-humo 4.2s linear infinite}
+  /* Camión encendido: gálibos y traseras fijas que respiran; intermitentes de parqueo a ritmo de 1,2 s. */
+  .cc-g-galibo{animation:cc-respirar 4s ease-in-out infinite}
+  .cc-g-trasera{animation:cc-respirar 3.2s ease-in-out infinite}
+  .cc-g-parqueo{animation:cc-intermitente 1.2s infinite}
+  /* Montacargas: dos balizas que destellan alternadas, luces rojas fijas y la luz azul de seguridad en el piso. */
+  .cc-g-baliza-a{animation:cc-destello 1.3s infinite}
+  .cc-g-baliza-b{animation:cc-destello 1.3s .65s infinite}
+  .cc-g-monta{animation:cc-respirar 2.6s ease-in-out infinite}
+  .cc-g-spot{animation:cc-pulso 1.8s ease-in-out infinite}
+  /* Bodegas: faroles con un leve titileo y el interior con luz que respira (y a veces parpadea, como un tubo). */
+  .cc-g-farol{animation:cc-titilar 6.5s infinite}
+  .cc-g-interior{animation:cc-tubo 9s infinite}
+}
+@media(prefers-reduced-motion:reduce){
+  .cc-lluvia,.cc-gota,.cc-humo{display:none}
+}
+@keyframes cc-derivar{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes cc-llover-cerca{from{transform:translateY(0)}to{transform:translateY(240px)}}
+@keyframes cc-llover-lejos{from{transform:translateY(0)}to{transform:translateY(160px)}}
+@keyframes cc-onda{0%{opacity:.75;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
+@keyframes cc-humo{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}15%{opacity:.55}100%{opacity:0;transform:translate(60%,-420%) scale(2.6)}}
+@keyframes cc-respirar{0%,100%{opacity:.82}50%{opacity:1}}
+@keyframes cc-intermitente{0%,44%{opacity:1}52%,94%{opacity:.04}100%{opacity:1}}
+@keyframes cc-destello{0%{opacity:1}7%{opacity:.05}14%{opacity:1}21%,100%{opacity:.05}}
+@keyframes cc-pulso{0%,100%{opacity:.65}50%{opacity:1}}
+@keyframes cc-titilar{0%,100%{opacity:.9}31%{opacity:.9}32%{opacity:.6}33%{opacity:.95}70%{opacity:1}72%{opacity:.8}74%{opacity:.95}}
+@keyframes cc-tubo{0%,100%{opacity:.7}40%{opacity:.95}61%{opacity:.95}62%{opacity:.35}63%{opacity:.9}64%{opacity:.5}66%{opacity:.95}80%{opacity:.8}}
+
+/* ---------- Menú: el módulo elegido avanza ----------
+   Al pasar el mouse (o con el teclado), el botón se adelanta con un pequeño rebote, se enciende una barra amarilla a la
+   izquierda y los demás se atenúan; al tocarlo da un impulso hacia adelante antes de abrir el módulo (inicio.ts). */
+/* La entrada del menú no se queda fija al terminar: si no, bloquea el avance y el atenuado. */
+.cc-menu>*{animation-fill-mode:backwards}
+.cc-menu .cc-boton{transition:transform .32s cubic-bezier(.34,1.56,.64,1),border-color .2s ease,background .2s ease,box-shadow .25s ease,opacity .2s ease;transform-origin:left center}
+.cc-menu .cc-boton::before{content:'';position:absolute;left:-1px;top:50%;width:3px;height:0;border-radius:0 3px 3px 0;background:var(--cc-amarillo);box-shadow:0 0 10px var(--cc-amarillo);transform:translateY(-50%);transition:height .25s cubic-bezier(.34,1.56,.64,1)}
+.cc-menu .cc-boton::after{color:var(--cc-amarillo)}
+.cc-menu .cc-boton:is(:hover,:focus-visible){z-index:1;border-color:var(--cc-amarillo);background:linear-gradient(90deg,#2a2306,#0b0b0c 55%,#000);box-shadow:0 1cqh 2.6cqh #000000d9,0 0 1.6cqw -.2cqw #ffd10059;transform:translateX(1.3cqw) scale(1.04)}
+.cc-menu .cc-boton:is(:hover,:focus-visible)::before{height:62%}
+.cc-menu:has(.cc-boton:hover) .cc-boton:not(:hover){opacity:.72}
+.cc-menu .cc-boton.cc-lanzar{z-index:1;border-color:var(--cc-amarillo);animation:cc-lanzar .34s cubic-bezier(.2,.8,.2,1) forwards}
+.cc-menu .cc-boton.cc-lanzar::before{height:80%}
+.cc-menu .cc-boton.cc-golpe{animation:cc-golpe .42s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cc-lanzar{
+  0%{transform:translateX(1.3cqw) scale(1.04);background:linear-gradient(90deg,#2a2306,#0b0b0c 55%,#000)}
+  45%{transform:translateX(2.6cqw) scale(1.08);background:linear-gradient(90deg,#ffd100,#5c4a00 60%,#0b0b0c);color:#111}
+  100%{transform:translateX(3.4cqw) scale(1.05);background:linear-gradient(90deg,#3d3208,#0b0b0c 60%,#000);opacity:.85}
+}
+@keyframes cc-golpe{0%{transform:translateX(1.3cqw) scale(1.04)}40%{transform:translateX(2.4cqw) scale(1.06)}100%{transform:translateX(1.3cqw) scale(1.04)}}
+@media(max-width:700px){
+  .cc-menu .cc-boton:is(:hover,:focus-visible){transform:translateX(8px) scale(1.02)}
+  @keyframes cc-lanzar{0%{transform:translateX(8px) scale(1.02)}45%{transform:translateX(18px) scale(1.04);background:linear-gradient(90deg,#ffd100,#5c4a00 60%,#0b0b0c);color:#111}100%{transform:translateX(24px) scale(1.03);opacity:.85}}
+}
+@media(prefers-reduced-motion:reduce){
+  .cc-menu .cc-boton,.cc-menu .cc-boton::before{transition:none}
+  .cc-menu .cc-boton:is(:hover,:focus-visible){transform:none}
+  .cc-menu .cc-boton.cc-lanzar,.cc-menu .cc-boton.cc-golpe{animation:none}
+}

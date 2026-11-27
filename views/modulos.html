@@ -7,13 +7,15 @@
 <script>try { document.documentElement.dataset.tema = localStorage.getItem('frescura-tema') || 'oscuro'; } catch (_) {}</script>
 <link rel="preload" as="image" href="/img/comando/fondo-inicio.jpg">
 <link rel="stylesheet" href="/control-design.css">
-<link rel="stylesheet" href="/comando.css">
+<link rel="stylesheet" href="/comando.css"><link rel="stylesheet" href="/escena-inicio.css">
 <script type="module" src="/js/modulos.js"></script>
 <script type="module" src="/js/inicio.js"></script>
 </head>
 <body class="cc-inicio">
 <!-- Réplica de la página "Inicio" del Power BI Seguimiento ATCT: el fondo trae el logo, el mapa y los CD; encima va el menú. -->
 <main class="cc-lienzo" aria-labelledby="ccTitulo">
+<!-- Fondo vivo: luces, nubes, llovizna y humo encima de la foto (src/client/inicio.ts, public/escena-inicio.css). -->
+<div class="cc-escena" aria-hidden="true"></div>
 <h1 id="ccTitulo" class="cc-oculto">Comando Central · Team WH North Regional · Torre Control Regional Norte</h1>
 <nav class="cc-menu" aria-label="Módulos">
 <a class="cc-boton" href="/t1">Seguimiento T1</a>
